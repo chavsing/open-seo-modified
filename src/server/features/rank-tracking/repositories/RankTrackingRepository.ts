@@ -21,6 +21,7 @@ import { DB_BATCH_SIZE, executeInBatches } from "@/db/runBatch";
 import type { RankTrackingSkipReason } from "@/shared/rank-tracking";
 import {
   getLatestSnapshotsForKeywords,
+  getBestPositionsForKeywords,
   getSnapshotsBeforeDate,
   getEarliestSnapshotsForKeywords,
   getKeywordHistory,
@@ -35,6 +36,8 @@ import {
   getLatestRunForConfig,
   getActiveRunForConfig,
   insertSnapshots,
+  upsertSnapshots,
+  deleteNotFoundSnapshots,
   getSnapshotsForRun,
 } from "./runQueries";
 
@@ -402,6 +405,8 @@ export const RankTrackingRepository = {
   getLatestRunForConfig,
   getActiveRunForConfig,
   insertSnapshots,
+  upsertSnapshots,
+  deleteNotFoundSnapshots,
   getSnapshotsForRun,
   getKeywordsForConfig,
   addKeywordsToConfig,
@@ -411,6 +416,7 @@ export const RankTrackingRepository = {
   getKeywordCountsForConfigs,
   getConfigSummaries,
   getLatestSnapshotsForKeywords,
+  getBestPositionsForKeywords,
   getSnapshotsBeforeDate,
   getEarliestSnapshotsForKeywords,
   getKeywordHistory,

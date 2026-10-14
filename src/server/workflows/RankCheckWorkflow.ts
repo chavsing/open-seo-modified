@@ -12,9 +12,9 @@ import {
 import { RankTrackingRepository } from "@/server/features/rank-tracking/repositories/RankTrackingRepository";
 import { failRunIfActive } from "@/server/features/rank-tracking/services/rankCheckRunGuards";
 import {
+  retryRankChecks,
   runLiveCheck,
   runQueuedCheck,
-  type QueuedCheckStats,
 } from "@/server/workflows/rankCheckPaths";
 import { pgStep } from "@/server/workflows/pgStep";
 import { createDataforseoClient } from "@/server/lib/dataforseo";
@@ -99,6 +99,7 @@ async function prepareRankCheckKeywords(input: {
   // Verify the user has enough credits for the full check before starting.
   // Scheduled checks go through the cheaper task queue, so estimate at queued
   // pricing — a live-price estimate would skip checks the user can afford.
+  // The estimate is the worst case, so it covers every retry.
   if (await isHostedServerAuthMode()) {
     const { monthlyRemaining, topupRemaining } = await getUsageCreditsRemaining(
       input.billingCustomer.organizationId,
@@ -132,7 +133,6 @@ async function finalizeRankCheckRun(input: {
   trigger: RankCheckParams["trigger"];
   devices: RankCheckParams["devices"];
   batchError: string | null;
-  queueStats: QueuedCheckStats | null;
 }) {
   // If stale-cleanup already marked our run failed, don't overwrite that
   // decision with a completed status — a replacement run may already be
@@ -207,17 +207,13 @@ async function finalizeRankCheckRun(input: {
     });
   }
 
-  // One-line summary per run so fallback rates are visible in Workers Logs.
-  // Keys match the PostHog event properties for log/event correlation.
-  const queueSummary = input.queueStats
-    ? ` queue_tasks=${input.queueStats.queueTasks} queue_collected=${input.queueStats.queueCollected} fallback_tasks=${input.queueStats.fallbackTasks} fallback_checked=${input.queueStats.fallbackChecked}`
-    : "";
+  // One-line summary per run, visible in Workers Logs.
   // Error text can echo vendor/user content — keep it one line and bounded.
   const errorSummary = errorMessage
     ? ` error="${errorMessage.replace(/\s+/g, " ").slice(0, 200)}"`
     : "";
   console.log(
-    `[rank-check] ${input.runId} ${status} org=${input.billingCustomer.organizationId} project=${input.projectId} trigger=${input.trigger} keywords=${keywordsChecked}/${keywordsTotal}${queueSummary}${errorSummary}`,
+    `[rank-check] ${input.runId} ${status} org=${input.billingCustomer.organizationId} project=${input.projectId} trigger=${input.trigger} keywords=${keywordsChecked}/${keywordsTotal}${errorSummary}`,
   );
 
   await captureServerEvent({
@@ -229,14 +225,6 @@ async function finalizeRankCheckRun(input: {
       status,
       trigger: input.trigger,
       keywords_checked: keywordsChecked,
-      ...(input.queueStats
-        ? {
-            queue_tasks: input.queueStats.queueTasks,
-            queue_collected: input.queueStats.queueCollected,
-            fallback_tasks: input.queueStats.fallbackTasks,
-            fallback_checked: input.queueStats.fallbackChecked,
-          }
-        : {}),
     },
   });
 }
@@ -351,7 +339,6 @@ export class RankCheckWorkflow extends WorkflowEntrypoint<
       console.log(`[rank-check] ${runId} loaded ${keywords.length} keywords`);
 
       let batchError: string | null = null;
-      let queueStats: QueuedCheckStats | null = null;
 
       try {
         const checkContext = {
@@ -366,12 +353,14 @@ export class RankCheckWorkflow extends WorkflowEntrypoint<
           runId,
         };
         // Scheduled checks use DataForSEO's task queue (~30% of live cost);
-        // manual checks stay on the live endpoint for instant results, and
-        // only the pairs the live endpoint missed go to the queue.
-        queueStats =
-          trigger === "scheduled"
-            ? await runQueuedCheck(step, checkContext)
-            : await runLiveCheck(step, checkContext);
+        // manual checks stay on the live endpoint for instant results.
+        // Retries always go through the queue.
+        if (trigger === "scheduled") {
+          await runQueuedCheck(step, checkContext);
+        } else {
+          await runLiveCheck(step, checkContext);
+        }
+        await retryRankChecks(step, checkContext, configId);
       } catch (error) {
         // Batch failure — snapshots for completed batches are already
         // persisted incrementally. Continue to finalization.
@@ -388,7 +377,6 @@ export class RankCheckWorkflow extends WorkflowEntrypoint<
           trigger,
           devices,
           batchError,
-          queueStats,
         }),
       );
     } catch (error) {
