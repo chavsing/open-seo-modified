@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkflowStep } from "cloudflare:workers";
 import type { RankCheckTaskInput } from "@/server/lib/dataforseo";
-import { retryRankChecks, runLiveCheck } from "./rankCheckPaths";
+import { runLiveCheck } from "./rankCheckPaths";
+import { retryRankChecks } from "./rankCheckRetries";
 
 const mocks = vi.hoisted(() => ({
   getSnapshotsForRun: vi.fn(),
@@ -145,6 +146,28 @@ describe("retryRankChecks", () => {
     expect(mocks.upsertSnapshots).toHaveBeenCalledOnce();
     expect(mocks.upsertSnapshots).toHaveBeenCalledWith([
       expect.objectContaining({ trackingKeywordId: "kw_0", position: 15 }),
+    ]);
+  });
+
+  it("retries a device's miss once a retry finds the keyword on the other device", async () => {
+    // Desktop missed on the first check and mobile errored.
+    mocks.getSnapshotsForRun.mockResolvedValue([snapshot("kw_new", null)]);
+    // Retry 1 answers mobile at #3; retry 2 answers desktop.
+    queuedResults(3, null);
+
+    await retryRankChecks(
+      step,
+      { ...checkContext(["kw_new"]), devices: "both" },
+      "config_1",
+    );
+
+    expect(mocks.rankCheckTaskPost).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        tasks: [expect.objectContaining({ device: "desktop" })],
+      }),
+    );
+    expect(mocks.deleteNotFoundSnapshots).toHaveBeenCalledWith([
+      { runId: "run_1", trackingKeywordId: "kw_new", device: "desktop" },
     ]);
   });
 
