@@ -47,6 +47,7 @@ describe("getOrganizationBillingAccount", () => {
       monthlyRemainingUsd: 1.5,
       topUpRemainingUsd: 2.5,
       hasManagedAccess: true,
+      isLifetime: false,
       isPastDue: true,
       monthlyRefillsAt: 1_790_000_000_000,
       invoiceEmailsEnabled: true,
@@ -62,10 +63,25 @@ describe("getOrganizationBillingAccount", () => {
       flags: { [AUTUMN_MANAGED_ACCESS_FEATURE_ID]: {} },
       balances: {},
       subscriptions: [{ pastDue: false }],
+      purchases: [],
     });
 
     await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
       { planStatus: "free", paidPlanId: null, hasManagedAccess: true },
+    );
+  });
+
+  it("marks a paid plan bought as a one-off purchase as lifetime", async () => {
+    getOrCreateMock.mockResolvedValueOnce({
+      id: "org_1",
+      flags: { [AUTUMN_PAID_PLAN_FEATURE_ID]: { planId: "lifetime-plan" } },
+      balances: {},
+      subscriptions: [],
+      purchases: [{ planId: "lifetime-plan", expiresAt: null }],
+    });
+
+    await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
+      { planStatus: "paid", isLifetime: true, monthlyRefillsAt: null },
     );
   });
 

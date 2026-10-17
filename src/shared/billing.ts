@@ -12,13 +12,14 @@ export type BillingTab = (typeof BILLING_TABS)[number]["value"];
 
 export type PlanStatus = "free" | "paid";
 
-export const AUTUMN_PAID_PLAN_ID = "base-plan";
-// YC deal: same entitlements as the base plan with $50 of monthly credits.
-export const AUTUMN_YC_PLAN_ID = "yc-plan";
+export const AUTUMN_PRO_PLAN_ID = "pro-plan";
+// One-off price in Autumn: paid once, never renews. Its included credits are
+// a one-time grant, since one-off plan balances never reset.
+export const AUTUMN_LIFETIME_PLAN_ID = "lifetime-plan";
 /** The plans the app sells through checkout. */
 export const CHECKOUT_PLAN_IDS = [
-  AUTUMN_PAID_PLAN_ID,
-  AUTUMN_YC_PLAN_ID,
+  AUTUMN_PRO_PLAN_ID,
+  AUTUMN_LIFETIME_PLAN_ID,
 ] as const;
 export type CheckoutPlanId = (typeof CHECKOUT_PLAN_IDS)[number];
 export const AUTUMN_SEO_DATA_TOP_UP_PLAN_ID = "credit-top-up";
@@ -46,13 +47,6 @@ export const AUTUMN_CHECKOUT_SESSION_PARAMS = {
   tax_id_collection: { enabled: true },
   billing_address_collection: "required",
   customer_update: { name: "auto", address: "auto" },
-} as const;
-
-// YC checkout additionally shows Stripe's promotion code field so founders
-// can redeem the YC deal code for their first month.
-export const AUTUMN_YC_CHECKOUT_SESSION_PARAMS = {
-  ...AUTUMN_CHECKOUT_SESSION_PARAMS,
-  allow_promotion_codes: true,
 } as const;
 
 export function roundUsdForBilling(value: number) {

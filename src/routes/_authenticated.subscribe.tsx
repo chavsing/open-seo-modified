@@ -9,14 +9,15 @@ import {
   prefetchBillingAccount,
 } from "@/client/features/billing/billingAccountQuery";
 import {
-  openUpgradeCheckout,
+  openPlanCheckout,
   prefetchUpgradeCheckout,
 } from "@/client/features/billing/checkout";
 import { PlanPageAccountMenu } from "@/client/features/billing/PlanPageAccountMenu";
 import { PlanOfferCard } from "@/client/features/billing/PlanOfferCard";
 import {
-  BASE_PLAN_OFFER,
-  monthlyCreditsFeature,
+  includedCreditsFeature,
+  PLAN_OFFERS,
+  type PlanOffer,
 } from "@/client/features/billing/plan-offers";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { useSession } from "@/lib/auth-client";
@@ -26,13 +27,18 @@ import { normalizeAuthRedirect } from "@/lib/auth-redirect";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { Button } from "@/client/components/ui/button";
+import type { CheckoutPlanId } from "@/shared/billing";
 
-const PLAN_FEATURES = [
+const planFeatures = (offer: PlanOffer) => [
   "Keyword research, backlinks, rank tracking, and site audits",
   "MCP server and agent skills for Claude, Cursor, and ChatGPT",
   "Google Search Console Integration",
-  monthlyCreditsFeature(BASE_PLAN_OFFER),
+  includedCreditsFeature(offer),
 ];
+
+// Every upgrade link returns to the app home; see UPGRADE_REDIRECT in
+// checkout.ts for why all plans share it.
+const CHECKOUT_REDIRECT = "/";
 
 // How long the post-checkout "finalizing" screen polls Autumn before giving
 // up and letting the user through anyway, and how often it polls.
@@ -71,7 +77,7 @@ function SubscribePage() {
   const navigate = useNavigate();
   const { upgrade: isUpgradeFlow, redirect, checkout } = Route.useSearch();
   const { data: session } = useSession();
-  const [isAttaching, setIsAttaching] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<CheckoutPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [finalizingTimedOut, setFinalizingTimedOut] = useState(false);
   const checkoutCompleted = checkout === "success";
@@ -176,12 +182,12 @@ function SubscribePage() {
     );
   }
 
-  async function handleSubscribe() {
+  async function handleSubscribe(planId: CheckoutPlanId) {
     setError(null);
-    setIsAttaching(true);
+    setPendingPlan(planId);
 
     try {
-      await openUpgradeCheckout();
+      await openPlanCheckout(planId, CHECKOUT_REDIRECT);
     } catch (err) {
       setError(
         getStandardErrorMessage(
@@ -189,14 +195,14 @@ function SubscribePage() {
           "We couldn't start the checkout. Please try again.",
         ),
       );
-      setIsAttaching(false);
+      setPendingPlan(null);
     }
   }
 
   const firstName = session?.user?.name?.split(" ")[0] || "";
 
   return (
-    <div className="w-full max-w-sm space-y-6">
+    <div className="w-full max-w-sm space-y-6 md:max-w-3xl">
       <PlanPageAccountMenu email={session?.user?.email} />
 
       <div className="space-y-3 text-center">
@@ -217,49 +223,42 @@ function SubscribePage() {
         </p>
       </div>
 
-      <PlanOfferCard
-        offer={BASE_PLAN_OFFER}
-        features={PLAN_FEATURES}
-        afterFeatures={
-          /* Sub-bullet of the Usage Credits line above. */
-          <li className="-mt-1 pl-6 text-xs">
-            <a
-              className="text-muted-foreground underline decoration-muted-foreground/40 decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
-              href="https://openseo.so/pricing"
-              target="_blank"
-              rel="noreferrer"
-              onClick={() =>
-                captureClientEvent("billing:pricing_estimator_click")
-              }
-            >
-              How far do usage credits go?{" "}
-              <span aria-hidden="true">&#8599;</span>
-            </a>
-          </li>
-        }
-      >
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
+      {error ? (
+        <p role="alert" className="text-center text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
 
-        {canManageBilling ? (
-          <Button
-            className="w-full"
-            variant="secondary"
-            pending={isAttaching}
-            onClick={() => void handleSubscribe()}
+      <div className="grid gap-4 md:grid-cols-2">
+        {PLAN_OFFERS.map((offer) => (
+          <PlanOfferCard
+            key={offer.planId}
+            offer={offer}
+            features={planFeatures(offer)}
           >
-            {isAttaching ? "Redirecting..." : "Subscribe"}
-          </Button>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Only the organization owner can subscribe. Ask them to upgrade this
-            organization.
-          </p>
-        )}
-      </PlanOfferCard>
+            {canManageBilling ? (
+              <Button
+                className="w-full"
+                variant={offer.billing === "once" ? "default" : "secondary"}
+                pending={pendingPlan === offer.planId}
+                disabled={pendingPlan !== null}
+                onClick={() => void handleSubscribe(offer.planId)}
+              >
+                {pendingPlan === offer.planId
+                  ? "Redirecting..."
+                  : offer.billing === "once"
+                    ? "Get lifetime access"
+                    : "Subscribe"}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Only the organization owner can subscribe. Ask them to upgrade
+                this organization.
+              </p>
+            )}
+          </PlanOfferCard>
+        ))}
+      </div>
 
       <div className="text-center space-y-2">
         <p className="text-sm text-muted-foreground">

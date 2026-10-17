@@ -1,4 +1,4 @@
-import { AUTUMN_PAID_PLAN_ID, AUTUMN_YC_PLAN_ID } from "@/shared/billing";
+import { AUTUMN_LIFETIME_PLAN_ID, AUTUMN_PRO_PLAN_ID } from "@/shared/billing";
 import type { BillingCustomerStatusSnapshot } from "./customer-status-model";
 
 // Leaf module (no runtime imports) so the transition rules are unit-testable.
@@ -6,8 +6,8 @@ import type { BillingCustomerStatusSnapshot } from "./customer-status-model";
 // Plans that charge money. A plan can grant `paid_plan` without a price
 // (friends and family), and those customers are not thanked for subscribing.
 const PRICED_PLAN_IDS: ReadonlySet<string> = new Set([
-  AUTUMN_PAID_PLAN_ID,
-  AUTUMN_YC_PLAN_ID,
+  AUTUMN_PRO_PLAN_ID,
+  AUTUMN_LIFETIME_PLAN_ID,
 ]);
 
 export type BillingLifecycleEvent = {

@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { Link } from "@tanstack/react-router";
 import { ErrorState } from "@/client/components/ErrorState";
 import { Button } from "@/client/components/ui/button";
-import { BASE_PLAN_OFFER } from "@/client/features/billing/plan-offers";
+import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
@@ -33,7 +33,7 @@ export function InsufficientCreditsError({
       <CreditsButton link={<Link to={BILLING_ROUTE} />} label="Go to Billing" />
     );
   } else if (isFreePlan) {
-    message = `You don't have enough credits for this. Upgrade to get $${BASE_PLAN_OFFER.monthlyCreditsUsd} of credits every month.`;
+    message = `You don't have enough credits for this. Upgrade to get $${PRO_PLAN_OFFER.includedCreditsUsd} of credits every month.`;
     action = (
       <CreditsButton
         link={<Link to={SUBSCRIBE_ROUTE} search={{ upgrade: true }} />}

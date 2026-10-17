@@ -25,6 +25,7 @@ import { useCanManageBilling } from "@/client/features/team/organizationQueries"
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { prefetchBillingAccount } from "@/client/features/billing/billingAccountQuery";
 import {
+  openLifetimeCheckout,
   openUpgradeCheckout,
   prefetchUpgradeCheckout,
 } from "@/client/features/billing/checkout";
@@ -33,9 +34,11 @@ import { parseTopUpAmount } from "@/client/features/billing/HostedBillingContent
 import { billingUsageEventsQueryOptions } from "@/client/features/billing/useBillingUsageEvents";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import {
-  BASE_PLAN_OFFER,
+  formatPlanPrice,
   getPlanName,
-  monthlyCreditsFeature,
+  includedCreditsFeature,
+  PLAN_OFFERS,
+  PRO_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
 import {
   createBillingPortalSession,
@@ -68,7 +71,7 @@ export const Route = createFileRoute("/_app/billing")({
   component: BillingPage,
 });
 
-type BillingAction = "plan" | "topUp";
+type BillingAction = "plan" | "lifetime" | "topUp";
 
 function BillingPage() {
   const { tab } = Route.useSearch();
@@ -180,7 +183,8 @@ function BillingPage() {
                   {!isFreePlan ? (
                     <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
                       <span className="tabular-nums">
-                        Monthly ${monthlyRemaining.toFixed(2)}
+                        {account.isLifetime ? "Included" : "Monthly"} $
+                        {monthlyRemaining.toFixed(2)}
                       </span>
                       <span>&middot;</span>
                       <span className="tabular-nums">
@@ -192,7 +196,7 @@ function BillingPage() {
                     <p className="mt-2 text-xs text-destructive">
                       {isFreePlan
                         ? "You’ve used your free credits. Upgrade your plan to continue."
-                        : `You’ve used this month’s credits. Buy more below to keep going${
+                        : `You’ve used ${refillDate ? "this month’s" : "your"} credits. Buy more below to keep going${
                             refillDate
                               ? `, or wait for them to refill on ${refillDate}`
                               : ""
@@ -202,7 +206,7 @@ function BillingPage() {
                     <p className="mt-2 text-xs text-amber-600">
                       You&rsquo;re running low on credits.{" "}
                       {isFreePlan
-                        ? `Upgrade to get $${BASE_PLAN_OFFER.monthlyCreditsUsd}/month.`
+                        ? `Upgrade to get $${PRO_PLAN_OFFER.includedCreditsUsd}/month.`
                         : "Buy more credits below."}
                     </p>
                   ) : null}
@@ -219,7 +223,7 @@ function BillingPage() {
                     <span className="text-muted-foreground">
                       {" "}
                       &middot; ${account.monthlyCreditsUsd.toFixed(2)} of Usage
-                      Credits each month
+                      Credits {account.isLifetime ? "included" : "each month"}
                     </span>
                   ) : null}
                 </div>
@@ -230,49 +234,63 @@ function BillingPage() {
                     credits. Ask them if you need more.
                   </p>
                 ) : isFreePlan ? (
-                  <div className="space-y-3 border-t border-border pt-3">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <span className="text-sm font-medium">
-                        {BASE_PLAN_OFFER.name}
-                      </span>
-                      <span className="text-sm font-medium tabular-nums">
-                        ${BASE_PLAN_OFFER.priceUsd}/month
-                      </span>
-                    </div>
-                    <ul className="space-y-1.5">
-                      {[
-                        "Access to all OpenSEO features",
-                        monthlyCreditsFeature(BASE_PLAN_OFFER),
-                      ].map((item) => (
-                        <li
-                          key={item}
-                          className="flex gap-2 text-xs text-muted-foreground"
-                        >
-                          <span className="mt-[1px] shrink-0 text-muted-foreground/60">
-                            &mdash;
-                          </span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      pending={pendingAction === "plan"}
-                      disabled={pendingAction !== null}
-                      onClick={() =>
-                        void runAction(
-                          "plan",
-                          openUpgradeCheckout,
-                          "We couldn't start the checkout. Please try again.",
-                        )
-                      }
-                    >
-                      {pendingAction === "plan"
-                        ? "Redirecting to Stripe..."
-                        : "Upgrade Plan"}
-                    </Button>
-                    {actionError("plan")}
+                  <div className="space-y-4 border-t border-border pt-3">
+                    {PLAN_OFFERS.map((offer) => {
+                      const action =
+                        offer.billing === "once" ? "lifetime" : "plan";
+                      return (
+                        <div key={offer.planId} className="space-y-3">
+                          <div className="flex items-baseline justify-between gap-4">
+                            <span className="text-sm font-medium">
+                              {offer.name}
+                            </span>
+                            <span className="text-sm font-medium tabular-nums">
+                              {formatPlanPrice(offer)}
+                            </span>
+                          </div>
+                          <ul className="space-y-1.5">
+                            {[
+                              "Access to all OpenSEO features",
+                              includedCreditsFeature(offer),
+                            ].map((item) => (
+                              <li
+                                key={item}
+                                className="flex gap-2 text-xs text-muted-foreground"
+                              >
+                                <span className="mt-[1px] shrink-0 text-muted-foreground/60">
+                                  &mdash;
+                                </span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                          <Button
+                            variant={
+                              action === "lifetime" ? "default" : "secondary"
+                            }
+                            className="w-full"
+                            pending={pendingAction === action}
+                            disabled={pendingAction !== null}
+                            onClick={() =>
+                              void runAction(
+                                action,
+                                action === "lifetime"
+                                  ? openLifetimeCheckout
+                                  : openUpgradeCheckout,
+                                "We couldn't start the checkout. Please try again.",
+                              )
+                            }
+                          >
+                            {pendingAction === action
+                              ? "Redirecting to Stripe..."
+                              : action === "lifetime"
+                                ? "Get lifetime access"
+                                : "Upgrade Plan"}
+                          </Button>
+                          {actionError(action)}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -291,7 +309,9 @@ function BillingPage() {
                     >
                       {pendingAction === "plan"
                         ? "Opening Stripe..."
-                        : "Manage subscription"}
+                        : account.isLifetime
+                          ? "Billing details"
+                          : "Manage subscription"}
                     </Button>
                     {actionError("plan")}
                   </div>

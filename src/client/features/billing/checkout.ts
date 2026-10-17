@@ -6,7 +6,11 @@ import { queryClient } from "@/client/tanstack-db";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { hasOrgPermission } from "@/lib/org-permissions";
 import { createPlanCheckout } from "@/serverFunctions/billing";
-import { AUTUMN_PAID_PLAN_ID, type CheckoutPlanId } from "@/shared/billing";
+import {
+  AUTUMN_LIFETIME_PLAN_ID,
+  AUTUMN_PRO_PLAN_ID,
+  type CheckoutPlanId,
+} from "@/shared/billing";
 
 const planCheckoutQueryOptions = (planId: CheckoutPlanId, redirectTo: string) =>
   queryOptions({
@@ -44,7 +48,7 @@ export function prefetchUpgradeCheckout() {
         return;
       }
       return queryClient.prefetchQuery(
-        planCheckoutQueryOptions(AUTUMN_PAID_PLAN_ID, UPGRADE_REDIRECT),
+        planCheckoutQueryOptions(AUTUMN_PRO_PLAN_ID, UPGRADE_REDIRECT),
       );
     })
     // The click creates the link itself if this didn't.
@@ -61,9 +65,20 @@ export async function openPlanCheckout(
     planId,
     link_ready: queryClient.getQueryData(options.queryKey) !== undefined,
   });
-  window.location.assign(await queryClient.fetchQuery(options));
+  const url = await queryClient.fetchQuery(options);
+  // Making this link expired any other plan's open checkout (see above), so
+  // drop those cached links rather than send a later click to a dead page.
+  queryClient.removeQueries({
+    queryKey: ["billing", "checkout-url"],
+    predicate: (query) => query.queryKey[2] !== planId,
+  });
+  window.location.assign(url);
 }
 
 export function openUpgradeCheckout() {
-  return openPlanCheckout(AUTUMN_PAID_PLAN_ID, UPGRADE_REDIRECT);
+  return openPlanCheckout(AUTUMN_PRO_PLAN_ID, UPGRADE_REDIRECT);
+}
+
+export function openLifetimeCheckout() {
+  return openPlanCheckout(AUTUMN_LIFETIME_PLAN_ID, UPGRADE_REDIRECT);
 }

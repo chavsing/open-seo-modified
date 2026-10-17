@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import type { PlanOffer } from "@/client/features/billing/plan-offers";
+import {
+  formatPlanPrice,
+  type PlanOffer,
+} from "@/client/features/billing/plan-offers";
 import { Card, CardContent } from "@/client/components/ui/card";
 import {
   Tooltip,
@@ -8,8 +11,8 @@ import {
 } from "@/client/components/ui/tooltip";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 
-// Shared card for the full-page checkout screens (/subscribe, /yc). Callers
-// pass the CTA and any extra notes as children.
+// Shared card for the full-page checkout screen (/subscribe). Callers pass
+// the CTA and any extra notes as children.
 export function PlanOfferCard({
   offer,
   features,
@@ -27,7 +30,7 @@ export function PlanOfferCard({
         <div className="flex items-baseline justify-between gap-4">
           <span className="font-semibold">{offer.name}</span>
           <span className="text-lg font-semibold tabular-nums">
-            ${offer.priceUsd}/month
+            {formatPlanPrice(offer)}
           </span>
         </div>
 
@@ -55,10 +58,12 @@ export function PlanOfferCard({
             </TooltipTrigger>
             <TooltipContent>
               Not for you yet? Email {SUPPORT_EMAIL} within 30 days of your
-              charge and we'll refund your subscription.
+              charge and we'll refund your payment.
             </TooltipContent>
           </Tooltip>
-          . Cancel anytime. Powered by Stripe.
+          {offer.billing === "monthly"
+            ? ". Cancel anytime. Powered by Stripe."
+            : ". Pay once, no renewals. Powered by Stripe."}
         </p>
       </CardContent>
     </Card>

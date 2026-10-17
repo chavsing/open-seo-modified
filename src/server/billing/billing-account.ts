@@ -21,6 +21,9 @@ type BillingAccount = {
   monthlyRemainingUsd: number;
   topUpRemainingUsd: number;
   hasManagedAccess: boolean;
+  /** The paid plan was a one-off purchase (lifetime access): no renewals,
+   *  nothing to cancel. */
+  isLifetime: boolean;
   isPastDue: boolean;
   /** When the monthly credits refill, in epoch ms. Null for the free plan's
    *  one-time credits and for a paid plan canceled at period end, which ends
@@ -68,6 +71,9 @@ export async function getOrganizationBillingAccount(
     monthlyRemainingUsd: autumnSeoDataCreditsToUsd(monthly?.remaining ?? 0),
     topUpRemainingUsd: autumnSeoDataCreditsToUsd(topUp?.remaining ?? 0),
     hasManagedAccess: Boolean(customer.flags[AUTUMN_MANAGED_ACCESS_FEATURE_ID]),
+    isLifetime:
+      !paidSubscription &&
+      customer.purchases.some((p) => p.planId === paidFlag?.planId),
     isPastDue: customer.subscriptions.some((s) => s.pastDue),
     monthlyRefillsAt: paidSubscription?.canceledAt
       ? null

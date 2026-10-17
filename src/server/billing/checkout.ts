@@ -5,12 +5,12 @@ import { autumn } from "@/server/billing/autumn";
 import { AppError } from "@/server/lib/errors";
 import {
   AUTUMN_CHECKOUT_SESSION_PARAMS,
-  AUTUMN_PAID_PLAN_ID,
+  AUTUMN_LIFETIME_PLAN_ID,
+  AUTUMN_PAID_PLAN_FEATURE_ID,
+  AUTUMN_PRO_PLAN_ID,
   AUTUMN_SEO_DATA_CREDITS_PER_USD,
   AUTUMN_SEO_DATA_TOP_UP_PLAN_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-  AUTUMN_YC_CHECKOUT_SESSION_PARAMS,
-  AUTUMN_YC_PLAN_ID,
   BILLING_ROUTE,
   SUBSCRIBE_ROUTE,
   type CheckoutPlanId,
@@ -23,8 +23,8 @@ const PLAN_CHECKOUT_SESSION_PARAMS: Record<
   CheckoutPlanId,
   Record<string, unknown>
 > = {
-  [AUTUMN_PAID_PLAN_ID]: AUTUMN_CHECKOUT_SESSION_PARAMS,
-  [AUTUMN_YC_PLAN_ID]: AUTUMN_YC_CHECKOUT_SESSION_PARAMS,
+  [AUTUMN_PRO_PLAN_ID]: AUTUMN_CHECKOUT_SESSION_PARAMS,
+  [AUTUMN_LIFETIME_PLAN_ID]: AUTUMN_CHECKOUT_SESSION_PARAMS,
 };
 
 // redirectMode "always" makes Autumn return a link instead of billing: Stripe
@@ -50,10 +50,23 @@ async function createCheckoutUrl(
   return paymentUrl;
 }
 
-export function createPlanCheckoutUrl(
+export async function createPlanCheckoutUrl(
   caller: BillingCaller,
   args: { planId: CheckoutPlanId; redirectTo: string; origin: string },
 ) {
+  requireOrgPermission(caller, { billing: ["manage"] });
+  // Autumn sells Lifetime as a one-off purchase that leaves a Pro
+  // subscription billing, so a second paid plan would charge on top of the
+  // first. The app only offers plans to free orgs; this covers a checkout
+  // started in another tab after paying. Plan switches go through support.
+  const { allowed: hasPaidPlan } = await autumn.check({
+    customerId: caller.organizationId,
+    featureId: AUTUMN_PAID_PLAN_FEATURE_ID,
+  });
+  if (hasPaidPlan) {
+    throw new AppError("ALREADY_ON_PAID_PLAN");
+  }
+
   // /subscribe waits for Autumn to show the new plan, then forwards to
   // redirectTo.
   const successUrl = new URL(SUBSCRIBE_ROUTE, args.origin);

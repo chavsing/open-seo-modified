@@ -5,7 +5,11 @@ import { GateCard } from "@/client/components/GateCard";
 import { SkeletonCard } from "@/client/components/SkeletonPresets";
 import { Button } from "@/client/components/ui/button";
 import { useHostedPlanGate } from "@/client/features/billing/HostedPlanGate";
-import { BASE_PLAN_OFFER } from "@/client/features/billing/plan-offers";
+import {
+  formatPlanPrice,
+  LIFETIME_PLAN_OFFER,
+  PRO_PLAN_OFFER,
+} from "@/client/features/billing/plan-offers";
 import { SUBSCRIBE_ROUTE } from "@/shared/billing";
 
 export type PaidPlanGateCopy = {
@@ -40,9 +44,10 @@ export function PaidPlanGate({
           <>
             <p className="max-w-xl">{description}</p>
             <p className="max-w-xl">
-              It runs on costlier AI data, so it&apos;s part of the{" "}
-              {BASE_PLAN_OFFER.name}: ${BASE_PLAN_OFFER.priceUsd} a month, with
-              ${BASE_PLAN_OFFER.monthlyCreditsUsd} of usage credits included.
+              It runs on costlier AI data, so it&apos;s part of the paid plans:
+              the {PRO_PLAN_OFFER.name} at {formatPlanPrice(PRO_PLAN_OFFER)}, or{" "}
+              {LIFETIME_PLAN_OFFER.name} for{" "}
+              {formatPlanPrice(LIFETIME_PLAN_OFFER)}.
             </p>
           </>
         }
@@ -53,7 +58,7 @@ export function PaidPlanGate({
               nativeButton={false}
               render={<Link to={SUBSCRIBE_ROUTE} search={{ upgrade: true }} />}
             >
-              View plan
+              View plans
             </Button>
             {alternative}
           </>

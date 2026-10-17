@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AppBanner } from "@/client/layout/AppBanner";
-import { BASE_PLAN_OFFER } from "@/client/features/billing/plan-offers";
+import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
@@ -50,12 +50,12 @@ export function FreePlanBanner() {
         {isFreePlan ? (
           <>
             You&rsquo;ve used your free credits. {creditsActionLink} to get $
-            {BASE_PLAN_OFFER.monthlyCreditsUsd} of credits every month.
+            {PRO_PLAN_OFFER.includedCreditsUsd} of credits every month.
           </>
         ) : (
           <>
-            You&rsquo;ve used this month&rsquo;s credits. {creditsActionLink} to
-            keep going
+            You&rsquo;ve used {refillDate ? "this month’s" : "your"} credits.{" "}
+            {creditsActionLink} to keep going
             {refillDate ? `, or wait for them to refill on ${refillDate}` : ""}.
           </>
         )}

@@ -7,7 +7,7 @@ import {
 const snapshot = (
   overrides: Partial<Parameters<typeof deriveBillingLifecycleEvents>[1]> = {},
 ) => ({
-  paidPlanId: "base-plan",
+  paidPlanId: "pro-plan",
   paidPlanStatus: "active",
   isPaying: true,
   pastDue: false,
@@ -24,7 +24,7 @@ const free = snapshot({
 describe("deriveBillingLifecycleEvents", () => {
   it("starts a subscription when a priced plan first activates", () => {
     expect(deriveBillingLifecycleEvents(free, snapshot())).toEqual([
-      { name: "subscription_started", planId: "base-plan" },
+      { name: "subscription_started", planId: "pro-plan" },
     ]);
   });
 
@@ -38,7 +38,7 @@ describe("deriveBillingLifecycleEvents", () => {
     expect(
       deriveBillingLifecycleEvents(
         snapshot(),
-        snapshot({ paidPlanId: "yc-plan" }),
+        snapshot({ paidPlanId: "lifetime-plan" }),
       ),
     ).toEqual([]);
   });
@@ -46,14 +46,14 @@ describe("deriveBillingLifecycleEvents", () => {
   it("reports a payment failure once when the subscription goes past due", () => {
     const pastDue = snapshot({ pastDue: true });
     expect(deriveBillingLifecycleEvents(snapshot(), pastDue)).toEqual([
-      { name: "payment_failed", planId: "base-plan" },
+      { name: "payment_failed", planId: "pro-plan" },
     ]);
     expect(deriveBillingLifecycleEvents(pastDue, pastDue)).toEqual([]);
   });
 
   it("reports a cancellation once, whether scheduled or immediate", () => {
     const canceling = snapshot({ canceledAt: 1_790_000_000_000 });
-    const canceled = { name: "subscription_canceled", planId: "base-plan" };
+    const canceled = { name: "subscription_canceled", planId: "pro-plan" };
     expect(deriveBillingLifecycleEvents(snapshot(), canceling)).toEqual([
       canceled,
     ]);

@@ -49,12 +49,24 @@ describe("deriveBillingCustomerStatusSnapshot", () => {
         paidPlanStatus: "past_due",
       },
     },
-  ])("$name", ({ flags, subscriptions, expected }) => {
+    {
+      name: "a lifetime purchase with no subscription is paying",
+      flags: paidFlags("lifetime-plan"),
+      subscriptions: [],
+      purchases: [{ planId: "lifetime-plan", expiresAt: null }],
+      expected: {
+        isPaying: true,
+        paidPlanId: "lifetime-plan",
+        paidPlanStatus: "active",
+      },
+    },
+  ])("$name", ({ flags, subscriptions, purchases, expected }) => {
     expect(
       deriveBillingCustomerStatusSnapshot({
         id: "org_123",
         flags,
         subscriptions,
+        purchases,
       }),
     ).toMatchObject({ organizationId: "org_123", ...expected });
   });

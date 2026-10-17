@@ -13,10 +13,19 @@ const autumnSubscriptionSchema = z
   })
   .passthrough();
 
+// A one-off plan (lifetime access) is a purchase, not a subscription.
+const autumnPurchaseSchema = z
+  .object({
+    planId: z.string().nullish(),
+    expiresAt: z.number().nullish(),
+  })
+  .passthrough();
+
 const autumnCustomerSchema = z
   .object({
     id: z.string().nullish(),
     subscriptions: z.array(autumnSubscriptionSchema).optional(),
+    purchases: z.array(autumnPurchaseSchema).optional(),
     flags: z
       .record(
         z.string(),
@@ -57,12 +66,25 @@ export function deriveBillingCustomerStatusSnapshot(
   const subscription = paidPlanId
     ? selectSubscription(customer.subscriptions ?? [], paidPlanId)
     : null;
+  // A lifetime purchase has no subscription status; an unexpired purchase of
+  // the paid plan counts as active.
+  const hasActivePurchase =
+    !subscription &&
+    paidPlanId !== null &&
+    (customer.purchases ?? []).some(
+      (p) =>
+        p.planId === paidPlanId &&
+        (p.expiresAt == null || p.expiresAt > Date.now()),
+    );
+  const paidPlanStatus = hasActivePurchase
+    ? "active"
+    : (subscription?.status ?? null);
 
   return {
     organizationId,
-    isPaying: subscription?.status === "active",
+    isPaying: paidPlanStatus === "active",
     paidPlanId,
-    paidPlanStatus: subscription?.status ?? null,
+    paidPlanStatus,
     pastDue: subscription?.pastDue === true,
     canceledAt: subscription?.canceledAt ?? null,
     // Full payload kept verbatim — query rarely-used fields via json_extract.
