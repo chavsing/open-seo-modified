@@ -1,0 +1,12 @@
+// Static landing page. Deploy from this folder with `npx wrangler deploy -c wrangler.jsonc`,
+// then attach the client's root domain (yourbrand.com) under the worker's
+// Settings → Domains & Routes in the Cloudflare dashboard.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "yourbrand-landing",
+  "compatibility_date": "2025-09-02",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page",
+  },
+}

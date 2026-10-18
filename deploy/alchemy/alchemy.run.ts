@@ -320,6 +320,16 @@ export default Alchemy.Stack(
     );
     const databaseProvider = yield* optionalVar("DATABASE_PROVIDER");
     const workersSubdomain = yield* readWorkersSubdomain({ required: false });
+    // A bare hostname (app.example.com) the worker serves on any non-prod
+    // stage, such as a hosted SaaS on its own Cloudflare account.
+    const appDomain = yield* optionalVar("APP_DOMAIN");
+    if (appDomain && !/^[a-z0-9.-]+$/i.test(appDomain)) {
+      return yield* Effect.die(
+        new Error(
+          `APP_DOMAIN must be a bare hostname like app.example.com, got "${appDomain}".`,
+        ),
+      );
+    }
 
     // Auth needs an absolute BETTER_AUTH_URL. Prod sets it explicitly;
     // previews always derive it from the deterministic worker name — a wrong
@@ -343,6 +353,8 @@ export default Alchemy.Stack(
           ),
         );
       }
+    } else if (appDomain) {
+      authUrl = `https://${appDomain}`;
     } else if (workersSubdomain) {
       authUrl = `https://${workerName(stage)}.${workersSubdomain}`;
     } else if (authMode === "hosted") {
@@ -432,7 +444,11 @@ export default Alchemy.Stack(
     const app = yield* Cloudflare.Worker("open-seo", {
       name: workerName(stage),
       // Prod serves the real domains; the zone is inferred from the hostname.
-      domain: prod ? ["app.openseo.so", "www.app.openseo.so"] : undefined,
+      domain: prod
+        ? ["app.openseo.so", "www.app.openseo.so"]
+        : appDomain
+          ? [appDomain]
+          : undefined,
       // Prebuilt worker from `vite build` (@cloudflare/vite-plugin). The entry
       // exports the DO + WorkflowEntrypoint classes (re-exported by
       // src/server.ts), which `bundle: false` requires. Sibling chunks under

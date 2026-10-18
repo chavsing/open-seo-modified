@@ -30,6 +30,8 @@
     "**/*.{js,mjs,ts,tsx}",
     "!src/routeTree.gen.ts",
     "!web/**",
+    // Static landing page (landing/), served as plain files
+    "!landing/**",
     // Alchemy state/bundle artifacts (gitignored)
     "!.alchemy/**",
     "!tests/badseo/**",
