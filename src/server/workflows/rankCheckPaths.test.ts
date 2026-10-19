@@ -151,13 +151,13 @@ describe("retryRankChecks", () => {
 
   it("retries a device's miss once a retry finds the keyword on the other device", async () => {
     // Desktop missed on the first check and mobile errored.
-    mocks.getSnapshotsForRun.mockResolvedValue([snapshot("kw_new", null)]);
+    mocks.getSnapshotsForRun.mockResolvedValue([snapshot("kw_never", null)]);
     // Retry 1 answers mobile at #3; retry 2 answers desktop.
     queuedResults(3, null);
 
     await retryRankChecks(
       step,
-      { ...checkContext(["kw_new"]), devices: "both" },
+      { ...checkContext(["kw_never"]), devices: "both" },
       "config_1",
     );
 
@@ -167,8 +167,21 @@ describe("retryRankChecks", () => {
       }),
     );
     expect(mocks.deleteNotFoundSnapshots).toHaveBeenCalledWith([
-      { runId: "run_1", trackingKeywordId: "kw_new", device: "desktop" },
+      { runId: "run_1", trackingKeywordId: "kw_never", device: "desktop" },
     ]);
+  });
+
+  it("finds a new keyword on its second recheck after the first recheck misses", async () => {
+    mocks.getSnapshotsForRun.mockResolvedValue([snapshot("kw_new", null)]);
+    queuedResults(null, 3);
+
+    await retryRankChecks(step, checkContext(["kw_new"]), "config_1");
+
+    expect(mocks.rankCheckTaskPost).toHaveBeenCalledTimes(2);
+    expect(mocks.upsertSnapshots).toHaveBeenCalledWith([
+      expect.objectContaining({ trackingKeywordId: "kw_new", position: 3 }),
+    ]);
+    expect(mocks.deleteNotFoundSnapshots).not.toHaveBeenCalled();
   });
 
   it("never saves a not found for a keyword that ranked before", async () => {
