@@ -1,83 +1,96 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  AUTUMN_MANAGED_ACCESS_FEATURE_ID,
-  AUTUMN_PAID_PLAN_FEATURE_ID,
-  AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-  AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-} from "@/shared/billing";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FREE_PLAN_CREDITS } from "@/shared/billing";
 
-const { getOrCreateMock } = vi.hoisted(() => ({ getOrCreateMock: vi.fn() }));
-
-vi.mock("@/server/billing/autumn", () => ({
-  autumn: { customers: { getOrCreate: getOrCreateMock } },
-}));
+const { testDb } = await vi.hoisted(async () => {
+  const { createAiVisibilityTestDb } =
+    await import("@/server/features/ai-visibility/aiVisibilityTestDb");
+  return { testDb: await createAiVisibilityTestDb() };
+});
+vi.mock("cloudflare:workers", () => ({ env: { DATABASE_PROVIDER: "d1" } }));
+vi.mock("@/db", () => ({ db: testDb.db }));
+vi.mock("@/db/runBatch", () => ({ runBatch: testDb.runBatch }));
 
 import { getOrganizationBillingAccount } from "./billing-account";
 
+// The harness seeds organization "organization".
 const context = {
-  organizationId: "org_1",
+  organizationId: "organization",
   userEmail: "owner@example.com",
   userId: "user_1",
 };
 
-describe("getOrganizationBillingAccount", () => {
-  it("follows the paid entitlement for the plan and reads credits in USD", async () => {
-    getOrCreateMock.mockResolvedValueOnce({
-      id: "org_1",
-      flags: {
-        [AUTUMN_PAID_PLAN_FEATURE_ID]: { planId: "friends_and_family_2" },
-        [AUTUMN_MANAGED_ACCESS_FEATURE_ID]: {},
-      },
-      balances: {
-        [AUTUMN_SEO_DATA_BALANCE_FEATURE_ID]: {
-          granted: 20000,
-          remaining: 1500,
-          nextResetAt: 1_790_000_000_000,
-        },
-        [AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID]: { remaining: 2500 },
-      },
-      subscriptions: [{ planId: "friends_and_family_2", pastDue: true }],
-      sendEmailReceipts: true,
-    });
+async function setPlan(args: {
+  planId: string;
+  planStatus: string;
+  currentPeriodEnd?: string;
+  monthlyGranted: number;
+  nextResetAt?: string;
+}) {
+  await getOrganizationBillingAccount(context);
+  await testDb.client.batch([
+    {
+      sql: "UPDATE billing_accounts SET plan_id = ?, plan_status = ?, current_period_end = ?",
+      args: [args.planId, args.planStatus, args.currentPeriodEnd ?? null],
+    },
+    {
+      sql: "UPDATE credit_balances SET granted = ?, remaining = ?, next_reset_at = ? WHERE pool = 'usage_credits'",
+      args: [
+        args.monthlyGranted,
+        args.monthlyGranted,
+        args.nextResetAt ?? null,
+      ],
+    },
+  ]);
+}
 
+beforeEach(async () => {
+  await testDb.client.executeMultiple(`
+    DELETE FROM credit_balances;
+    DELETE FROM billing_accounts;
+  `);
+  await testDb.seedProject();
+});
+
+describe("getOrganizationBillingAccount", () => {
+  it("starts a new org on the free plan with its free credits", async () => {
     await expect(getOrganizationBillingAccount(context)).resolves.toEqual({
-      planStatus: "paid",
-      paidPlanId: "friends_and_family_2",
-      monthlyCreditsUsd: 20,
-      monthlyRemainingUsd: 1.5,
-      topUpRemainingUsd: 2.5,
+      planStatus: "free",
+      paidPlanId: null,
+      monthlyCreditsUsd: FREE_PLAN_CREDITS / 1000,
+      monthlyRemainingUsd: FREE_PLAN_CREDITS / 1000,
+      topUpRemainingUsd: 0,
       hasManagedAccess: true,
       isLifetime: false,
-      isPastDue: true,
-      monthlyRefillsAt: 1_790_000_000_000,
-      invoiceEmailsEnabled: true,
+      isPastDue: false,
+      monthlyRefillsAt: null,
+      invoiceEmailsEnabled: false,
     });
-    // The organization is the billing identity.
-    expect(getOrCreateMock).toHaveBeenCalledWith({
-      customerId: "org_1",
-      email: "owner@example.com",
-    });
+  });
 
-    getOrCreateMock.mockResolvedValueOnce({
-      id: "org_1",
-      flags: { [AUTUMN_MANAGED_ACCESS_FEATURE_ID]: {} },
-      balances: {},
-      subscriptions: [{ pastDue: false }],
-      purchases: [],
+  it("shows a Pro subscriber's monthly credits and refill date", async () => {
+    await setPlan({
+      planId: "pro-plan",
+      planStatus: "active",
+      monthlyGranted: 50_000,
+      nextResetAt: "2030-01-01T00:00:00.000Z",
     });
 
     await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
-      { planStatus: "free", paidPlanId: null, hasManagedAccess: true },
+      {
+        planStatus: "paid",
+        paidPlanId: "pro-plan",
+        monthlyCreditsUsd: 50,
+        isLifetime: false,
+        monthlyRefillsAt: Date.parse("2030-01-01T00:00:00.000Z"),
+      },
     );
   });
 
-  it("marks a paid plan bought as a one-off purchase as lifetime", async () => {
-    getOrCreateMock.mockResolvedValueOnce({
-      id: "org_1",
-      flags: { [AUTUMN_PAID_PLAN_FEATURE_ID]: { planId: "lifetime-plan" } },
-      balances: {},
-      subscriptions: [],
-      purchases: [{ planId: "lifetime-plan", expiresAt: null }],
+  it("marks lifetime access, which never refills", async () => {
+    await setPlan({
+      planId: "lifetime-plan",
+      planStatus: "active",
+      monthlyGranted: 100_000,
     });
 
     await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
@@ -85,34 +98,17 @@ describe("getOrganizationBillingAccount", () => {
     );
   });
 
-  it("gives no refill date for a paid plan canceled at period end", async () => {
-    getOrCreateMock.mockResolvedValueOnce({
-      id: "org_1",
-      flags: { [AUTUMN_PAID_PLAN_FEATURE_ID]: { planId: "base-plan" } },
-      balances: {
-        [AUTUMN_SEO_DATA_BALANCE_FEATURE_ID]: {
-          nextResetAt: 1_790_000_000_000,
-        },
-      },
-      subscriptions: [{ planId: "base-plan", canceledAt: 1_789_000_000_000 }],
+  it("gives no refill date for a canceled plan still in its paid period", async () => {
+    await setPlan({
+      planId: "pro-plan",
+      planStatus: "canceled",
+      currentPeriodEnd: "2999-01-01T00:00:00.000Z",
+      monthlyGranted: 50_000,
+      nextResetAt: "2030-01-01T00:00:00.000Z",
     });
 
     await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
-      { monthlyRefillsAt: null },
+      { planStatus: "paid", monthlyRefillsAt: null },
     );
-  });
-
-  it("fails instead of showing the empty customer Autumn returns when it fails open", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    getOrCreateMock.mockResolvedValueOnce({
-      id: null,
-      flags: {},
-      balances: {},
-      subscriptions: [],
-    });
-
-    await expect(getOrganizationBillingAccount(context)).rejects.toMatchObject({
-      code: "UPSTREAM_UNAVAILABLE",
-    });
   });
 });

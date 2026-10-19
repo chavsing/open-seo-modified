@@ -23,11 +23,18 @@ export async function createAiVisibilityTestDb() {
       ),
     );
   const db = drizzle(client);
-  /** Runs the production statements in order against SQLite. */
-  const batch: typeof runBatch = async (build) => {
+  // D1 runs each batch on its own, so concurrent batches never interleave.
+  // Queue them to match: credit holds rely on it.
+  let previousBatch: Promise<unknown> = Promise.resolve();
+  /** Runs the production statements in order against SQLite, one batch at a time. */
+  const batch: typeof runBatch = (build) => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- libsql exposes the D1 SQLite query-builder surface the repositories use
-    for (const statement of build(db as unknown as Parameters<typeof build>[0]))
-      await statement;
+    const executor = db as unknown as Parameters<typeof build>[0];
+    const run = previousBatch.then(async () => {
+      for (const statement of build(executor)) await statement;
+    });
+    previousBatch = run.catch(() => undefined);
+    return run;
   };
   /** Clears every row, then adds organization "organization" and its project "project". */
   const seedProject = () =>

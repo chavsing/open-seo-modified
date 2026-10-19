@@ -1,67 +1,30 @@
 /* eslint-disable max-lines */
 import { describe, expect, it, vi } from "vitest";
+import { billingAccounts, creditEvents, creditHolds } from "@/db/schema";
 import {
   AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
   creditsForProviderUsd,
 } from "@/shared/billing";
 
-interface CheckCallArg {
-  customerId: string;
-  featureId: string;
-  requiredBalance?: number;
-  lock?: { lockId: string };
-}
-
-interface CheckResult {
-  allowed: boolean;
-  balance: { remaining: number } | null;
-}
-
-interface FinalizeCallArg {
-  lockId: string;
-  action: "confirm" | "release";
-  overrideValue?: number;
-}
-
-const {
-  checkMock,
-  finalizeMock,
-  getOrCreateMock,
-  isHostedServerAuthModeMock,
-  mockEnv,
-} = vi.hoisted(() => ({
-  checkMock: vi.fn<(arg: CheckCallArg) => Promise<CheckResult>>(),
-  finalizeMock:
-    vi.fn<(arg: FinalizeCallArg) => Promise<{ success: boolean }>>(),
-  getOrCreateMock: vi.fn(),
-  isHostedServerAuthModeMock: vi.fn(),
-  mockEnv: {},
-}));
-
-vi.mock("cloudflare:workers", () => ({
-  env: mockEnv,
-  waitUntil: vi.fn(),
-}));
-
-vi.mock("@/server/billing/autumn", () => ({
-  autumn: {
-    check: checkMock,
-    balances: { finalize: finalizeMock },
-  },
-  AUTUMN_TRACK_RETRY_OPTIONS: {},
-}));
-
-// Keep the real subscription module (reserve/settle run against the mocked
-// autumn facade) and only stub the customer lookup, so the hold logic stays
-// exercised end to end through the client.
-vi.mock("@/server/billing/subscription", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
+const { testDb, isHostedServerAuthModeMock } = await vi.hoisted(async () => {
+  const { createAiVisibilityTestDb } =
+    await import("@/server/features/ai-visibility/aiVisibilityTestDb");
   return {
-    ...actual,
-    getOrCreateOrganizationCustomer: getOrCreateMock,
+    testDb: await createAiVisibilityTestDb(),
+    isHostedServerAuthModeMock: vi.fn(),
   };
 });
+
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    DATABASE_PROVIDER: "d1",
+    KV: { get: async () => null, put: async () => undefined },
+  },
+  waitUntil: vi.fn(),
+}));
+vi.mock("@/db", () => ({ db: testDb.db }));
+vi.mock("@/db/runBatch", () => ({ runBatch: testDb.runBatch }));
 
 vi.mock("@/server/lib/runtime-env", () => ({
   isHostedServerAuthMode: isHostedServerAuthModeMock,
@@ -134,9 +97,14 @@ import { DataforseoChargedTaskError } from "@/server/lib/dataforseo/envelope";
 import { AppError } from "@/server/lib/errors";
 import { fetchBacklinksSummary } from "@/server/lib/dataforseo/backlinks";
 import { fetchRankCheckSerp } from "@/server/lib/dataforseo/serp";
+import {
+  getOrCreateOrganizationCustomer,
+  getUsageCreditsRemaining,
+} from "@/server/billing/subscription";
 
+// The harness seeds organization "organization".
 const billingCustomer = {
-  organizationId: "org_123",
+  organizationId: "organization",
   userId: "user_123",
   userEmail: "alice@example.com",
 };
@@ -153,23 +121,29 @@ const ESTIMATED_CREDITS = creditsForProviderUsd(
   dataforseoPricing.backlinks.summary(backlinksInput),
 );
 
-function setupHostedMode() {
+async function setupHostedMode(monthly: number, topup = 0) {
   isHostedServerAuthModeMock.mockResolvedValue(true);
-  getOrCreateMock.mockResolvedValue({ id: "org_123" });
-  finalizeMock.mockResolvedValue({ success: true });
+  await testDb.client.executeMultiple(`
+    DELETE FROM credit_events;
+    DELETE FROM credit_holds;
+    DELETE FROM credit_balances;
+    DELETE FROM billing_accounts;
+  `);
+  await testDb.seedProject();
+  await getOrCreateOrganizationCustomer(billingCustomer);
+  await testDb.client.executeMultiple(`
+    UPDATE credit_balances SET remaining = ${monthly} WHERE pool = '${AUTUMN_SEO_DATA_BALANCE_FEATURE_ID}';
+    UPDATE credit_balances SET remaining = ${topup} WHERE pool = '${AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID}';
+  `);
 }
 
-// Monthly balance only; topup reads empty.
-function mockMonthlyBalance(monthly: number) {
-  checkMock.mockImplementation(async (args) => {
-    const remaining =
-      args.featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID ? monthly : 0;
-    return {
-      allowed: remaining >= (args.requiredBalance ?? 1),
-      balance: { remaining },
-    };
-  });
-}
+const balances = () => getUsageCreditsRemaining(billingCustomer.organizationId);
+const charges = async () =>
+  (await testDb.db.select().from(creditEvents)).map((e) => ({
+    pool: e.pool,
+    credits: e.credits,
+  }));
+const openHolds = () => testDb.db.select().from(creditHolds);
 
 function mockDataforseoResult(costUsd: number) {
   vi.mocked(fetchBacklinksSummary).mockResolvedValue({
@@ -181,19 +155,18 @@ function mockDataforseoResult(costUsd: number) {
 describe("meterDataforseoCall", () => {
   it("skips billing in non-hosted mode", async () => {
     isHostedServerAuthModeMock.mockResolvedValue(false);
+    await testDb.client.execute("DELETE FROM billing_accounts");
     mockDataforseoResult(RAW_COST);
 
     const client = createDataforseoClient(billingCustomer);
     const result = await client.backlinks.summary(backlinksInput);
 
     expect(result).toEqual({ rank: 42 });
-    expect(checkMock).not.toHaveBeenCalled();
-    expect(finalizeMock).not.toHaveBeenCalled();
+    expect(await testDb.db.select().from(billingAccounts)).toEqual([]);
   });
 
   it("never calls the provider when the hold is refused", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(0);
+    await setupHostedMode(0);
     mockDataforseoResult(RAW_COST);
 
     const client = createDataforseoClient(billingCustomer);
@@ -201,41 +174,38 @@ describe("meterDataforseoCall", () => {
       client.backlinks.summary(backlinksInput),
     ).rejects.toMatchObject({ code: "INSUFFICIENT_CREDITS" });
 
-    expect(checkMock).toHaveBeenCalledTimes(2);
     expect(fetchBacklinksSummary).not.toHaveBeenCalled();
-    expect(finalizeMock).not.toHaveBeenCalled();
+    expect(await openHolds()).toEqual([]);
   });
 
-  it("holds the estimate, then confirms the hold at the billed cost", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(5000);
-    mockDataforseoResult(RAW_COST);
+  it("holds the estimate, then charges the billed cost", async () => {
+    await setupHostedMode(5000);
+    let heldDuringCall: number | undefined;
+    vi.mocked(fetchBacklinksSummary).mockImplementation(async () => {
+      heldDuringCall = 5000 - (await balances()).monthlyRemaining;
+      return {
+        data: { rank: 42 },
+        billing: { costUsd: RAW_COST, path: backlinksPath },
+      };
+    });
 
     const client = createDataforseoClient(billingCustomer);
     const result = await client.backlinks.summary(backlinksInput);
 
     expect(result).toEqual({ rank: 42 });
-    expect(checkMock).toHaveBeenCalledTimes(1);
-    const [holdCall] = checkMock.mock.calls[0];
-    expect(holdCall).toMatchObject({
-      customerId: "org_123",
-      featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-      requiredBalance: ESTIMATED_CREDITS,
-    });
+    expect(heldDuringCall).toBe(ESTIMATED_CREDITS);
     // The execute + settle chain is registered with the request so a client
     // disconnect after dispatch cannot skip the deduction.
     expect(vi.mocked(waitUntil)).toHaveBeenCalledTimes(1);
-    expect(finalizeMock).toHaveBeenCalledTimes(1);
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({
-      lockId: holdCall.lock?.lockId,
-      action: "confirm",
-      overrideValue: EXPECTED_CREDITS,
-    });
+    expect((await balances()).monthlyRemaining).toBe(5000 - EXPECTED_CREDITS);
+    expect(await charges()).toEqual([
+      { pool: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID, credits: EXPECTED_CREDITS },
+    ]);
+    expect(await openHolds()).toEqual([]);
   });
 
-  it("confirms a charged DataForSEO task failure at its cost before rethrowing", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(5000);
+  it("charges a charged DataForSEO task failure at its cost before rethrowing", async () => {
+    await setupHostedMode(5000);
     vi.mocked(fetchBacklinksSummary).mockRejectedValue(
       new DataforseoChargedTaskError("DataForSEO task failed", {
         costUsd: RAW_COST,
@@ -248,15 +218,11 @@ describe("meterDataforseoCall", () => {
       "DataForSEO task failed",
     );
 
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({
-      action: "confirm",
-      overrideValue: EXPECTED_CREDITS,
-    });
+    expect((await balances()).monthlyRemaining).toBe(5000 - EXPECTED_CREDITS);
   });
 
   it("releases the hold for an unbilled invalid-field failure and throws VALIDATION_ERROR", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(5000);
+    await setupHostedMode(5000);
     vi.mocked(fetchBacklinksSummary).mockRejectedValue(
       new DataforseoChargedTaskError(
         "Invalid Field: 'target'.",
@@ -270,12 +236,12 @@ describe("meterDataforseoCall", () => {
       client.backlinks.summary(backlinksInput),
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
 
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({ action: "release" });
+    expect((await balances()).monthlyRemaining).toBe(5000);
+    expect(await openHolds()).toEqual([]);
   });
 
   it("releases the hold when the provider call fails before billing", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(5000);
+    await setupHostedMode(5000);
     vi.mocked(fetchBacklinksSummary).mockRejectedValue(
       new AppError("UPSTREAM_UNAVAILABLE", "DataForSEO timed out"),
     );
@@ -286,7 +252,8 @@ describe("meterDataforseoCall", () => {
     ).rejects.toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });
 
     expect(vi.mocked(waitUntil)).toHaveBeenCalledTimes(1);
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({ action: "release" });
+    expect((await balances()).monthlyRemaining).toBe(5000);
+    expect(await openHolds()).toEqual([]);
   });
 });
 
@@ -305,6 +272,7 @@ describe("rankCheckBatch", () => {
   );
   // 2 * ceil(1.28) = 4 credits for two calls, not ceil(2.56) = 3 for their
   // summed cost: each call is credited as it would be unbatched.
+  const callCredits = creditsForProviderUsd(0.001);
   const billed = {
     data: {
       keywordId: "kw_1",
@@ -319,11 +287,14 @@ describe("rankCheckBatch", () => {
     },
   };
 
-  it("bills the batch with one hold on the summed estimate and one confirm on the billed calls", async () => {
-    setupHostedMode();
-    mockMonthlyBalance(5000);
+  it("bills the batch with one hold on the summed estimate and one charge for the billed calls", async () => {
+    await setupHostedMode(5000);
+    let heldDuringCall: number | undefined;
     vi.mocked(fetchRankCheckSerp)
-      .mockResolvedValueOnce(billed)
+      .mockImplementationOnce(async () => {
+        heldDuringCall = 5000 - (await balances()).monthlyRemaining;
+        return billed;
+      })
       .mockRejectedValueOnce(
         new AppError("UPSTREAM_UNAVAILABLE", "DataForSEO timed out"),
       )
@@ -337,30 +308,16 @@ describe("rankCheckBatch", () => {
       "rejected",
       "fulfilled",
     ]);
-    expect(checkMock).toHaveBeenCalledTimes(1);
-    expect(checkMock.mock.calls[0][0]).toMatchObject({
-      requiredBalance: 3 * callEstimate,
-    });
-    expect(finalizeMock).toHaveBeenCalledTimes(1);
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({
-      action: "confirm",
-      overrideValue: 2 * creditsForProviderUsd(0.001),
-    });
+    expect(heldDuringCall).toBe(3 * callEstimate);
+    expect(await charges()).toEqual([
+      { pool: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID, credits: 2 * callCredits },
+    ]);
+    expect((await balances()).monthlyRemaining).toBe(5000 - 2 * callCredits);
   });
 
   it("splits a batch across monthly and top-up when only both together cover it", async () => {
-    setupHostedMode();
     // Monthly covers two calls, top-up one: neither covers all three.
-    checkMock.mockImplementation(async (args) => {
-      const balance =
-        args.featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID
-          ? 2 * callEstimate
-          : callEstimate;
-      return {
-        allowed: balance >= (args.requiredBalance ?? 1),
-        balance: { remaining: balance },
-      };
-    });
+    await setupHostedMode(2 * callEstimate, callEstimate);
     vi.mocked(fetchRankCheckSerp).mockResolvedValue(billed);
 
     const client = createDataforseoClient(billingCustomer);
@@ -369,28 +326,14 @@ describe("rankCheckBatch", () => {
     expect(settled.every((outcome) => outcome.status === "fulfilled")).toBe(
       true,
     );
-    // After the refused whole-batch monthly hold.
-    const [monthlyHold, topupHold] = checkMock.mock.calls
-      .slice(1)
-      .map(([arg]) => arg);
-    expect(monthlyHold).toMatchObject({
-      featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-      requiredBalance: 2 * callEstimate,
-    });
-    expect(topupHold).toMatchObject({
-      featureId: AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-      requiredBalance: callEstimate,
-    });
-    expect(finalizeMock.mock.calls.map(([arg]) => arg)).toMatchObject([
-      {
-        lockId: monthlyHold.lock?.lockId,
-        overrideValue: 2 * creditsForProviderUsd(0.001),
-      },
-      {
-        lockId: topupHold.lock?.lockId,
-        overrideValue: creditsForProviderUsd(0.001),
-      },
+    expect(await charges()).toEqual([
+      { pool: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID, credits: 2 * callCredits },
+      { pool: AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID, credits: callCredits },
     ]);
+    expect(await balances()).toEqual({
+      monthlyRemaining: 2 * callEstimate - 2 * callCredits,
+      topupRemaining: callEstimate - callCredits,
+    });
   });
 });
 

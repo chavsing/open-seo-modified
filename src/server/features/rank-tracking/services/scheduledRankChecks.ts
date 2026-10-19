@@ -47,12 +47,12 @@ export async function runScheduledRankChecks(env: Env) {
   // Function-local so it lives exactly one tick: at module scope this would be
   // cross-invocation global state in Workers, and a rejection would be cached
   // forever. Within a tick, a rejection staying memoized is intentional — one
-  // Autumn call per org, and that org's configs simply stay due.
+  // plan read per org, and that org's configs simply stay due.
   const paidPlanChecks = new Map<string, Promise<boolean>>();
   const checkPaidPlan = (organizationId: string) => {
     let check = paidPlanChecks.get(organizationId);
     if (!check) {
-      check = customerHasPaidPlan(organizationId, { retryDenied: true });
+      check = customerHasPaidPlan(organizationId);
       paidPlanChecks.set(organizationId, check);
     }
     return check;

@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   updateRun: vi.fn(),
   updateConfig: vi.fn(),
   getSnapshotsForRun: vi.fn(),
-  autumnCheck: vi.fn(),
+  getUsageCreditsRemaining: vi.fn(),
   createDataforseoClient: vi.fn(),
   runLiveCheck: vi.fn(),
   failRunIfActive: vi.fn(),
@@ -49,8 +49,8 @@ vi.mock("@/server/lib/dataforseo", () => ({
 vi.mock("@/server/lib/posthog", () => ({
   captureServerEvent: mocks.captureServerEvent,
 }));
-vi.mock("@/server/billing/autumn", () => ({
-  autumn: { check: mocks.autumnCheck },
+vi.mock("@/server/billing/subscription", () => ({
+  getUsageCreditsRemaining: mocks.getUsageCreditsRemaining,
 }));
 vi.mock("@/server/lib/runtime-env", () => ({
   isHostedServerAuthMode: mocks.isHostedServerAuthMode,
@@ -111,7 +111,10 @@ describe("rank check workflow credit ceiling", () => {
     mocks.getSnapshotsForRun.mockResolvedValue([]);
     mocks.updateRun.mockResolvedValue(undefined);
     mocks.isHostedServerAuthMode.mockResolvedValue(true);
-    mocks.autumnCheck.mockResolvedValue({ balance: { remaining: 1_000 } });
+    mocks.getUsageCreditsRemaining.mockResolvedValue({
+      monthlyRemaining: 1_000,
+      topupRemaining: 1_000,
+    });
   });
 
   it("rejects a keyword-list race before balance or DataForSEO calls", async () => {
@@ -121,7 +124,7 @@ describe("rank check workflow credit ceiling", () => {
       code: "VALIDATION_ERROR",
     });
 
-    expect(mocks.autumnCheck).not.toHaveBeenCalled();
+    expect(mocks.getUsageCreditsRemaining).not.toHaveBeenCalled();
     expect(mocks.createDataforseoClient).not.toHaveBeenCalled();
     expect(mocks.runLiveCheck).not.toHaveBeenCalled();
   });
@@ -160,7 +163,10 @@ describe("rank check finalization", () => {
     mocks.getSnapshotsForRun.mockResolvedValue([]);
     mocks.updateRun.mockResolvedValue(undefined);
     mocks.isHostedServerAuthMode.mockResolvedValue(true);
-    mocks.autumnCheck.mockResolvedValue({ balance: { remaining: 1_000 } });
+    mocks.getUsageCreditsRemaining.mockResolvedValue({
+      monthlyRemaining: 1_000,
+      topupRemaining: 1_000,
+    });
   });
 
   it("fails a run where no keyword produced a snapshot, keeping the recorded reason", async () => {

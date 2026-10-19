@@ -5,6 +5,9 @@ import type { LlmResponseResult } from "@/server/lib/dataforseoLlmSchemas";
 import { explorePrompt, extractCitations } from "./promptExplorer";
 
 vi.mock("cloudflare:workers", () => ({ waitUntil: vi.fn() }));
+vi.mock("@/server/billing/subscription", () => ({
+  customerHasPaidPlan: vi.fn(),
+}));
 
 const { llmResponse } = vi.hoisted(() => ({ llmResponse: vi.fn() }));
 vi.mock("@/server/lib/dataforseo", () => ({

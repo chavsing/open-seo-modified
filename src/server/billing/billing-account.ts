@@ -1,83 +1,69 @@
 import {
-  AUTUMN_MANAGED_ACCESS_FEATURE_ID,
-  AUTUMN_PAID_PLAN_FEATURE_ID,
-  AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-  AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
+  AUTUMN_LIFETIME_PLAN_ID,
   autumnSeoDataCreditsToUsd,
   type PlanStatus,
 } from "@/shared/billing";
-import { autumn } from "@/server/billing/autumn";
+import {
+  ensureBillingAccount,
+  getBillingAccountRow,
+  getCreditBalanceRows,
+} from "@/server/billing/creditLedger";
+import { hasPaidAccess } from "@/server/billing/plan-access";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
 import { AppError } from "@/server/lib/errors";
 
 /** The organization's plan and credits, as the billing screens show them. */
 type BillingAccount = {
   planStatus: PlanStatus;
-  /** The plan that granted the paid entitlement. Null on the free plan and
-   *  for paid access granted by hand. */
+  /** The plan that grants paid access. Null on the free plan. */
   paidPlanId: string | null;
-  /** What the plan grants each month, in USD. */
+  /** What the plan grants: each month, or once for a one-time grant. */
   monthlyCreditsUsd: number;
   monthlyRemainingUsd: number;
   topUpRemainingUsd: number;
   hasManagedAccess: boolean;
-  /** The paid plan was a one-off purchase (lifetime access): no renewals,
+  /** The paid plan was a one-time purchase (lifetime access): no renewals,
    *  nothing to cancel. */
   isLifetime: boolean;
   isPastDue: boolean;
-  /** When the monthly credits refill, in epoch ms. Null for the free plan's
-   *  one-time credits and for a paid plan canceled at period end, which ends
-   *  then instead of refilling. */
+  /** When the monthly credits refill, in epoch ms. Null for one-time
+   *  credits and for a canceled plan, which ends instead of refilling. */
   monthlyRefillsAt: number | null;
-  /** Stripe emails a receipt for each paid invoice. */
+  /** Receipt emails toggle. Off until the payment provider sends them. */
   invoiceEmailsEnabled: boolean;
 };
 
 export async function getOrganizationBillingAccount(
   context: BillingCustomerContext,
 ): Promise<BillingAccount> {
-  // No expand: every field read below is on the bare customer.
-  const customer = await autumn.customers.getOrCreate({
-    customerId: context.organizationId,
-    email: context.userEmail,
-  });
-
-  // The SDK fails open on Autumn 5xx and network errors with an empty customer
-  // that has no id. Showing it would tell a paying customer they are on the
-  // free plan with $0, so surface the outage instead.
-  if (!customer.id) {
-    console.warn("billing.account: Autumn returned no customer", {
-      organizationId: context.organizationId,
-    });
+  await ensureBillingAccount(context.organizationId);
+  const [account, balances] = await Promise.all([
+    getBillingAccountRow(context.organizationId),
+    getCreditBalanceRows(context.organizationId),
+  ]);
+  if (!account || !balances.monthly) {
     throw new AppError(
-      "UPSTREAM_UNAVAILABLE",
-      "Autumn returned no billing customer",
+      "INTERNAL_ERROR",
+      `Billing account missing for organization ${context.organizationId}`,
     );
   }
 
-  const paidFlag = customer.flags[AUTUMN_PAID_PLAN_FEATURE_ID];
-  const paidSubscription = customer.subscriptions.find(
-    (s) => s.planId === paidFlag?.planId,
-  );
-  const monthly = customer.balances[AUTUMN_SEO_DATA_BALANCE_FEATURE_ID];
-  const topUp = customer.balances[AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID];
-
+  const paid = hasPaidAccess(account);
+  const { monthly, topup } = balances;
   return {
-    // Autumn names the plan that granted `paid_plan`, so every plan configured
-    // to grant it counts as paid without listing plan IDs here.
-    planStatus: paidFlag ? "paid" : "free",
-    paidPlanId: paidFlag?.planId ?? null,
-    monthlyCreditsUsd: autumnSeoDataCreditsToUsd(monthly?.granted ?? 0),
-    monthlyRemainingUsd: autumnSeoDataCreditsToUsd(monthly?.remaining ?? 0),
-    topUpRemainingUsd: autumnSeoDataCreditsToUsd(topUp?.remaining ?? 0),
-    hasManagedAccess: Boolean(customer.flags[AUTUMN_MANAGED_ACCESS_FEATURE_ID]),
-    isLifetime:
-      !paidSubscription &&
-      customer.purchases.some((p) => p.planId === paidFlag?.planId),
-    isPastDue: customer.subscriptions.some((s) => s.pastDue),
-    monthlyRefillsAt: paidSubscription?.canceledAt
-      ? null
-      : (monthly?.nextResetAt ?? null),
-    invoiceEmailsEnabled: customer.sendEmailReceipts,
+    planStatus: paid ? "paid" : "free",
+    paidPlanId: paid ? account.planId : null,
+    monthlyCreditsUsd: autumnSeoDataCreditsToUsd(monthly.granted),
+    monthlyRemainingUsd: autumnSeoDataCreditsToUsd(monthly.remaining),
+    topUpRemainingUsd: autumnSeoDataCreditsToUsd(topup?.remaining ?? 0),
+    // Every hosted org gets the free plan, which grants the app itself.
+    hasManagedAccess: true,
+    isLifetime: paid && account.planId === AUTUMN_LIFETIME_PLAN_ID,
+    isPastDue: account.planStatus === "past_due",
+    monthlyRefillsAt:
+      account.planStatus === "canceled" || !monthly.nextResetAt
+        ? null
+        : Date.parse(monthly.nextResetAt),
+    invoiceEmailsEnabled: false,
   };
 }

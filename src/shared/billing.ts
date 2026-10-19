@@ -24,15 +24,13 @@ export const CHECKOUT_PLAN_IDS = [
 export type CheckoutPlanId = (typeof CHECKOUT_PLAN_IDS)[number];
 export const AUTUMN_SEO_DATA_TOP_UP_PLAN_ID = "credit-top-up";
 export const AUTUMN_PAID_PLAN_FEATURE_ID = "paid_plan";
-// Granted by both the free plan (now the Autumn Default, so every non-paid
-// user gets it) and the paid base plan. It's the floor for using the managed
-// service at all — paid-only features gate on AUTUMN_PAID_PLAN_FEATURE_ID.
-export const AUTUMN_MANAGED_ACCESS_FEATURE_ID = "managed_service_access";
 // The shared usage-credit pool. Both DataForSEO and agent-LLM spend deduct
 // from these (monthly usage_credits first, then rolled-over topup_credits).
 export const AUTUMN_SEO_DATA_BALANCE_FEATURE_ID = "usage_credits";
 export const AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID = "topup_credits";
 export const AUTUMN_SEO_DATA_CREDITS_PER_USD = 1000;
+// One-time credits every new org starts with ($1).
+export const FREE_PLAN_CREDITS = 1000;
 const SEO_DATA_COST_MARKUP = 1.28;
 export const LOW_CREDITS_THRESHOLD_USD = 0.25;
 // DataForSEO's raw price for one Google Ads search_volume live call (up to

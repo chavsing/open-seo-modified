@@ -7,17 +7,20 @@ import {
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
 } from "@/shared/billing";
 
-const { attachMock, checkMock, portalMock } = vi.hoisted(() => ({
+const { attachMock, hasPaidPlanMock, portalMock } = vi.hoisted(() => ({
   attachMock: vi.fn(),
-  checkMock: vi.fn(),
+  hasPaidPlanMock: vi.fn(),
   portalMock: vi.fn(),
 }));
 
 vi.mock("@/server/billing/autumn", () => ({
   autumn: {
-    check: checkMock,
     billing: { attach: attachMock, openCustomerPortal: portalMock },
   },
+}));
+
+vi.mock("@/server/billing/subscription", () => ({
+  customerHasPaidPlan: hasPaidPlanMock,
 }));
 
 import {
@@ -31,7 +34,7 @@ const owner = { organizationId: "org_1", role: "owner" };
 
 beforeEach(() => {
   attachMock.mockResolvedValue({ paymentUrl: "https://checkout/session" });
-  checkMock.mockResolvedValue({ allowed: false });
+  hasPaidPlanMock.mockResolvedValue(false);
   portalMock.mockResolvedValue({ url: "https://portal/session" });
 });
 
@@ -57,7 +60,7 @@ describe("billing checkout links", () => {
   });
 
   it("refuses a second paid plan, which would bill on top of the first", async () => {
-    checkMock.mockResolvedValueOnce({ allowed: true });
+    hasPaidPlanMock.mockResolvedValueOnce(true);
 
     await expect(
       createPlanCheckoutUrl(owner, {

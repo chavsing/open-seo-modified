@@ -1,457 +1,272 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { creditEvents } from "@/db/schema";
 import {
-  AUTUMN_PAID_PLAN_FEATURE_ID,
   AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
+  FREE_PLAN_CREDITS,
 } from "@/shared/billing";
 
-interface CheckCallArg {
-  featureId: string;
-  requiredBalance?: number;
-  sendEvent?: boolean;
-  lock?: { lockId: string; enabled: true; expiresAt?: number };
-}
-
-interface FinalizeCallArg {
-  lockId: string;
-  action: "confirm" | "release";
-  overrideValue?: number;
-}
-
-const { checkMock, finalizeMock, getOrCreateMock, kvGetMock, kvPutMock } =
-  vi.hoisted(() => ({
-    checkMock:
-      vi.fn<(arg: CheckCallArg, options?: unknown) => Promise<unknown>>(),
-    finalizeMock:
-      vi.fn<
-        (
-          arg: FinalizeCallArg,
-          options?: unknown,
-        ) => Promise<{ success: boolean }>
-      >(),
-    getOrCreateMock: vi.fn(),
-    kvGetMock: vi.fn(),
-    kvPutMock: vi.fn(),
-  }));
-
+const { testDb, kv } = await vi.hoisted(async () => {
+  const { createAiVisibilityTestDb } =
+    await import("@/server/features/ai-visibility/aiVisibilityTestDb");
+  return {
+    testDb: await createAiVisibilityTestDb(),
+    kv: { get: vi.fn(), put: vi.fn() },
+  };
+});
 vi.mock("cloudflare:workers", () => ({
-  env: { KV: { get: kvGetMock, put: kvPutMock } },
+  env: { DATABASE_PROVIDER: "d1", KV: kv },
 }));
-
-vi.mock("@/server/billing/autumn", () => ({
-  autumn: {
-    check: checkMock,
-    balances: { finalize: finalizeMock },
-    customers: {
-      getOrCreate: getOrCreateMock,
-    },
-  },
-  AUTUMN_TRACK_RETRY_OPTIONS: {},
-}));
-
-// subscription.ts now imports posthog (for trackUsageCreditSpend); stub it so
-// the test doesn't pull in the cloudflare:workers runtime it depends on.
-vi.mock("@/server/lib/posthog", () => ({
-  captureServerEvent: vi.fn(),
-}));
+vi.mock("@/db", () => ({ db: testDb.db }));
+vi.mock("@/db/runBatch", () => ({ runBatch: testDb.runBatch }));
+vi.mock("@/server/lib/posthog", () => ({ captureServerEvent: vi.fn() }));
 
 import { captureServerEvent } from "@/server/lib/posthog";
-import { AUTUMN_TRACK_RETRY_OPTIONS } from "@/server/billing/autumn";
+import { releaseExpiredCreditHolds } from "./creditLedger";
 import {
   customerHasPaidPlan,
   getOrCreateOrganizationCustomer,
-  checkUsageCreditsDepleted,
+  getUsageCreditsRemaining,
+  holdCredits,
   reserveUsageCredits,
   settleUsageCredits,
+  trackUsageCreditSpend,
 } from "./subscription";
 
+// The harness seeds organization "organization".
+const ORG = "organization";
 const customer = {
-  organizationId: "org_123",
-  userId: "user_123",
-  userEmail: "alice@example.com",
+  organizationId: ORG,
+  userId: "user",
+  userEmail: "owner@example.com",
 };
 
-describe("subscription billing", () => {
-  beforeEach(() => {
-    kvGetMock.mockResolvedValue(null);
-    kvPutMock.mockResolvedValue(undefined);
-  });
+async function setBalances(monthly: number, topup: number) {
+  await getOrCreateOrganizationCustomer(customer);
+  await testDb.client.executeMultiple(`
+    UPDATE credit_balances SET remaining = ${monthly} WHERE pool = '${AUTUMN_SEO_DATA_BALANCE_FEATURE_ID}';
+    UPDATE credit_balances SET remaining = ${topup} WHERE pool = '${AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID}';
+  `);
+}
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+// creditsForProviderUsd applies the 1.28 markup: $0.1 of provider cost is
+// 128 credits.
+const COST_USD = 0.1;
+const COST_CREDITS = 128;
 
-  it("recovers from a degraded negative read when retryDenied is set", async () => {
-    vi.useFakeTimers();
-    checkMock
-      .mockResolvedValueOnce({ allowed: false })
-      .mockResolvedValueOnce({ allowed: true });
+beforeEach(async () => {
+  await testDb.client.executeMultiple(`
+    DELETE FROM credit_events;
+    DELETE FROM credit_holds;
+    DELETE FROM credit_balances;
+    DELETE FROM billing_accounts;
+  `);
+  await testDb.seedProject();
+  kv.get.mockResolvedValue(null);
+});
 
-    const result = customerHasPaidPlan("org_123", { retryDenied: true });
-    await vi.runAllTimersAsync();
-
-    await expect(result).resolves.toBe(true);
-    expect(checkMock).toHaveBeenCalledTimes(2);
-    expect(checkMock).toHaveBeenCalledWith({
-      customerId: "org_123",
-      featureId: AUTUMN_PAID_PLAN_FEATURE_ID,
-    });
-  });
-
-  it("retries a missing monthly balance once", async () => {
-    vi.useFakeTimers();
-    let monthlyChecks = 0;
-    checkMock.mockImplementation(
-      async ({ featureId }: { featureId: string }) => {
-        if (featureId === AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID) {
-          return { balance: null };
-        }
-        if (featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID) {
-          monthlyChecks += 1;
-          return monthlyChecks === 1
-            ? { balance: null }
-            : { balance: { remaining: 250 } };
-        }
-        throw new Error(`Unexpected feature ${featureId}`);
-      },
-    );
-
-    const result = checkUsageCreditsDepleted(customer);
-    await vi.runAllTimersAsync();
-
-    await expect(result).resolves.toEqual({
-      depleted: false,
-      monthlyRemaining: 250,
-    });
-    expect(monthlyChecks).toBe(2);
-  });
-
-  it("fails closed when the retry still has no monthly balance", async () => {
-    vi.useFakeTimers();
-    checkMock.mockResolvedValue({ balance: null });
-
-    const result = checkUsageCreditsDepleted(customer);
-    const assertion = expect(result).rejects.toMatchObject({
-      code: "INTERNAL_ERROR",
-    });
-    await vi.runAllTimersAsync();
-
-    await assertion;
-    expect(checkMock).toHaveBeenCalledTimes(3);
-  });
-
-  it("looks up the billing customer by organization id", async () => {
-    getOrCreateMock.mockResolvedValue({ id: "cust_123" });
-
-    await getOrCreateOrganizationCustomer({
-      organizationId: "org_123",
-      userId: "user_123",
-      userEmail: "alice@example.com",
+describe("billing account", () => {
+  it("gives a new org the free plan and its credits once", async () => {
+    await getOrCreateOrganizationCustomer(customer);
+    expect(await getUsageCreditsRemaining(ORG)).toEqual({
+      monthlyRemaining: FREE_PLAN_CREDITS,
+      topupRemaining: 0,
     });
 
-    expect(getOrCreateMock).toHaveBeenCalledWith({
-      customerId: "org_123",
-      email: "alice@example.com",
-    });
+    await setBalances(200, 0);
+    await getOrCreateOrganizationCustomer(customer);
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(200);
+    expect(await customerHasPaidPlan(ORG)).toBe(false);
   });
 
-  it("skips the Autumn round trip when the customer was recently ensured", async () => {
-    kvGetMock.mockResolvedValue("1");
-
-    const result = await getOrCreateOrganizationCustomer({
-      organizationId: "org_123",
-      userId: "user_123",
-      userEmail: "alice@example.com",
-    });
-
-    expect(result).toEqual({ id: "org_123" });
-    expect(getOrCreateMock).not.toHaveBeenCalled();
-  });
-
-  // A KV outage must never block billing; the customer still resolves.
   it.each([
-    ["read", () => kvGetMock.mockRejectedValue(new Error("KV unavailable"))],
-    ["write", () => kvPutMock.mockRejectedValue(new Error("KV unavailable"))],
+    { plan: "pro-plan", status: "active", periodEnd: null, paid: true },
+    { plan: "pro-plan", status: "past_due", periodEnd: null, paid: true },
+    {
+      plan: "pro-plan",
+      status: "canceled",
+      periodEnd: "2999-01-01",
+      paid: true,
+    },
+    {
+      plan: "pro-plan",
+      status: "canceled",
+      periodEnd: "2000-01-01",
+      paid: false,
+    },
+    { plan: "lifetime-plan", status: "active", periodEnd: null, paid: true },
   ])(
-    "falls back to Autumn when the customer cache %s fails",
-    async (_op, breakCache) => {
-      vi.spyOn(console, "warn").mockImplementation(() => undefined);
-      breakCache();
-      getOrCreateMock.mockResolvedValue({ id: "cust_123" });
-
-      await expect(
-        getOrCreateOrganizationCustomer({
-          organizationId: "org_123",
-          userId: "user_123",
-          userEmail: "alice@example.com",
-        }),
-      ).resolves.toEqual({ id: "cust_123" });
-      expect(getOrCreateMock).toHaveBeenCalledWith({
-        customerId: "org_123",
-        email: "alice@example.com",
+    "$plan $status (period end $periodEnd) has paid access: $paid",
+    async ({ plan, status, periodEnd, paid }) => {
+      await getOrCreateOrganizationCustomer(customer);
+      await testDb.client.execute({
+        sql: "UPDATE billing_accounts SET plan_id = ?, plan_status = ?, current_period_end = ?",
+        args: [plan, status, periodEnd],
       });
+      expect(await customerHasPaidPlan(ORG)).toBe(paid);
     },
   );
 });
 
-describe("reserveUsageCredits", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+describe("credit holds", () => {
+  it("never lets concurrent holds spend the same credits", async () => {
+    await setBalances(1000, 0);
+    const hold = () =>
+      holdCredits({
+        customerId: ORG,
+        featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
+        estimatedCredits: 700,
+        callIndexes: [0],
+        properties: {},
+      });
 
-  it("holds the whole estimate on topup when monthly is short", async () => {
-    checkMock.mockImplementation(async ({ featureId }) =>
-      featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID
-        ? { allowed: false, balance: { remaining: 40 } }
-        : { allowed: true, balance: { remaining: 900 } },
-    );
+    const results = await Promise.all([hold(), hold()]);
 
-    const {
-      holds: [hold],
-    } = await reserveUsageCredits({
-      customer,
-      customerId: "org_123",
-      callCredits: [100],
-      creditFeature: "backlinks",
-    });
-
-    expect(hold).toMatchObject({
-      featureId: AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-      estimatedCredits: 100,
-    });
-    const topupCall = checkMock.mock.calls.find(
-      ([arg]) => arg.featureId === AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-    )![0];
-    expect(topupCall).toMatchObject({
-      requiredBalance: 100,
-      sendEvent: true,
-      lock: { lockId: hold.lockId, enabled: true },
-    });
-    expect(topupCall.lock?.expiresAt).toBeGreaterThan(Date.now() + 29 * 60_000);
+    expect(results.filter((r) => r.allowed)).toHaveLength(1);
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(300);
   });
 
   it("places each call where its own hold would land: monthly first, else top-up, else refused", async () => {
-    // Monthly 3, top-up 20; calls of 7, 3 and 30 credits. Per call: the 7
-    // misses monthly and lands on top-up, the 3 fits monthly, the 30 fits
-    // neither. Top-up alone could cover 7 + 3 but must not take the 3.
-    const remaining = { monthly: 3, topup: 20 };
-    checkMock.mockImplementation(async ({ featureId, requiredBalance = 1 }) => {
-      const balance =
-        featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID
-          ? remaining.monthly
-          : remaining.topup;
-      return {
-        allowed: balance >= requiredBalance,
-        balance: { remaining: balance },
-      };
-    });
+    await setBalances(600, 500);
 
-    const reserved = await reserveUsageCredits({
+    const { holds, refusedCalls } = await reserveUsageCredits({
       customer,
-      customerId: "org_123",
-      callCredits: [7, 3, 30],
+      customerId: ORG,
+      callCredits: [400, 300, 300, 400],
     });
 
-    expect(reserved).toMatchObject({
-      holds: [
-        {
-          featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-          estimatedCredits: 3,
-          callIndexes: [1],
-        },
-        {
-          featureId: AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-          estimatedCredits: 7,
-          callIndexes: [0],
-        },
-      ],
-      refusedCalls: [2],
-    });
-    expect(vi.mocked(captureServerEvent).mock.calls[0][0]).toMatchObject({
-      event: "usage:credits_gate_refused",
-      properties: { estimated_credits: 30 },
-    });
-  });
-
-  it("releases an earlier hold when a later one fails", async () => {
-    checkMock.mockImplementation(async ({ featureId, requiredBalance = 1 }) => {
-      if (featureId !== AUTUMN_SEO_DATA_BALANCE_FEATURE_ID) {
-        throw new Error("socket hang up");
-      }
-      return { allowed: requiredBalance <= 3, balance: { remaining: 3 } };
-    });
-    finalizeMock.mockResolvedValue({ success: true });
-
-    await expect(
-      reserveUsageCredits({
-        customer,
-        customerId: "org_123",
-        callCredits: [3, 3],
-      }),
-    ).rejects.toThrow("socket hang up");
-
-    const monthlyHold = checkMock.mock.calls[1][0];
-    expect(monthlyHold.requiredBalance).toBe(3);
-    expect(finalizeMock.mock.calls.map(([arg]) => arg)).toMatchObject([
-      { lockId: monthlyHold.lock?.lockId, action: "release" },
+    expect(holds.map((h) => [h.featureId, h.callIndexes])).toEqual([
+      [AUTUMN_SEO_DATA_BALANCE_FEATURE_ID, [0]],
+      [AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID, [1]],
     ]);
+    expect(refusedCalls).toEqual([2, 3]);
+    expect(await getUsageCreditsRemaining(ORG)).toEqual({
+      monthlyRemaining: 200,
+      topupRemaining: 200,
+    });
   });
 
   it("refuses when neither pool covers the estimate and reports it", async () => {
-    // An org that never topped up reads allowed:false + balance:null on
-    // topup_credits: a refusal, not a broken read.
-    checkMock.mockImplementation(async ({ featureId }) =>
-      featureId === AUTUMN_SEO_DATA_BALANCE_FEATURE_ID
-        ? { allowed: false, balance: { remaining: 40 } }
-        : { allowed: false, balance: null },
-    );
+    await setBalances(0, 0);
 
     await expect(
-      reserveUsageCredits({
-        customer,
-        customerId: "org_123",
-        callCredits: [100],
-        creditFeature: "backlinks",
-      }),
+      reserveUsageCredits({ customer, customerId: ORG, callCredits: [100] }),
     ).rejects.toMatchObject({ code: "INSUFFICIENT_CREDITS" });
-
-    expect(vi.mocked(captureServerEvent).mock.calls[0][0]).toMatchObject({
-      event: "usage:credits_gate_refused",
-      properties: {
-        estimated_credits: 100,
-        monthly_remaining: 40,
-        topup_remaining: 0,
-        credit_feature: "backlinks",
-      },
-    });
-  });
-
-  it("retries a fail-open read once with the same lock, then fails closed", async () => {
-    vi.useFakeTimers();
-    checkMock.mockResolvedValue({ allowed: true, balance: null });
-
-    const result = reserveUsageCredits({
-      customer,
-      customerId: "org_123",
-      callCredits: [100],
-    });
-    const assertion = expect(result).rejects.toMatchObject({
-      code: "INTERNAL_ERROR",
-    });
-    await vi.runAllTimersAsync();
-
-    await assertion;
-    expect(checkMock).toHaveBeenCalledTimes(2);
-    const [first, second] = checkMock.mock.calls.map(
-      ([arg]) => arg.lock?.lockId,
+    expect(captureServerEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: "usage:credits_gate_refused" }),
     );
-    expect(first).toBe(second);
-    // 429-only retry: an SDK-level 5xx replay of the same lock would throw
-    // lock_already_exists from the first attempt, outside the catch above.
-    for (const [, options] of checkMock.mock.calls) {
-      expect(options).toBe(AUTUMN_TRACK_RETRY_OPTIONS);
-    }
   });
 
-  it("treats lock_already_exists on the retry as the first hold having landed", async () => {
-    vi.useFakeTimers();
-    const lockExists = Object.assign(new Error("Status 409"), {
-      body: '{"message":"Lock already exists","code":"lock_already_exists"}',
-    });
-    checkMock
-      .mockResolvedValueOnce({ allowed: true, balance: null })
-      .mockRejectedValueOnce(lockExists);
-
-    const result = reserveUsageCredits({
+  it("charges the real cost, returns the rest of the hold, and logs the charge", async () => {
+    await setBalances(1000, 0);
+    const { holds } = await reserveUsageCredits({
       customer,
-      customerId: "org_123",
-      callCredits: [100],
+      customerId: ORG,
+      callCredits: [500],
     });
-    await vi.runAllTimersAsync();
 
-    await expect(result).resolves.toMatchObject({
-      holds: [
-        {
-          featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-          lockId: checkMock.mock.calls[0][0].lock?.lockId,
-        },
-      ],
+    await settleUsageCredits({
+      customer,
+      hold: holds[0],
+      creditFeature: "keyword_research",
+      costs: [{ costUsd: COST_USD, path: ["v3", "keywords"] }],
     });
-    expect(checkMock).toHaveBeenCalledTimes(2);
+
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(
+      1000 - COST_CREDITS,
+    );
+    expect(await testDb.db.select().from(creditEvents)).toMatchObject([
+      {
+        credits: COST_CREDITS,
+        creditFeature: "keyword_research",
+        paths: JSON.stringify(["v3/keywords"]),
+      },
+    ]);
+  });
+
+  it("returns the whole hold when nothing was billed", async () => {
+    await setBalances(1000, 0);
+    const { holds } = await reserveUsageCredits({
+      customer,
+      customerId: ORG,
+      callCredits: [500],
+    });
+
+    await settleUsageCredits({ customer, hold: holds[0], costs: [] });
+
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(1000);
+    expect(await testDb.db.select().from(creditEvents)).toEqual([]);
+  });
+
+  it("returns an abandoned hold's credits once it expires, and only then", async () => {
+    await setBalances(1000, 0);
+    await reserveUsageCredits({
+      customer,
+      customerId: ORG,
+      callCredits: [500],
+    });
+
+    expect(await releaseExpiredCreditHolds(new Date())).toBe(0);
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(500);
+
+    const afterTtl = new Date(Date.now() + 31 * 60_000);
+    expect(await releaseExpiredCreditHolds(afterTtl)).toBe(1);
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(1000);
+  });
+
+  it("does not charge a hold that was already released", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await setBalances(1000, 0);
+    const { holds } = await reserveUsageCredits({
+      customer,
+      customerId: ORG,
+      callCredits: [500],
+    });
+    await releaseExpiredCreditHolds(new Date(Date.now() + 31 * 60_000));
+
+    await settleUsageCredits({
+      customer,
+      hold: holds[0],
+      costs: [{ costUsd: COST_USD, path: ["v3", "keywords"] }],
+    });
+
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(1000);
+    expect(console.error).toHaveBeenCalledWith(
+      "[billing] finalize failed",
+      expect.objectContaining({ actual: COST_CREDITS }),
+    );
   });
 });
 
-describe("settleUsageCredits", () => {
-  const hold = {
-    lockId: "dfs_org_123_lock",
-    featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-    estimatedCredits: 100,
-    callIndexes: [0],
-  } as const;
-  const cost = { costUsd: 0.05, path: ["v3", "backlinks", "summary", "live"] };
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("releases the hold when nothing was billed", async () => {
-    finalizeMock.mockResolvedValue({ success: true });
-
-    await settleUsageCredits({ customer, hold, costs: [] });
-
-    expect(finalizeMock).toHaveBeenCalledTimes(1);
-    expect(finalizeMock.mock.calls[0][0]).toMatchObject({
-      lockId: hold.lockId,
-      action: "release",
-    });
-    expect(finalizeMock.mock.calls[0][0]).not.toHaveProperty("overrideValue");
-    // The 429-only retry rides on the per-call options.
-    expect(finalizeMock.mock.calls[0][1]).toBe(AUTUMN_TRACK_RETRY_OPTIONS);
-    expect(captureServerEvent).not.toHaveBeenCalled();
-  });
-
-  it("treats 'Lock not found' on the retry as the first attempt having landed", async () => {
-    vi.useFakeTimers();
-    const lockGone = Object.assign(new Error("Status 400"), {
-      body: '{"message":"Lock not found for ID: dfs_org_123_lock","code":"invalid_request"}',
-    });
-    finalizeMock
-      .mockRejectedValueOnce(new Error("socket hang up"))
-      .mockRejectedValueOnce(lockGone);
-
-    const result = settleUsageCredits({
+describe("trackUsageCreditSpend", () => {
+  const spend = (overdraft?: { topupRemaining: number }) =>
+    trackUsageCreditSpend({
       customer,
-      hold,
-      creditFeature: "backlinks",
-      costs: [cost],
+      customerId: ORG,
+      creditFeature: "agent",
+      costUsd: COST_USD,
+      monthlyRemaining: 100,
+      overdraft,
     });
-    await vi.runAllTimersAsync();
 
-    await expect(result).resolves.toBeUndefined();
-    expect(captureServerEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "usage:credits_consume" }),
-    );
+  it("spends monthly credits first, then top-ups, and stops at zero", async () => {
+    await setBalances(100, 0);
+
+    await spend();
+
+    expect(await getUsageCreditsRemaining(ORG)).toEqual({
+      monthlyRemaining: 0,
+      topupRemaining: 0,
+    });
   });
 
-  it("logs and resolves when finalize keeps failing", async () => {
-    vi.useFakeTimers();
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    finalizeMock.mockRejectedValue(new Error("Status 503"));
+  it("lets admitted research overdraw the monthly pool", async () => {
+    await setBalances(100, 0);
 
-    const result = settleUsageCredits({
-      customer,
-      hold,
-      creditFeature: "backlinks",
-      costs: [cost],
-    });
-    await vi.runAllTimersAsync();
+    await spend({ topupRemaining: 0 });
 
-    await expect(result).resolves.toBeUndefined();
-    expect(finalizeMock).toHaveBeenCalledTimes(2);
-    expect(console.error).toHaveBeenCalledWith(
-      "[autumn] finalize failed",
-      expect.objectContaining({ lockId: hold.lockId, held: 100, actual: 64 }),
+    expect((await getUsageCreditsRemaining(ORG)).monthlyRemaining).toBe(
+      100 - COST_CREDITS,
     );
-    expect(captureServerEvent).not.toHaveBeenCalled();
   });
 });

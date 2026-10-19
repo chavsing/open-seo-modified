@@ -2,11 +2,11 @@ import { normalizeAuthRedirect } from "@/lib/auth-redirect";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { requireOrgPermission } from "@/server/auth/org-gate";
 import { autumn } from "@/server/billing/autumn";
+import { customerHasPaidPlan } from "@/server/billing/subscription";
 import { AppError } from "@/server/lib/errors";
 import {
   AUTUMN_CHECKOUT_SESSION_PARAMS,
   AUTUMN_LIFETIME_PLAN_ID,
-  AUTUMN_PAID_PLAN_FEATURE_ID,
   AUTUMN_PRO_PLAN_ID,
   AUTUMN_SEO_DATA_CREDITS_PER_USD,
   AUTUMN_SEO_DATA_TOP_UP_PLAN_ID,
@@ -59,11 +59,7 @@ export async function createPlanCheckoutUrl(
   // subscription billing, so a second paid plan would charge on top of the
   // first. The app only offers plans to free orgs; this covers a checkout
   // started in another tab after paying. Plan switches go through support.
-  const { allowed: hasPaidPlan } = await autumn.check({
-    customerId: caller.organizationId,
-    featureId: AUTUMN_PAID_PLAN_FEATURE_ID,
-  });
-  if (hasPaidPlan) {
+  if (await customerHasPaidPlan(caller.organizationId)) {
     throw new AppError("ALREADY_ON_PAID_PLAN");
   }
 
