@@ -17,7 +17,7 @@ import {
 // Every write that moves credits runs as one runBatch, which is a single
 // atomic batch on D1 and a transaction on Postgres.
 
-type CreditPool =
+export type CreditPool =
   | typeof AUTUMN_SEO_DATA_BALANCE_FEATURE_ID
   | typeof AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID;
 
@@ -26,7 +26,7 @@ type CreditEventDetails = {
   paths?: readonly string[];
 };
 
-const balanceRow = (organizationId: string, pool: CreditPool) =>
+export const balanceRow = (organizationId: string, pool: CreditPool) =>
   and(
     eq(creditBalances.organizationId, organizationId),
     eq(creditBalances.pool, pool),

@@ -1,36 +1,15 @@
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
-import { useState } from "react";
-import { ErrorState } from "@/client/components/ErrorState";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { Button } from "@/client/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/client/components/ui/card";
-import { Field, FieldError } from "@/client/components/ui/field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/client/components/ui/input-group";
+import { Card, CardContent } from "@/client/components/ui/card";
 import { Skeleton } from "@/client/components/ui/skeleton";
 import { queryClient } from "@/client/tanstack-db";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { useSession } from "@/lib/auth-client";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
-import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { prefetchBillingAccount } from "@/client/features/billing/billingAccountQuery";
-import {
-  openLifetimeCheckout,
-  openUpgradeCheckout,
-  prefetchUpgradeCheckout,
-} from "@/client/features/billing/checkout";
-import { BillingTabs } from "@/client/features/billing/BillingTabs";
-import { parseTopUpAmount } from "@/client/features/billing/HostedBillingContentUtils";
+import { BillingUsageCard } from "@/client/features/billing/BillingUsageCard";
 import { billingUsageEventsQueryOptions } from "@/client/features/billing/useBillingUsageEvents";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import {
@@ -40,19 +19,11 @@ import {
   PLAN_OFFERS,
   PRO_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
-import {
-  createBillingPortalSession,
-  createTopUpCheckout,
-} from "@/serverFunctions/billing";
-import { BILLING_ROUTE, BILLING_TABS } from "@/shared/billing";
+import { captureClientEvent } from "@/client/lib/posthog";
+import { SUPPORT_EMAIL } from "@/client/lib/support";
+import { PAYPAL_AUTOPAY_URL } from "@/shared/billing";
 
 export const Route = createFileRoute("/_app/billing")({
-  validateSearch: z.object({
-    tab: z
-      .enum(BILLING_TABS.map((item) => item.value))
-      .optional()
-      .catch(undefined),
-  }),
   // The loader fills the module-scoped query client, so keep it out of server
   // requests: one worker isolate must not cache another account's billing.
   ssr: false,
@@ -61,30 +32,26 @@ export const Route = createFileRoute("/_app/billing")({
       throw notFound();
     }
   },
-  // Start both reads, and a free plan's checkout link, on link intent and on
-  // a full load alongside the session check, without holding up navigation.
+  // Start both reads on link intent and on a full load alongside the session
+  // check, without holding up navigation.
   loader: () => {
     prefetchBillingAccount();
     void queryClient.prefetchQuery(billingUsageEventsQueryOptions());
-    prefetchUpgradeCheckout();
   },
   component: BillingPage,
 });
 
-type BillingAction = "plan" | "lifetime" | "topUp";
+const supportLink = (
+  <a
+    className="underline underline-offset-2 hover:text-foreground"
+    href={`mailto:${SUPPORT_EMAIL}`}
+  >
+    {SUPPORT_EMAIL}
+  </a>
+);
 
 function BillingPage() {
-  const { tab } = Route.useSearch();
-  const navigate = useNavigate();
-  const [topUpAmount, setTopUpAmount] = useState("20");
-  const [pendingAction, setPendingAction] = useState<BillingAction | null>(
-    null,
-  );
-  const [error, setError] = useState<{
-    action: BillingAction;
-    message: string;
-  } | null>(null);
-
+  const { data: session } = useSession();
   const {
     accountQuery,
     isFreePlan,
@@ -97,51 +64,9 @@ function BillingPage() {
   } = useCreditBalance();
   const account = accountQuery.data;
 
-  // Subscription changes are owner-only; other members see balances but are
-  // pointed at the owner instead of checkout (the server enforces this too).
+  // Plan changes are owner-only; other members see balances but are pointed
+  // at the owner instead.
   const canManageBilling = useCanManageBilling();
-
-  const { isValid: isValidTopUp, parsed: parsedTopUpAmount } =
-    parseTopUpAmount(topUpAmount);
-  const showTopUpError = topUpAmount.trim() !== "" && !isValidTopUp;
-
-  // Each action ends by sending the browser to Stripe, so the button stays
-  // pending unless it fails.
-  async function runAction(
-    action: BillingAction,
-    callback: () => Promise<void>,
-    fallbackMessage: string,
-  ) {
-    setError(null);
-    setPendingAction(action);
-    try {
-      await callback();
-    } catch (err) {
-      setError({
-        action,
-        message: getStandardErrorMessage(err, fallbackMessage),
-      });
-      setPendingAction(null);
-    }
-  }
-
-  async function startTopUpCheckout() {
-    window.location.assign(
-      await createTopUpCheckout({ data: { amountUsd: parsedTopUpAmount } }),
-    );
-  }
-
-  async function openPortal() {
-    window.location.assign(
-      await createBillingPortalSession({ data: { returnTo: BILLING_ROUTE } }),
-    );
-  }
-
-  function actionError(action: BillingAction) {
-    return error?.action === action ? (
-      <ErrorState message={error.message} />
-    ) : null;
-  }
 
   return (
     <div className="mx-auto box-content max-w-7xl space-y-5 px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8">
@@ -170,7 +95,6 @@ function BillingPage() {
           ) : null}
 
           <div className="grid gap-5 md:grid-cols-2">
-            {/* Subscription card */}
             <Card>
               <CardContent className="flex h-full flex-col justify-between gap-4">
                 <div>
@@ -180,7 +104,7 @@ function BillingPage() {
                       remaining
                     </span>
                   </div>
-                  {!isFreePlan ? (
+                  {!isFreePlan && topUpRemaining > 0 ? (
                     <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
                       <span className="tabular-nums">
                         {account.isLifetime ? "Included" : "Monthly"} $
@@ -188,7 +112,7 @@ function BillingPage() {
                       </span>
                       <span>&middot;</span>
                       <span className="tabular-nums">
-                        Top-ups ${topUpRemaining.toFixed(2)}
+                        Extra ${topUpRemaining.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -196,18 +120,16 @@ function BillingPage() {
                     <p className="mt-2 text-xs text-destructive">
                       {isFreePlan
                         ? "You’ve used your free credits. Upgrade your plan to continue."
-                        : `You’ve used ${refillDate ? "this month’s" : "your"} credits. Buy more below to keep going${
-                            refillDate
-                              ? `, or wait for them to refill on ${refillDate}`
-                              : ""
-                          }.`}
+                        : refillDate
+                          ? `You’ve used this month’s credits. They refill on ${refillDate}, or email ${SUPPORT_EMAIL} to add more.`
+                          : `You’ve used your credits. Email ${SUPPORT_EMAIL} to add more.`}
                     </p>
                   ) : isLowCredits ? (
                     <p className="mt-2 text-xs text-amber-600">
                       You&rsquo;re running low on credits.{" "}
                       {isFreePlan
                         ? `Upgrade to get $${PRO_PLAN_OFFER.includedCreditsUsd}/month.`
-                        : "Buy more credits below."}
+                        : `Email ${SUPPORT_EMAIL} to add more.`}
                     </p>
                   ) : null}
                 </div>
@@ -230,168 +152,107 @@ function BillingPage() {
 
                 {!canManageBilling ? (
                   <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-                    Only the organization owner can change the plan or buy
-                    credits. Ask them if you need more.
+                    Only the organization owner can change the plan. Ask them if
+                    you need more credits.
                   </p>
                 ) : isFreePlan ? (
                   <div className="space-y-4 border-t border-border pt-3">
-                    {PLAN_OFFERS.map((offer) => {
-                      const action =
-                        offer.billing === "once" ? "lifetime" : "plan";
-                      return (
-                        <div key={offer.planId} className="space-y-3">
-                          <div className="flex items-baseline justify-between gap-4">
-                            <span className="text-sm font-medium">
-                              {offer.name}
-                            </span>
-                            <span className="text-sm font-medium tabular-nums">
-                              {formatPlanPrice(offer)}
-                            </span>
-                          </div>
-                          <ul className="space-y-1.5">
-                            {[
-                              "Access to all OpenSEO features",
-                              includedCreditsFeature(offer),
-                            ].map((item) => (
-                              <li
-                                key={item}
-                                className="flex gap-2 text-xs text-muted-foreground"
-                              >
-                                <span className="mt-[1px] shrink-0 text-muted-foreground/60">
-                                  &mdash;
-                                </span>
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                          <Button
-                            variant={
-                              action === "lifetime" ? "default" : "secondary"
-                            }
-                            className="w-full"
-                            pending={pendingAction === action}
-                            disabled={pendingAction !== null}
-                            onClick={() =>
-                              void runAction(
-                                action,
-                                action === "lifetime"
-                                  ? openLifetimeCheckout
-                                  : openUpgradeCheckout,
-                                "We couldn't start the checkout. Please try again.",
-                              )
-                            }
-                          >
-                            {pendingAction === action
-                              ? "Redirecting to Stripe..."
-                              : action === "lifetime"
-                                ? "Get lifetime access"
-                                : "Upgrade Plan"}
-                          </Button>
-                          {actionError(action)}
+                    {PLAN_OFFERS.map((offer) => (
+                      <div key={offer.planId} className="space-y-3">
+                        <div className="flex items-baseline justify-between gap-4">
+                          <span className="text-sm font-medium">
+                            {offer.name}
+                          </span>
+                          <span className="text-sm font-medium tabular-nums">
+                            {formatPlanPrice(offer)}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <ul className="space-y-1.5">
+                          {[
+                            "Access to all OpenSEO features",
+                            includedCreditsFeature(offer),
+                          ].map((item) => (
+                            <li
+                              key={item}
+                              className="flex gap-2 text-xs text-muted-foreground"
+                            >
+                              <span className="mt-[1px] shrink-0 text-muted-foreground/60">
+                                &mdash;
+                              </span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                        <Button
+                          variant={
+                            offer.billing === "once" ? "default" : "secondary"
+                          }
+                          className="w-full"
+                          nativeButton={false}
+                          render={
+                            <a
+                              href={offer.paymentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() =>
+                                captureClientEvent("billing:paypal_click", {
+                                  planId: offer.planId,
+                                })
+                              }
+                            />
+                          }
+                        >
+                          {offer.billing === "once"
+                            ? "Pay once with PayPal"
+                            : "Subscribe with PayPal"}
+                        </Button>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">
+                      Pay with the same email as this account
+                      {session?.user?.email ? ` (${session.user.email})` : ""}.
+                      Your plan is turned on once we confirm your payment.
+                    </p>
                   </div>
+                ) : account.isLifetime ? (
+                  <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+                    Lifetime access: nothing to renew. Need more credits? Email{" "}
+                    {supportLink}.
+                  </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 border-t border-border pt-3">
+                    <p className="text-sm text-muted-foreground">
+                      {refillDate
+                        ? `Paid through ${refillDate}. PayPal renews it automatically.`
+                        : "PayPal renews your plan automatically."}{" "}
+                      To cancel, stop the automatic payment in PayPal.
+                    </p>
                     <Button
                       variant="secondary"
                       className="w-full"
-                      pending={pendingAction === "plan"}
-                      disabled={pendingAction !== null}
-                      onClick={() =>
-                        void runAction(
-                          "plan",
-                          openPortal,
-                          "We couldn't open the billing portal. Please try again.",
-                        )
+                      nativeButton={false}
+                      render={
+                        <a
+                          href={PAYPAL_AUTOPAY_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
                       }
                     >
-                      {pendingAction === "plan"
-                        ? "Opening Stripe..."
-                        : account.isLifetime
-                          ? "Billing details"
-                          : "Manage subscription"}
+                      Manage in PayPal
                     </Button>
-                    {actionError("plan")}
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            {/* Buy credits card — paid plan only, owner-only */}
-            {!isFreePlan && canManageBilling ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Buy credits</CardTitle>
-                  <CardDescription>
-                    Top-up credits never expire and are used after your monthly
-                    credits.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Field data-invalid={showTopUpError}>
-                    <InputGroup>
-                      <InputGroupAddon>$</InputGroupAddon>
-                      <InputGroupInput
-                        type="number"
-                        min={10}
-                        max={99}
-                        step={1}
-                        inputMode="numeric"
-                        aria-label="Top-up amount in USD"
-                        aria-invalid={showTopUpError}
-                        value={topUpAmount}
-                        onChange={(e) => setTopUpAmount(e.target.value)}
-                      />
-                    </InputGroup>
-                    {showTopUpError ? (
-                      <FieldError>Enter between $10–$99.</FieldError>
-                    ) : null}
-                  </Field>
-
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    pending={pendingAction === "topUp"}
-                    disabled={!isValidTopUp || pendingAction !== null}
-                    onClick={() =>
-                      void runAction(
-                        "topUp",
-                        startTopUpCheckout,
-                        "We couldn't start the checkout. Please try again.",
-                      )
-                    }
-                  >
-                    {pendingAction === "topUp"
-                      ? "Redirecting to Stripe..."
-                      : "Buy credits"}
-                  </Button>
-                  {actionError("topUp")}
-                </CardContent>
-              </Card>
-            ) : null}
           </div>
         </>
       )}
 
-      <BillingTabs
-        tab={tab ?? "usage"}
-        onTabChange={(next) =>
-          void navigate({
-            to: BILLING_ROUTE,
-            // Like other tabbed pages, Back leaves the page.
-            replace: true,
-            search: { tab: next === "usage" ? undefined : next },
-          })
-        }
-        invoiceEmailsEnabled={
-          canManageBilling && account ? account.invoiceEmailsEnabled : null
-        }
-      />
+      <BillingUsageCard />
 
       <p className="text-xs text-muted-foreground">
-        Billing is powered by Stripe.
+        Payments are handled by PayPal. Questions? Email {supportLink}.
       </p>
     </div>
   );

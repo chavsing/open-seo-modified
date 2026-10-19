@@ -3,7 +3,8 @@ import { AppBanner } from "@/client/layout/AppBanner";
 import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
-import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
+import { SUPPORT_EMAIL } from "@/client/lib/support";
+import { SUBSCRIBE_ROUTE } from "@/shared/billing";
 
 export function FreePlanBanner() {
   const { accountQuery, isFreePlan, isOutOfCredits, isLowCredits, refillDate } =
@@ -36,12 +37,12 @@ export function FreePlanBanner() {
       Upgrade your plan
     </Link>
   ) : (
-    <Link
-      to={BILLING_ROUTE}
+    <a
+      href={`mailto:${SUPPORT_EMAIL}`}
       className="font-medium text-primary underline-offset-4 hover:underline"
     >
-      Buy more credits
-    </Link>
+      Email us to add credits
+    </a>
   );
 
   if (isOutOfCredits) {

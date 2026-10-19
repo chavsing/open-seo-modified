@@ -10,10 +10,13 @@ import {
   CreditCard,
   LogOut,
   Settings,
+  ShieldCheck,
   User,
 } from "lucide-react";
 import { organizationContextQueryOptions } from "@/client/features/team/organizationQueries";
 import { switchOrganization } from "@/serverFunctions/organization";
+import { getAdminStatus } from "@/serverFunctions/admin";
+import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { clearLastProjectId } from "@/client/lib/active-project";
 import {
   connectNavGroup,
@@ -213,6 +216,13 @@ function AccountFooter({ ready }: { ready: boolean }) {
   });
   const organizations = orgContextQuery.data?.organizations ?? [];
   const activeOrganizationId = orgContextQuery.data?.organizationId;
+  // Only the emails in ADMIN_EMAILS see the admin page link.
+  const adminStatusQuery = useQuery({
+    queryKey: ["admin", "status"],
+    queryFn: () => getAdminStatus(),
+    enabled: Boolean(email) && isHostedClientAuthMode(),
+    staleTime: Infinity,
+  });
 
   async function handleSwitchOrganization(organizationId: string) {
     if (isSwitching || organizationId === activeOrganizationId) return;
@@ -232,6 +242,13 @@ function AccountFooter({ ready }: { ready: boolean }) {
   return (
     <UiSidebarFooter className="gap-0 border-t border-sidebar-border pb-safe">
       <SidebarMenu>
+        {adminStatusQuery.data?.isAdmin ? (
+          <SidebarNavLink
+            icon={ShieldCheck}
+            label="Admin"
+            linkProps={{ to: "/admin" }}
+          />
+        ) : null}
         <SidebarNavLink
           icon={CircleHelp}
           label="Help & Community"

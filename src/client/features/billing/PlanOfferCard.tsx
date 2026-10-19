@@ -62,8 +62,8 @@ export function PlanOfferCard({
             </TooltipContent>
           </Tooltip>
           {offer.billing === "monthly"
-            ? ". Cancel anytime. Powered by Stripe."
-            : ". Pay once, no renewals. Powered by Stripe."}
+            ? ". Cancel anytime in PayPal."
+            : ". Pay once, no renewals. Paid with PayPal."}
         </p>
       </CardContent>
     </Card>

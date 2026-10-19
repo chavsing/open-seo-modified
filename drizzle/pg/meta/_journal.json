@@ -246,6 +246,13 @@
       "when": 1792418007687,
       "tag": "0034_wet_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792420710510,
+      "tag": "0035_tough_white_queen",
+      "breakpoints": true
     }
   ]
 }

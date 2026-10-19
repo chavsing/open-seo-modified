@@ -18,6 +18,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as Char91DotwellKnownChar93OpenaiAppsChallengeRouteImport } from './routes/[.well-known]/openai-apps-challenge'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppAiRouteImport } from './routes/_app/ai'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
@@ -30,7 +31,6 @@ import { Route as AuthenticatedSubscribeRouteImport } from './routes/_authentica
 import { Route as AcceptInvitationIdRouteImport } from './routes/accept-invitation.$id'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as RReportIdRouteImport } from './routes/r/$reportId'
-import { Route as AppBillingFixPaymentRouteImport } from './routes/_app/billing_.fix-payment'
 import { Route as AppHelpDataforseoApiKeyRouteImport } from './routes/_app/help/dataforseo-api-key'
 import { Route as AppHelpOpenrouterApiKeyRouteImport } from './routes/_app/help/openrouter-api-key'
 import { Route as AppPProjectIdRouteRouteImport } from './routes/_app/p/$projectId/route'
@@ -114,6 +114,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAiRoute = AppAiRouteImport.update({
   id: '/ai',
   path: '/ai',
@@ -174,11 +179,6 @@ const RReportIdRoute = RReportIdRouteImport.update({
   id: '/r/$reportId',
   path: '/r/$reportId',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppBillingFixPaymentRoute = AppBillingFixPaymentRouteImport.update({
-  id: '/billing_/fix-payment',
-  path: '/billing/fix-payment',
-  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppHelpDataforseoApiKeyRoute = AppHelpDataforseoApiKeyRouteImport.update({
   id: '/help/dataforseo-api-key',
@@ -401,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/openai-apps-challenge': typeof Char91DotwellKnownChar93OpenaiAppsChallengeRoute
+  '/admin': typeof AppAdminRoute
   '/ai': typeof AppAiRoute
   '/billing': typeof AppBillingRoute
   '/projects': typeof AppProjectsRoute
@@ -414,7 +415,6 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/r/$reportId': typeof RReportIdRoute
   '/p/$projectId': typeof AppPProjectIdRouteRouteWithChildren
-  '/billing/fix-payment': typeof AppBillingFixPaymentRoute
   '/help/dataforseo-api-key': typeof AppHelpDataforseoApiKeyRoute
   '/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/settings/organization': typeof AppSettingsOrganizationRoute
@@ -461,6 +461,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/openai-apps-challenge': typeof Char91DotwellKnownChar93OpenaiAppsChallengeRoute
+  '/admin': typeof AppAdminRoute
   '/ai': typeof AppAiRoute
   '/billing': typeof AppBillingRoute
   '/projects': typeof AppProjectsRoute
@@ -472,7 +473,6 @@ export interface FileRoutesByTo {
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/api/health': typeof ApiHealthRoute
   '/r/$reportId': typeof RReportIdRoute
-  '/billing/fix-payment': typeof AppBillingFixPaymentRoute
   '/help/dataforseo-api-key': typeof AppHelpDataforseoApiKeyRoute
   '/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/settings/organization': typeof AppSettingsOrganizationRoute
@@ -519,6 +519,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/openai-apps-challenge': typeof Char91DotwellKnownChar93OpenaiAppsChallengeRoute
+  '/_app/admin': typeof AppAdminRoute
   '/_app/ai': typeof AppAiRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/projects': typeof AppProjectsRoute
@@ -533,7 +534,6 @@ export interface FileRoutesById {
   '/r/$reportId': typeof RReportIdRoute
   '/_app/': typeof AppIndexRoute
   '/_app/p/$projectId': typeof AppPProjectIdRouteRouteWithChildren
-  '/_app/billing_/fix-payment': typeof AppBillingFixPaymentRoute
   '/_app/help/dataforseo-api-key': typeof AppHelpDataforseoApiKeyRoute
   '/_app/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/_app/settings/organization': typeof AppSettingsOrganizationRoute
@@ -582,6 +582,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/.well-known/openai-apps-challenge'
+    | '/admin'
     | '/ai'
     | '/billing'
     | '/projects'
@@ -595,7 +596,6 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/r/$reportId'
     | '/p/$projectId'
-    | '/billing/fix-payment'
     | '/help/dataforseo-api-key'
     | '/help/openrouter-api-key'
     | '/settings/organization'
@@ -642,6 +642,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/.well-known/openai-apps-challenge'
+    | '/admin'
     | '/ai'
     | '/billing'
     | '/projects'
@@ -653,7 +654,6 @@ export interface FileRouteTypes {
     | '/accept-invitation/$id'
     | '/api/health'
     | '/r/$reportId'
-    | '/billing/fix-payment'
     | '/help/dataforseo-api-key'
     | '/help/openrouter-api-key'
     | '/settings/organization'
@@ -699,6 +699,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/.well-known/openai-apps-challenge'
+    | '/_app/admin'
     | '/_app/ai'
     | '/_app/billing'
     | '/_app/projects'
@@ -713,7 +714,6 @@ export interface FileRouteTypes {
     | '/r/$reportId'
     | '/_app/'
     | '/_app/p/$projectId'
-    | '/_app/billing_/fix-payment'
     | '/_app/help/dataforseo-api-key'
     | '/_app/help/openrouter-api-key'
     | '/_app/settings/organization'
@@ -840,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/ai': {
       id: '/_app/ai'
       path: '/ai'
@@ -923,13 +930,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/r/$reportId'
       preLoaderRoute: typeof RReportIdRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_app/billing_/fix-payment': {
-      id: '/_app/billing_/fix-payment'
-      path: '/billing/fix-payment'
-      fullPath: '/billing/fix-payment'
-      preLoaderRoute: typeof AppBillingFixPaymentRouteImport
-      parentRoute: typeof AppRouteRoute
     }
     '/_app/help/dataforseo-api-key': {
       id: '/_app/help/dataforseo-api-key'
@@ -1322,6 +1322,7 @@ const AppPProjectIdRouteRouteWithChildren =
   AppPProjectIdRouteRoute._addFileChildren(AppPProjectIdRouteRouteChildren)
 
 interface AppRouteRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
   AppAiRoute: typeof AppAiRoute
   AppBillingRoute: typeof AppBillingRoute
   AppProjectsRoute: typeof AppProjectsRoute
@@ -1329,12 +1330,12 @@ interface AppRouteRouteChildren {
   AppSupportRoute: typeof AppSupportRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPProjectIdRouteRoute: typeof AppPProjectIdRouteRouteWithChildren
-  AppBillingFixPaymentRoute: typeof AppBillingFixPaymentRoute
   AppHelpDataforseoApiKeyRoute: typeof AppHelpDataforseoApiKeyRoute
   AppHelpOpenrouterApiKeyRoute: typeof AppHelpOpenrouterApiKeyRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
   AppAiRoute: AppAiRoute,
   AppBillingRoute: AppBillingRoute,
   AppProjectsRoute: AppProjectsRoute,
@@ -1342,7 +1343,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSupportRoute: AppSupportRoute,
   AppIndexRoute: AppIndexRoute,
   AppPProjectIdRouteRoute: AppPProjectIdRouteRouteWithChildren,
-  AppBillingFixPaymentRoute: AppBillingFixPaymentRoute,
   AppHelpDataforseoApiKeyRoute: AppHelpDataforseoApiKeyRoute,
   AppHelpOpenrouterApiKeyRoute: AppHelpOpenrouterApiKeyRoute,
 }

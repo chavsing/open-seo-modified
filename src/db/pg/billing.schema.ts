@@ -91,3 +91,22 @@ export const creditEvents = pgTable(
     index("credit_events_org_created_idx").on(t.organizationId, t.createdAt),
   ],
 );
+
+export const billingAdminActions = pgTable(
+  "billing_admin_actions",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    action: text("action", {
+      enum: ["pro_month", "lifetime", "add_credits", "downgrade"],
+    }).notNull(),
+    credits: integer("credits"),
+    adminEmail: text("admin_email").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    index("billing_admin_actions_org_idx").on(t.organizationId, t.createdAt),
+  ],
+);

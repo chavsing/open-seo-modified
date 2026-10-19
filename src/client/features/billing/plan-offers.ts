@@ -1,21 +1,27 @@
 import {
   AUTUMN_LIFETIME_PLAN_ID,
   AUTUMN_PRO_PLAN_ID,
-  type CheckoutPlanId,
+  autumnSeoDataCreditsToUsd,
+  LIFETIME_CREDITS,
+  PAYPAL_LIFETIME_PAYMENT_URL,
+  PRO_MONTHLY_CREDITS,
+  PAYPAL_PRO_SUBSCRIBE_URL,
+  type PaidPlanId,
 } from "@/shared/billing";
 
-// What a checkout page advertises before the customer holds the plan. Once
-// they do, status and credits come from the Autumn customer (see
-// billing-account.ts) and only the name is read from here (getPlanName), so
-// these only need to match the Autumn plans they sell.
+// What the plan pages advertise before the customer holds the plan. Once
+// they do, status and credits come from the billing ledger (see
+// billing-account.ts) and only the name is read from here (getPlanName).
 export type PlanOffer = {
-  planId: CheckoutPlanId;
+  planId: PaidPlanId;
   name: string;
   priceUsd: number;
   /** "monthly" renews each month; "once" is a single lifetime payment. */
   billing: "monthly" | "once";
   /** Credits the plan grants: each month, or once for a lifetime plan. */
   includedCreditsUsd: number;
+  /** The client's PayPal link that sells this plan. */
+  paymentUrl: string;
 };
 
 export const PRO_PLAN_OFFER: PlanOffer = {
@@ -23,7 +29,8 @@ export const PRO_PLAN_OFFER: PlanOffer = {
   name: "Pro Plan",
   priceUsd: 197,
   billing: "monthly",
-  includedCreditsUsd: 50,
+  includedCreditsUsd: autumnSeoDataCreditsToUsd(PRO_MONTHLY_CREDITS),
+  paymentUrl: PAYPAL_PRO_SUBSCRIBE_URL,
 };
 
 export const LIFETIME_PLAN_OFFER: PlanOffer = {
@@ -31,7 +38,8 @@ export const LIFETIME_PLAN_OFFER: PlanOffer = {
   name: "Lifetime Access",
   priceUsd: 1499,
   billing: "once",
-  includedCreditsUsd: 100,
+  includedCreditsUsd: autumnSeoDataCreditsToUsd(LIFETIME_CREDITS),
+  paymentUrl: PAYPAL_LIFETIME_PAYMENT_URL,
 };
 
 export const PLAN_OFFERS = [PRO_PLAN_OFFER, LIFETIME_PLAN_OFFER];
@@ -52,5 +60,5 @@ export function includedCreditsFeature(offer: PlanOffer) {
   const credits = `$${offer.includedCreditsUsd.toFixed(2)} of Usage Credits`;
   return offer.billing === "monthly"
     ? `Includes ${credits} each month`
-    : `Includes ${credits}, then top up any time`;
+    : `Includes ${credits}`;
 }

@@ -16,8 +16,6 @@ const STANDARD_MESSAGES: Record<ErrorCode, string> = {
     "OpenSEO auth is not configured. Follow the README setup steps for Cloudflare Access.",
   PAYMENT_REQUIRED:
     "An active hosted subscription is required before you can use OpenSEO.",
-  ALREADY_ON_PAID_PLAN:
-    "This organization already has a paid plan. To switch plans, contact support.",
   INSUFFICIENT_CREDITS:
     "You don't have enough credits for this. Upgrade your plan or buy more credits to keep going.",
   AUDIT_RENDERING_UNAVAILABLE:

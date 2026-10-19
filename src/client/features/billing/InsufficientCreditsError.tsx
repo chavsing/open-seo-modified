@@ -5,12 +5,13 @@ import { Button } from "@/client/components/ui/button";
 import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
+import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
 
 /**
  * An out-of-credits failure that says how to get more: a free plan upgrades,
- * a paid plan buys credits, and until the customer loads the generic copy
- * points at Billing. A retry can't fix it, so there is no retry button.
+ * a paid plan asks support to add credits, and until the customer loads the
+ * generic copy points at Billing. A retry can't fix it, so there is no retry button.
  *
  * The member role is left to the banner and the billing page: reading it here
  * would pull a server function into every page error (and every test that
@@ -42,10 +43,13 @@ export function InsufficientCreditsError({
     );
   } else {
     message = refillDate
-      ? `You don't have enough credits for this. Buy more credits to keep going, or wait for your monthly credits to refill on ${refillDate}.`
-      : "You don't have enough credits for this. Buy more credits to keep going.";
+      ? `You don't have enough credits for this. Your monthly credits refill on ${refillDate}, or email ${SUPPORT_EMAIL} to add more.`
+      : `You don't have enough credits for this. Email ${SUPPORT_EMAIL} to add more.`;
     action = (
-      <CreditsButton link={<Link to={BILLING_ROUTE} />} label="Buy credits" />
+      <CreditsButton
+        link={<a href={`mailto:${SUPPORT_EMAIL}`} />}
+        label="Email support"
+      />
     );
   }
 
