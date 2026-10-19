@@ -20,11 +20,6 @@ import {
 import { requestWithPublicOrigin } from "@/server/mcp/public-origin";
 import { MCP_ROUTE } from "@/server/mcp/context";
 import { withPgClient } from "@/db";
-import {
-  AUTUMN_WEBHOOK_PATH,
-  handleAutumnWebhookRequest,
-} from "@/server/billing/autumn-webhook";
-import { sweepDubReferredOrganizations } from "@/server/referrals/dub";
 import { maybeSendSelfHostHeartbeat } from "@/server/lib/self-host-telemetry";
 import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
@@ -93,9 +88,9 @@ async function authorizeSamChat(
   if (!session || !project) {
     return new Response("Forbidden", { status: 403 });
   }
-  // Make sure the Autumn customer (and its default free-plan credits) exists
-  // before the DO's balance gate runs, or a brand-new org's first message hits
-  // a false "out of credits". Hosted-only; self-hosted has no Autumn.
+  // Make sure the org's billing account (and its free credits) exists before
+  // the DO's balance gate runs, or a brand-new org's first message hits a
+  // false "out of credits". Hosted-only; self-hosted has no billing.
   if (await isHostedServerAuthMode()) {
     await getOrCreateOrganizationCustomer(context);
   }
@@ -162,10 +157,6 @@ function handleFetch(
   }
 
   if (isHostedAuthMode(authMode)) {
-    if (pathname === AUTUMN_WEBHOOK_PATH) {
-      return handleAutumnWebhookRequest(publicRequest);
-    }
-
     return openSeoOAuthProvider.fetch(
       publicRequest,
       env as OpenSeoOAuthEnv,
@@ -215,14 +206,6 @@ export default {
           // The sweep only advances past live records via deletions; a
           // persistent incomplete scan means the keyspace outgrew the batch.
           console.warn("[mcp-oauth] purge did not cover the full keyspace");
-        }
-
-        // Daily referral-sale sweep: catches paid Autumn invoices the
-        // billing.updated webhook path misses (renewals, one-time top-ups).
-        try {
-          await sweepDubReferredOrganizations();
-        } catch (err) {
-          console.error("[cron] Dub referral sale sweep failed:", err);
         }
       }
       return;

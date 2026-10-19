@@ -253,6 +253,13 @@
       "when": 1792420710510,
       "tag": "0035_tough_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792421902394,
+      "tag": "0036_moaning_hammerhead",
+      "breakpoints": true
     }
   ]
 }

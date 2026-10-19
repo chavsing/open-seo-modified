@@ -117,7 +117,6 @@ export const {
   organization,
   member,
   invitation,
-  billingCustomerStatus,
   billingAccounts,
   creditBalances,
   creditHolds,

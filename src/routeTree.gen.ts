@@ -38,7 +38,6 @@ import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/ind
 import { Route as AppSettingsOrganizationRouteImport } from './routes/_app/settings/organization'
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated.onboarding.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiAutumnSplatRouteImport } from './routes/api/autumn/$'
 import { Route as STokenIndexRouteImport } from './routes/s/$token/index'
 import { Route as STokenOgDotpngRouteImport } from './routes/s/$token/og[.]png'
 import { Route as STokenRawRouteImport } from './routes/s/$token/raw'
@@ -214,11 +213,6 @@ const AuthenticatedOnboardingIndexRoute =
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAutumnSplatRoute = ApiAutumnSplatRouteImport.update({
-  id: '/api/autumn/$',
-  path: '/api/autumn/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const STokenIndexRoute = STokenIndexRouteImport.update({
@@ -419,7 +413,6 @@ export interface FileRoutesByFullPath {
   '/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/settings/organization': typeof AppSettingsOrganizationRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/autumn/$': typeof ApiAutumnSplatRoute
   '/s/$token/og.png': typeof STokenOgDotpngRoute
   '/s/$token/raw': typeof STokenRawRoute
   '/settings/': typeof AppSettingsIndexRoute
@@ -477,7 +470,6 @@ export interface FileRoutesByTo {
   '/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/settings/organization': typeof AppSettingsOrganizationRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/autumn/$': typeof ApiAutumnSplatRoute
   '/s/$token/og.png': typeof STokenOgDotpngRoute
   '/s/$token/raw': typeof STokenRawRoute
   '/settings': typeof AppSettingsIndexRoute
@@ -538,7 +530,6 @@ export interface FileRoutesById {
   '/_app/help/openrouter-api-key': typeof AppHelpOpenrouterApiKeyRoute
   '/_app/settings/organization': typeof AppSettingsOrganizationRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/autumn/$': typeof ApiAutumnSplatRoute
   '/s/$token/og.png': typeof STokenOgDotpngRoute
   '/s/$token/raw': typeof STokenRawRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
@@ -600,7 +591,6 @@ export interface FileRouteTypes {
     | '/help/openrouter-api-key'
     | '/settings/organization'
     | '/api/auth/$'
-    | '/api/autumn/$'
     | '/s/$token/og.png'
     | '/s/$token/raw'
     | '/settings/'
@@ -658,7 +648,6 @@ export interface FileRouteTypes {
     | '/help/openrouter-api-key'
     | '/settings/organization'
     | '/api/auth/$'
-    | '/api/autumn/$'
     | '/s/$token/og.png'
     | '/s/$token/raw'
     | '/settings'
@@ -718,7 +707,6 @@ export interface FileRouteTypes {
     | '/_app/help/openrouter-api-key'
     | '/_app/settings/organization'
     | '/api/auth/$'
-    | '/api/autumn/$'
     | '/s/$token/og.png'
     | '/s/$token/raw'
     | '/_app/settings/'
@@ -767,7 +755,6 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   RReportIdRoute: typeof RReportIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiAutumnSplatRoute: typeof ApiAutumnSplatRoute
   STokenOgDotpngRoute: typeof STokenOgDotpngRoute
   STokenRawRoute: typeof STokenRawRoute
   STokenIndexRoute: typeof STokenIndexRoute
@@ -978,13 +965,6 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/autumn/$': {
-      id: '/api/autumn/$'
-      path: '/api/autumn/$'
-      fullPath: '/api/autumn/$'
-      preLoaderRoute: typeof ApiAutumnSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/s/$token/': {
@@ -1393,7 +1373,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   RReportIdRoute: RReportIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiAutumnSplatRoute: ApiAutumnSplatRoute,
   STokenOgDotpngRoute: STokenOgDotpngRoute,
   STokenRawRoute: STokenRawRoute,
   STokenIndexRoute: STokenIndexRoute,

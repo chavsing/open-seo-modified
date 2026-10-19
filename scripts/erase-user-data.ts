@@ -13,7 +13,6 @@
  * this process. See docs/maintainers/runbooks/gdpr-erasure.md for required operator variables.
  */
 import process from "node:process";
-import { Autumn } from "autumn-js";
 import {
   and,
   count,
@@ -64,11 +63,6 @@ function optionalEnv(name: string, fallback: string): string {
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function isNotFound(error: unknown): boolean {
-  const message = errorText(error).toLowerCase();
-  return message.includes("404") || message.includes("not found");
 }
 
 function printUsage(): never {
@@ -430,38 +424,6 @@ async function deletePostHogPerson(userId: string) {
   return people.length;
 }
 
-/**
- * The Autumn key prefix encodes which environment it targets. A sandbox key
- * against production data would 404 every delete and leave the live Stripe
- * subscription running — surface the environment in the dry run so the
- * operator can catch that before executing.
- */
-function autumnEnvironment(): string {
-  const key = process.env.AUTUMN_SECRET_KEY?.trim() ?? "";
-  if (key.startsWith("am_sk_live_")) return "live";
-  if (key.startsWith("am_sk_test_")) return "sandbox";
-  return "unset-or-unknown";
-}
-
-async function deleteAutumnCustomer(organizationIds: string[]) {
-  const autumn = new Autumn({ secretKey: requiredEnv("AUTUMN_SECRET_KEY") });
-  let deleted = 0;
-  let absent = 0;
-  for (const organizationId of organizationIds) {
-    try {
-      await autumn.customers.delete({
-        customerId: organizationId,
-        deleteInStripe: true,
-      });
-      deleted += 1;
-    } catch (error) {
-      if (!isNotFound(error)) throw error;
-      absent += 1;
-    }
-  }
-  return { deleted, absent };
-}
-
 async function eraseWorkerStorage(payload: GdprStorageErasurePayload) {
   const secret = requiredEnv("GDPR_ERASURE_SECRET");
   const endpoint = new URL(
@@ -637,8 +599,6 @@ async function main() {
         googleAccounts: inventory.googleAccounts.length,
         loopsContact: true,
         postHogDistinctId: user.id,
-        autumnCustomersAndStripeCustomers: inventory.organizations.length,
-        autumnEnvironment: autumnEnvironment(),
       },
     };
     console.log(JSON.stringify(summary, null, 2));
@@ -664,7 +624,6 @@ async function main() {
     );
     const loops = await deleteLoopsContact(user.id, user.email);
     const postHogPeopleQueued = await deletePostHogPerson(user.id);
-    const autumnResult = await deleteAutumnCustomer(organizationIds);
     const storage = await eraseWorkerStorage({
       userId: user.id,
       email: user.email,
@@ -691,7 +650,7 @@ async function main() {
           completedAt: new Date().toISOString(),
           userId: user.id,
           email: user.email,
-          vendors: { loops, postHogPeopleQueued, autumn: autumnResult },
+          vendors: { loops, postHogPeopleQueued },
           storage,
           postgres: postgresVerification,
           retentionNotes: [

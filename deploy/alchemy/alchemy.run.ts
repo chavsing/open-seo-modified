@@ -277,8 +277,6 @@ const dataEnv = {
   OPENROUTER_API_KEY: optionalSecret("OPENROUTER_API_KEY"),
   OPENROUTER_MODEL: optionalVar("OPENROUTER_MODEL"),
   CONTEXT_API_KEY: optionalSecret("CONTEXT_API_KEY"),
-  AUTUMN_SECRET_KEY: optionalSecret("AUTUMN_SECRET_KEY"),
-  AUTUMN_WEBHOOK_SECRET: optionalSecret("AUTUMN_WEBHOOK_SECRET"),
   DUB_API_KEY: optionalSecret("DUB_API_KEY"),
   GDPR_ERASURE_SECRET: optionalSecret("GDPR_ERASURE_SECRET"),
   ADMIN_EMAILS: optionalVar("ADMIN_EMAILS"),
@@ -413,14 +411,13 @@ export default Alchemy.Stack(
         R2: resources.R2,
         // Deliberately NOT ...dataEnv: this worker crawls and parses
         // attacker-influenced HTML, so it gets only the secrets its code
-        // path reads — DataForSEO (Lighthouse), Autumn (metering), PostHog
-        // (capture), CRAWLER_ACCESS_SECRET (Shopify signatures). No
+        // path reads — DataForSEO (Lighthouse), PostHog (capture),
+        // CRAWLER_ACCESS_SECRET (Shopify signatures). Metering uses the DB. No
         // auth/OAuth/Loops/Turnstile secrets.
         BROWSER: Cloudflare.Browser(),
         CRAWLER_ACCESS_SECRET: dataEnv.CRAWLER_ACCESS_SECRET,
         CONTEXT_API_KEY: dataEnv.CONTEXT_API_KEY,
         DATAFORSEO_API_KEY: dataEnv.DATAFORSEO_API_KEY,
-        AUTUMN_SECRET_KEY: dataEnv.AUTUMN_SECRET_KEY,
         POSTHOG_PUBLIC_KEY: dataEnv.POSTHOG_PUBLIC_KEY,
         POSTHOG_HOST: dataEnv.POSTHOG_HOST,
         AUTH_MODE: authMode,

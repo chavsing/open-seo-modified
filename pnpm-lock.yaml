@@ -98,9 +98,6 @@ importers:
       ai:
         specifier: ^6.0.199
         version: 6.0.199(zod@4.3.6)
-      autumn-js:
-        specifier: ^1.3.26
-        version: 1.3.26(better-auth@1.6.22(@cloudflare/workers-types@4.20260702.1)(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.60(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.0.1)(rollup@4.59.0)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(kysely@0.29.2)(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1))(mongodb@7.2.0(@aws-sdk/credential-providers@3.1080.0)(@mongodb-js/zstd@7.0.0)(socks@2.8.10))(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.15)(vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.19.11)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1))))(better-call@1.3.7(zod@4.3.6))(express@5.2.1)(hono@4.13.7)(react@19.2.4)
       better-auth:
         specifier: ^1.6.22
         version: 1.6.22(@cloudflare/workers-types@4.20260702.1)(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.60(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.0.1)(rollup@4.59.0)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(kysely@0.29.2)(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1))(mongodb@7.2.0(@aws-sdk/credential-providers@3.1080.0)(@mongodb-js/zstd@7.0.0)(socks@2.8.10))(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.15)(vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.19.11)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))
@@ -3326,29 +3323,6 @@ packages:
     resolution: {integrity: sha512-ooviqdwwgfIfNmDwo94wlshcdzfO64XV0Cg6oDsDYBJfITDz1EngD2z7DkbvCWn+XIMsIqW27sEVF6qcpJrRcg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  autumn-js@1.3.26:
-    resolution: {integrity: sha512-IBAprj3q6jpqgp/Dt41Zodj+JBSOEj4kNKOlKC4Cg8LuLM/siFoDI6m2dZ+TG6nhOUXyguWrNvbGzFPncQ0p4Q==}
-    peerDependencies:
-      better-auth: ^1.6.0
-      better-call: ^1.0.12
-      express: ^5.2.1
-      hono: ^4.13.5
-      next: ^14.0.0 || ^15.0.0 || ^16.0.0
-      react: ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      better-auth:
-        optional: true
-      better-call:
-        optional: true
-      express:
-        optional: true
-      hono:
-        optional: true
-      next:
-        optional: true
-      react:
-        optional: true
-
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
@@ -3803,10 +3777,6 @@ packages:
   decode-named-character-reference@1.3.0:
     resolution: {integrity: sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==}
 
-  decode-uri-component@0.5.0:
-    resolution: {integrity: sha512-1BiQVoK8C9gUbQU6NzAtO/tkz2qOFpEObMWpcFvhx4fYnj4Oc5yzaJN/LD36ihkVUdXyh5ZekzX+yM+ty/SrPg==}
-    engines: {node: '>=14.16'}
-
   decompress-response@6.0.0:
     resolution: {integrity: sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ==}
     engines: {node: '>=10'}
@@ -4237,10 +4207,6 @@ packages:
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
-
-  filter-obj@5.1.0:
-    resolution: {integrity: sha512-qWeTREPoT7I0bifpPUXtxkZJ1XJzxWtfoWWkdVGqa+eCr3SHW/Ocp89o8vLvbUuQnadybJpjOKu4V+RwO6sGng==}
-    engines: {node: '>=14.16'}
 
   finalhandler@2.1.1:
     resolution: {integrity: sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==}
@@ -5612,10 +5578,6 @@ packages:
   query-selector-shadow-dom@1.0.1:
     resolution: {integrity: sha512-lT5yCqEBgfoMYpf3F2xQRK7zEr1rhIIZuceDK6+xRkJQ4NMbHTwXqk4NkwDwQMNqXgG9r9fyHnzwNVs6zV5KRw==}
 
-  query-string@9.3.1:
-    resolution: {integrity: sha512-5fBfMOcDi5SA9qj5jZhWAcTtDfKF5WFdd2uD9nVNlbxVv1baq65aALy6qofpNEGELHvisjjasxQp7BlM9gvMzw==}
-    engines: {node: '>=18'}
-
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
@@ -5784,9 +5746,6 @@ packages:
     resolution: {integrity: sha512-2oMpl67a3zCH9H79LeMcbDhXW/UmWG/y2zuqnF2jQq5uq9TbM9TVyXvA4+t+ne2IIkBdrLpAaRQAvo7YI/Yyeg==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
-
-  rou3@0.6.3:
-    resolution: {integrity: sha512-1HSG1ENTj7Kkm5muMnXuzzfdDOf7CFnbSYFA+H3Fp/rB9lOCxCPgy1jlZxTKyFoC5jJay8Mmc+VbPLYRjzYLrA==}
 
   rou3@0.7.12:
     resolution: {integrity: sha512-iFE4hLDuloSWcD7mjdCDhx2bKcIsYbtOTpfH5MHHLSKMOUyjqQXTeZVa289uuwEGEKFoE/BAPbhaU4B774nceg==}
@@ -5986,10 +5945,6 @@ packages:
 
   sparse-bitfield@3.0.3:
     resolution: {integrity: sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==}
-
-  split-on-first@3.0.0:
-    resolution: {integrity: sha512-qxQJTx2ryR0Dw0ITYyekNQWpz6f8dGd7vffGNflQQ3Iqj9NJ6qiZ7ELpZsJ/QBhIVAiDfXdag3+Gp8RvWa62AA==}
-    engines: {node: '>=12'}
 
   split2@4.2.0:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
@@ -9569,18 +9524,6 @@ snapshots:
 
   auto-bind@5.0.1: {}
 
-  autumn-js@1.3.26(better-auth@1.6.22(@cloudflare/workers-types@4.20260702.1)(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.60(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.0.1)(rollup@4.59.0)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(kysely@0.29.2)(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1))(mongodb@7.2.0(@aws-sdk/credential-providers@3.1080.0)(@mongodb-js/zstd@7.0.0)(socks@2.8.10))(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.15)(vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.19.11)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1))))(better-call@1.3.7(zod@4.3.6))(express@5.2.1)(hono@4.13.7)(react@19.2.4):
-    dependencies:
-      query-string: 9.3.1
-      rou3: 0.6.3
-      zod: 4.6.5
-    optionalDependencies:
-      better-auth: 1.6.22(@cloudflare/workers-types@4.20260702.1)(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.60(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.0.1)(rollup@4.59.0)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.1)(kysely@0.29.2)(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(postgres@3.4.9)(sql.js@1.14.1))(mongodb@7.2.0(@aws-sdk/credential-providers@3.1080.0)(@mongodb-js/zstd@7.0.0)(socks@2.8.10))(mysql2@3.24.4(@types/node@22.19.11))(pg@8.22.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.15)(vitest@4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.19.11)(vite@7.3.6(@types/node@22.19.11)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.1)))
-      better-call: 1.3.7(zod@4.3.6)
-      express: 5.2.1
-      hono: 4.13.7
-      react: 19.2.4
-
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.1.0
@@ -9989,8 +9932,6 @@ snapshots:
   decode-named-character-reference@1.3.0:
     dependencies:
       character-entities: 2.0.2
-
-  decode-uri-component@0.5.0: {}
 
   decompress-response@6.0.0:
     dependencies:
@@ -10404,8 +10345,6 @@ snapshots:
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
-
-  filter-obj@5.1.0: {}
 
   finalhandler@2.1.1:
     dependencies:
@@ -11941,12 +11880,6 @@ snapshots:
 
   query-selector-shadow-dom@1.0.1: {}
 
-  query-string@9.3.1:
-    dependencies:
-      decode-uri-component: 0.5.0
-      filter-obj: 5.1.0
-      split-on-first: 3.0.0
-
   queue-microtask@1.2.3: {}
 
   quickjs-emscripten-core@0.32.0:
@@ -12203,8 +12136,6 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.59.0
       '@rollup/rollup-win32-x64-msvc': 4.59.0
       fsevents: 2.3.3
-
-  rou3@0.6.3: {}
 
   rou3@0.7.12: {}
 
@@ -12470,8 +12401,6 @@ snapshots:
     dependencies:
       memory-pager: 1.5.0
     optional: true
-
-  split-on-first@3.0.0: {}
 
   split2@4.2.0: {}
 

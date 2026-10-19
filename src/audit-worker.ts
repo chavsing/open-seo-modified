@@ -6,8 +6,8 @@
 // cross-script SITE_AUDIT_WORKFLOW binding and reads results from the shared
 // DB/KV.
 //
-// Keep this entry's eager graph lean: autumn-js and the page analyzer must
-// stay behind their existing lazy boundaries
+// Keep this entry's eager graph lean: the page analyzer must stay behind its
+// existing lazy boundary
 // (vite-plugin-lean-worker-bundle.ts asserts this at build time).
 import { WorkerEntrypoint } from "cloudflare:workers";
 import { getAuditScratchpad } from "@/server/features/audit/AuditScratchpad";

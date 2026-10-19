@@ -1,5 +1,4 @@
 const LOOPS_CONTACT_UPDATE_URL = "https://app.loops.so/api/v1/contacts/update";
-const LOOPS_EVENT_SEND_URL = "https://app.loops.so/api/v1/events/send";
 
 type LoopsContactProperty =
   | string
@@ -37,41 +36,6 @@ export async function updateLoopsContact({
     label: "update Loops contact",
     logContext,
   });
-}
-
-type LoopsEventPayload = {
-  email: string;
-  userId: string;
-  eventName: string;
-  eventProperties?: Record<string, string | number | boolean>;
-};
-
-/** Sends a Loops event, which triggers any workflow listening for it. Loops
- *  honours the idempotency key for 24 hours and answers a replay with 409,
- *  which is a success here: the email was already queued. Returns whether
- *  this call was such a replay. */
-export async function sendLoopsEvent({
-  apiKey,
-  payload,
-  idempotencyKey,
-  logContext,
-}: {
-  apiKey: string;
-  payload: LoopsEventPayload;
-  idempotencyKey: string;
-  logContext?: Record<string, unknown>;
-}) {
-  const status = await loopsRequest({
-    apiKey,
-    method: "POST",
-    url: LOOPS_EVENT_SEND_URL,
-    payload,
-    headers: { "Idempotency-Key": idempotencyKey },
-    okStatuses: [409],
-    label: "send Loops event",
-    logContext: { ...logContext, eventName: payload.eventName },
-  });
-  return { duplicate: status === 409 };
 }
 
 async function loopsRequest({

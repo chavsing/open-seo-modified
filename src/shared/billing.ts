@@ -21,8 +21,6 @@ export const PAYPAL_LIFETIME_PAYMENT_URL =
   "https://www.paypal.com/PLACEHOLDER-lifetime-payment-link";
 // Where a PayPal customer manages or cancels their automatic payments.
 export const PAYPAL_AUTOPAY_URL = "https://www.paypal.com/myaccount/autopay/";
-export const AUTUMN_SEO_DATA_TOP_UP_PLAN_ID = "credit-top-up";
-export const AUTUMN_PAID_PLAN_FEATURE_ID = "paid_plan";
 // The shared usage-credit pool. Both DataForSEO and agent-LLM spend deduct
 // from these (monthly usage_credits first, then rolled-over topup_credits).
 export const AUTUMN_SEO_DATA_BALANCE_FEATURE_ID = "usage_credits";

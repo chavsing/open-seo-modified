@@ -19,10 +19,6 @@ const WORKERS_AI_PROVIDER_STUB = fileURLToPath(
  */
 const EAGER_DENYLIST: Array<{ pattern: RegExp; expected: string }> = [
   {
-    pattern: /node_modules\/autumn-js\//,
-    expected: "lazy-loaded behind the facade in src/server/billing/autumn.ts",
-  },
-  {
     pattern:
       /node_modules\/(workers-ai-provider|@ai-sdk\/(openai|anthropic))\//,
     expected:

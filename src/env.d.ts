@@ -49,8 +49,6 @@ declare namespace Cloudflare {
     LOOPS_TRANSACTIONAL_VERIFY_EMAIL_ID?: string;
     LOOPS_TRANSACTIONAL_RESET_PASSWORD_ID?: string;
     LOOPS_TRANSACTIONAL_INVITATION_ID?: string;
-    AUTUMN_SECRET_KEY?: string;
-    AUTUMN_WEBHOOK_SECRET?: string;
     // Dub referral conversion tracking (hosted only); all Dub code no-ops
     // when unset.
     DUB_API_KEY?: string;
