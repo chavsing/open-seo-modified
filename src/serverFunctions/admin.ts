@@ -16,7 +16,8 @@ export const getAdminStatus = createServerFn({ method: "POST" })
 
 export const searchAdminAccounts = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
-  .validator(z.object({ query: z.string().trim().min(3).max(200) }))
+  // No query lists the newest signups.
+  .validator(z.object({ query: z.string().trim().min(3).max(200).nullable() }))
   .handler(({ data, context }) =>
     searchAccountsAsAdmin(context.userEmail, data.query),
   );

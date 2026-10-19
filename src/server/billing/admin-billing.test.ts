@@ -81,6 +81,20 @@ describe("admin billing", () => {
     expect((await owner()).planId).toBe("free");
   });
 
+  it("lists the newest signups first when there is no search", async () => {
+    await testDb.client.executeMultiple(`
+      DELETE FROM user WHERE id = 'newer';
+      INSERT INTO user (id, name, email, email_verified, created_at, updated_at)
+        VALUES ('newer', 'Newer', 'newer@example.com', 1, 5000, 5000);
+      INSERT INTO member (id, organization_id, user_id, role, created_at)
+        VALUES ('newer-member', '${ORG}', 'newer', 'member', 5000);
+    `);
+
+    const rows = await searchAccountsAsAdmin(ADMIN, null);
+
+    expect(rows.map((row) => row.email)).toEqual(["newer@example.com", OWNER]);
+  });
+
   it("starts Pro for a month with its monthly credits", async () => {
     vi.useFakeTimers({
       toFake: ["Date"],

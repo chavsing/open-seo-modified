@@ -1,4 +1,4 @@
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
@@ -28,14 +28,18 @@ import {
 // a PayPal payment. Like the ledger, each change is one atomic runBatch.
 
 /**
- * Members whose email contains `query`, with their org's plan and balances,
- * for the admin page. Orgs billing has never touched show no plan row.
+ * Members whose email contains `query` (or, with no query, the newest
+ * signups), with their org's plan and balances, for the admin page. Orgs
+ * billing has never touched show no plan row.
  */
-export async function searchBillingAccounts(query: string) {
-  const pattern = `%${query
-    .trim()
-    .toLowerCase()
-    .replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+export async function searchBillingAccounts(query: string | null) {
+  const pattern =
+    query === null
+      ? null
+      : `%${query
+          .trim()
+          .toLowerCase()
+          .replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   const members = await db
     .select({
       organizationId: member.organizationId,
@@ -46,9 +50,15 @@ export async function searchBillingAccounts(query: string) {
     .from(member)
     .innerJoin(user, eq(user.id, member.userId))
     .innerJoin(organization, eq(organization.id, member.organizationId))
-    .where(sql`lower(${user.email}) like ${pattern} escape '\\'`)
-    .orderBy(asc(user.email))
-    .limit(25);
+    .where(
+      pattern === null
+        ? undefined
+        : sql`lower(${user.email}) like ${pattern} escape '\\'`,
+    )
+    // Without a query: the newest signups, who are the ones waiting to be
+    // activated after paying.
+    .orderBy(pattern === null ? desc(user.createdAt) : asc(user.email))
+    .limit(pattern === null ? 20 : 25);
   const orgIds = [...new Set(members.map((m) => m.organizationId))];
   if (orgIds.length === 0) return [];
 

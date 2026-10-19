@@ -84,10 +84,10 @@ function AdminBilling() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [amountUsd, setAmountUsd] = useState("50");
 
+  // An empty search shows the newest signups.
   const searchQuery = useQuery({
     queryKey: ["admin", "accounts", query],
-    queryFn: () => searchAdminAccounts({ data: { query } }),
-    enabled: query.length >= 3,
+    queryFn: () => searchAdminAccounts({ data: { query: query || null } }),
   });
 
   const mutation = useMutation({
@@ -154,7 +154,25 @@ function AdminBilling() {
         </Button>
       </form>
 
-      {query.length < 3 ? null : searchQuery.isPending ? (
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="font-medium">
+          {query ? <>Results for &ldquo;{query}&rdquo;</> : "Recent signups"}
+        </h2>
+        {query ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDraft("");
+              setQuery("");
+            }}
+          >
+            Show recent signups
+          </Button>
+        ) : null}
+      </div>
+
+      {searchQuery.isPending ? (
         <Skeleton className="h-28 w-full" />
       ) : searchQuery.isError ? (
         <QueryError
@@ -165,7 +183,11 @@ function AdminBilling() {
         />
       ) : searchQuery.data.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No account matches &ldquo;{query}&rdquo;.
+          {query ? (
+            <>No account matches &ldquo;{query}&rdquo;.</>
+          ) : (
+            "No signups yet."
+          )}
         </p>
       ) : (
         <div className="space-y-3">

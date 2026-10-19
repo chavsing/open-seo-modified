@@ -28,7 +28,10 @@ async function requireAdmin(email: string) {
   if (!(await isPlatformAdmin(email))) throw new AppError("FORBIDDEN");
 }
 
-export async function searchAccountsAsAdmin(adminEmail: string, query: string) {
+export async function searchAccountsAsAdmin(
+  adminEmail: string,
+  query: string | null,
+) {
   await requireAdmin(adminEmail);
   const rows = await searchBillingAccounts(query);
   return rows.map((row) => ({
