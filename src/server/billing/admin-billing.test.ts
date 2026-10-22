@@ -116,6 +116,34 @@ describe("admin billing", () => {
     });
   });
 
+  it("flags a subscription ID that two accounts reported", async () => {
+    await testDb.client.executeMultiple(`
+      DELETE FROM user WHERE id = 'other';
+      INSERT INTO organization (id, name, slug, created_at)
+        VALUES ('other-org', 'Other', 'other', 0);
+      INSERT INTO user (id, name, email, email_verified, created_at, updated_at)
+        VALUES ('other', 'Other', 'other@example.com', 1, 0, 0);
+      INSERT INTO member (id, organization_id, user_id, role, created_at)
+        VALUES ('other-member', 'other-org', 'other', 'owner', 0);
+    `);
+    await reportPaypalSubscription(
+      { organizationId: ORG, role: "owner" },
+      "I-BW452GLLEP1G",
+    );
+    expect((await owner()).paypalSubscriptionShared).toBe(false);
+
+    await reportPaypalSubscription(
+      { organizationId: "other-org", role: "owner" },
+      "I-BW452GLLEP1G",
+    );
+
+    const waiting = await listWaitingAccountsAsAdmin(ADMIN);
+    expect(waiting.map((a) => a.paypalSubscriptionShared)).toEqual([
+      true,
+      true,
+    ]);
+  });
+
   it("starts Pro for a month with its monthly credits", async () => {
     vi.useFakeTimers({
       toFake: ["Date"],

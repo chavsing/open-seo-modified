@@ -166,8 +166,10 @@ function AdminBilling() {
           <h2 className="font-medium">Waiting for confirmation</h2>
           <p className="text-sm text-muted-foreground">
             These customers subscribed with the PayPal button. Find the
-            subscription ID in your PayPal activity, check the payment went
-            through, then click Start Pro.
+            subscription ID in your PayPal activity and check the payment went
+            through. The PayPal button also sends the account ID as the
+            subscription&rsquo;s custom ID; if PayPal shows it, it should match.
+            Then click Start Pro.
           </p>
           {waitingQuery.data.map((account) => (
             <AccountCard
@@ -283,6 +285,9 @@ function AccountCard({
             <p className="text-xs text-muted-foreground">
               {account.organizationName} &middot; {account.role}
             </p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              Account ID: {account.organizationId}
+            </p>
           </div>
           <p className="text-sm">
             <span className="font-medium">{plan}</span>
@@ -307,6 +312,13 @@ function AccountCard({
             <span className="font-medium tabular-nums">
               {account.paypalSubscriptionId}
             </span>
+            {account.paypalSubscriptionShared ? (
+              <span className="font-medium text-destructive">
+                {" "}
+                &middot; another account reported this same ID: check in PayPal
+                which account it belongs to before activating
+              </span>
+            ) : null}
             {account.paypalReportedAt ? (
               <span className="text-amber-600">
                 {" "}

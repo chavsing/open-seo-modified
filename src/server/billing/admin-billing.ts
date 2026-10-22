@@ -59,6 +59,8 @@ function toAdminAccount(
     paypalSubscriptionId: row.account?.paypalSubscriptionId ?? null,
     // Set until the admin activates or downgrades the account.
     paypalReportedAt: row.account?.paypalSubscriptionReportedAt ?? null,
+    // Another account reported the same subscription ID.
+    paypalSubscriptionShared: row.subscriptionIdShared,
   };
 }
 

@@ -57,17 +57,45 @@ async function withBillingDetails(
       .from(creditBalances)
       .where(inArray(creditBalances.organizationId, orgIds)),
   ]);
+  // A subscription ID reported by more than one account means someone
+  // reported an ID that isn't theirs: the admin page warns about it.
+  const subscriptionIds = [
+    ...new Set(
+      accounts.flatMap((a) =>
+        a.paypalSubscriptionId ? [a.paypalSubscriptionId] : [],
+      ),
+    ),
+  ];
+  const holders =
+    subscriptionIds.length === 0
+      ? []
+      : await db
+          .select({
+            organizationId: billingAccounts.organizationId,
+            paypalSubscriptionId: billingAccounts.paypalSubscriptionId,
+          })
+          .from(billingAccounts)
+          .where(
+            inArray(billingAccounts.paypalSubscriptionId, subscriptionIds),
+          );
+
   return members.map((m) => {
     const pool = (id: CreditPool) =>
       balances.find(
         (b) => b.organizationId === m.organizationId && b.pool === id,
       );
+    const account =
+      accounts.find((a) => a.organizationId === m.organizationId) ?? null;
+    const subscriptionId = account?.paypalSubscriptionId ?? null;
     return {
       ...m,
-      account:
-        accounts.find((a) => a.organizationId === m.organizationId) ?? null,
+      account,
       monthly: pool(AUTUMN_SEO_DATA_BALANCE_FEATURE_ID) ?? null,
       topup: pool(AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID) ?? null,
+      subscriptionIdShared:
+        subscriptionId !== null &&
+        holders.filter((h) => h.paypalSubscriptionId === subscriptionId)
+          .length > 1,
     };
   });
 }
