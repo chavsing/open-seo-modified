@@ -31,6 +31,7 @@ type PaypalSdk = {
       },
     ) => Promise<string>;
     onApprove: (data: { subscriptionID?: string | null }) => Promise<void>;
+    onCancel: () => void;
     onError: (error: unknown) => void;
   }) => PaypalButtons;
 };
@@ -126,11 +127,15 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
     "loading",
   );
   const [approvedId, setApprovedId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!organizationId) return;
     let buttons: PaypalButtons | null = null;
     let cancelled = false;
+    // Once PayPal's buttons are on the page they stay: an error after that
+    // is one payment attempt failing, not PayPal being unavailable.
+    let rendered = false;
 
     loadPaypalSdk()
       .then(async (paypal) => {
@@ -143,6 +148,7 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
             label: "subscribe",
           },
           createSubscription: (_data, actions) => {
+            setNotice(null);
             captureClientEvent("billing:paypal_click", { planId: "pro-plan" });
             // custom_id ties the subscription to this organization in PayPal.
             return actions.subscription.create({
@@ -167,13 +173,28 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
               console.error("Reporting the PayPal subscription failed", error);
             }
           },
+          // Closing PayPal's window is the customer changing their mind.
+          onCancel: () => setNotice(null),
           onError: (error) => {
             console.error("PayPal subscription button failed", error);
-            setStatus("failed");
+            if (!rendered) {
+              setStatus("failed");
+              return;
+            }
+            // PayPal reports a closed window as an error in some flows.
+            if (
+              /clos/i.test(
+                error instanceof Error ? error.message : String(error),
+              )
+            ) {
+              return;
+            }
+            setNotice("The payment didn't go through. Please try again.");
           },
         });
         containerRef.current.replaceChildren();
         await buttons.render(containerRef.current);
+        rendered = true;
         if (!cancelled) setStatus("ready");
       })
       .catch((error: unknown) => {
@@ -216,6 +237,11 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
       ) : null}
       {/* Stays visible while loading: PayPal sizes its button from it. */}
       {status === "failed" ? null : <div ref={containerRef} />}
+      {notice ? (
+        <p role="alert" className="text-sm text-destructive">
+          {notice}
+        </p>
+      ) : null}
     </div>
   );
 }
