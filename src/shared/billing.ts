@@ -14,11 +14,12 @@ export type PaidPlanId =
 // The client's PayPal links. Pro is a PayPal Subscribe button, so PayPal
 // charges it every month; Lifetime is a one-time payment link. PayPal does
 // not tell the app who paid: the client activates each account from the
-// admin page. Replace the placeholders with his real links before launch.
+// admin page. Pro is the share link of his PayPal subscription plan
+// P-8YU711352S373290VNLMYYLA.
 export const PAYPAL_PRO_SUBSCRIBE_URL =
-  "https://www.paypal.com/PLACEHOLDER-pro-subscribe-link";
+  "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-8YU711352S373290VNLMYYLA";
 export const PAYPAL_LIFETIME_PAYMENT_URL =
-  "https://www.paypal.com/PLACEHOLDER-lifetime-payment-link";
+  "https://www.paypal.com/ncp/payment/3TY635ZNKHS5A";
 // Where a PayPal customer manages or cancels their automatic payments.
 export const PAYPAL_AUTOPAY_URL = "https://www.paypal.com/myaccount/autopay/";
 // The shared usage-credit pool. Both DataForSEO and agent-LLM spend deduct
