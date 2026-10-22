@@ -7,7 +7,10 @@ import {
   ensureBillingAccount,
   getBillingAccountRow,
   getCreditBalanceRows,
+  recordReportedPaypalSubscription,
 } from "@/server/billing/creditLedger";
+import { requireOrgPermission } from "@/server/auth/org-gate";
+import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { hasPaidAccess } from "@/server/billing/plan-access";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
 import { AppError } from "@/server/lib/errors";
@@ -31,6 +34,9 @@ type BillingAccount = {
   monthlyRefillsAt: number | null;
   /** Receipt emails toggle. Off until the payment provider sends them. */
   invoiceEmailsEnabled: boolean;
+  /** The PayPal subscription this org reported and the admin has not yet
+   *  confirmed: the pages show it instead of another Subscribe button. */
+  pendingPaypalSubscriptionId: string | null;
 };
 
 export async function getOrganizationBillingAccount(
@@ -65,5 +71,25 @@ export async function getOrganizationBillingAccount(
         ? null
         : Date.parse(monthly.nextResetAt),
     invoiceEmailsEnabled: false,
+    pendingPaypalSubscriptionId: account.paypalSubscriptionReportedAt
+      ? account.paypalSubscriptionId
+      : null,
   };
+}
+
+/**
+ * Saves the PayPal subscription the owner's browser reported after approving
+ * the Pro button, so the admin page can list it for confirmation. The browser
+ * could report anything, so this never changes the plan by itself.
+ */
+export async function reportPaypalSubscription(
+  context: Pick<EnsuredUserContext, "organizationId" | "role">,
+  subscriptionId: string,
+) {
+  requireOrgPermission(context, { billing: ["manage"] });
+  await recordReportedPaypalSubscription({
+    organizationId: context.organizationId,
+    subscriptionId,
+    reportedAt: new Date().toISOString(),
+  });
 }

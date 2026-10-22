@@ -14,10 +14,15 @@ export type PaidPlanId =
 // The client's PayPal links. Pro is a PayPal Subscribe button, so PayPal
 // charges it every month; Lifetime is a one-time payment link. PayPal does
 // not tell the app who paid: the client activates each account from the
-// admin page. Pro is the share link of his PayPal subscription plan
-// P-8YU711352S373290VNLMYYLA.
-export const PAYPAL_PRO_SUBSCRIBE_URL =
-  "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-8YU711352S373290VNLMYYLA";
+// admin page. Pro is his PayPal subscription plan, sold with PayPal's
+// embedded button (the client ID is public, made for web pages); the plan's
+// share link is the fallback when PayPal's script can't load.
+export const PAYPAL_CLIENT_ID =
+  "AfQ3qKHYHjHjNHtm6vUA8GfV6A3vNtqlfZVze1kKnprb6iaYnbptqgH6Gl-4azzwkFXnbteunnf_Uq5J";
+export const PAYPAL_PRO_PLAN_ID = "P-8YU711352S373290VNLMYYLA";
+export const PAYPAL_PRO_SUBSCRIBE_URL = `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${PAYPAL_PRO_PLAN_ID}`;
+// PayPal subscription IDs, e.g. I-BW452GLLEP1G.
+export const PAYPAL_SUBSCRIPTION_ID_PATTERN = /^I-[A-Z0-9]{10,20}$/;
 export const PAYPAL_LIFETIME_PAYMENT_URL =
   "https://www.paypal.com/ncp/payment/3TY635ZNKHS5A";
 // Where a PayPal customer manages or cancels their automatic payments.

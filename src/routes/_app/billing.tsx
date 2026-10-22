@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth-client";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { prefetchBillingAccount } from "@/client/features/billing/billingAccountQuery";
 import { BillingUsageCard } from "@/client/features/billing/BillingUsageCard";
+import { PlanPaymentAction } from "@/client/features/billing/PlanPaymentAction";
 import { billingUsageEventsQueryOptions } from "@/client/features/billing/useBillingUsageEvents";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import {
@@ -19,7 +20,6 @@ import {
   PLAN_OFFERS,
   PRO_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
-import { captureClientEvent } from "@/client/lib/posthog";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { PAYPAL_AUTOPAY_URL } from "@/shared/billing";
 
@@ -183,29 +183,7 @@ function BillingPage() {
                             </li>
                           ))}
                         </ul>
-                        <Button
-                          variant={
-                            offer.billing === "once" ? "default" : "secondary"
-                          }
-                          className="w-full"
-                          nativeButton={false}
-                          render={
-                            <a
-                              href={offer.paymentUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() =>
-                                captureClientEvent("billing:paypal_click", {
-                                  planId: offer.planId,
-                                })
-                              }
-                            />
-                          }
-                        >
-                          {offer.billing === "once"
-                            ? "Pay once with PayPal"
-                            : "Subscribe with PayPal"}
-                        </Button>
+                        <PlanPaymentAction offer={offer} />
                       </div>
                     ))}
                     <p className="text-xs text-muted-foreground">

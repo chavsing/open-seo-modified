@@ -1,13 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getOrganizationBillingAccount } from "@/server/billing/billing-account";
+import {
+  getOrganizationBillingAccount,
+  reportPaypalSubscription,
+} from "@/server/billing/billing-account";
 import { listCreditEvents } from "@/server/billing/creditLedger";
+import { AppError } from "@/server/lib/errors";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
+import { PAYPAL_SUBSCRIPTION_ID_PATTERN } from "@/shared/billing";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 
 export const getBillingAccount = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .handler(({ context }) => getOrganizationBillingAccount(context));
+
+export const reportPaypalSubscriptionApproved = createServerFn({
+  method: "POST",
+})
+  .middleware(requireAuthenticatedContext)
+  .validator(
+    z.object({
+      subscriptionId: z.string().regex(PAYPAL_SUBSCRIPTION_ID_PATTERN),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
+    await reportPaypalSubscription(context, data.subscriptionId);
+  });
 
 const billingUsageRangeSchema = z.object({
   start: z.number(),

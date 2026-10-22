@@ -15,6 +15,7 @@ import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import {
   applyAdminBillingChange,
   getAdminStatus,
+  listWaitingAdminAccounts,
   searchAdminAccounts,
 } from "@/serverFunctions/admin";
 import {
@@ -89,6 +90,11 @@ function AdminBilling() {
     queryKey: ["admin", "accounts", query],
     queryFn: () => searchAdminAccounts({ data: { query: query || null } }),
   });
+  // Customers whose PayPal subscription is reported but not yet handled.
+  const waitingQuery = useQuery({
+    queryKey: ["admin", "waiting"],
+    queryFn: () => listWaitingAdminAccounts(),
+  });
 
   const mutation = useMutation({
     mutationFn: (args: Pending & { change: Change }) =>
@@ -103,6 +109,7 @@ function AdminBilling() {
       toast.success(result.applied ? "Saved" : "Already saved earlier");
       setPending(null);
       void searchQuery.refetch();
+      void waitingQuery.refetch();
     },
     onError: (error) => toast.error(getStandardErrorMessage(error)),
   });
@@ -153,6 +160,24 @@ function AdminBilling() {
           Search
         </Button>
       </form>
+
+      {waitingQuery.data && waitingQuery.data.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="font-medium">Waiting for confirmation</h2>
+          <p className="text-sm text-muted-foreground">
+            These customers subscribed with the PayPal button. Find the
+            subscription ID in your PayPal activity, check the payment went
+            through, then click Start Pro.
+          </p>
+          {waitingQuery.data.map((account) => (
+            <AccountCard
+              key={`waiting:${account.organizationId}:${account.email}`}
+              account={account}
+              onAction={(kind) => open(account, kind)}
+            />
+          ))}
+        </section>
+      ) : null}
 
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="font-medium">
@@ -276,6 +301,21 @@ function AccountCard({
           Credits: ${account.monthlyRemainingUsd.toFixed(2)} plan &middot; $
           {account.extraRemainingUsd.toFixed(2)} extra
         </p>
+        {account.paypalSubscriptionId ? (
+          <p className="text-xs">
+            PayPal subscription{" "}
+            <span className="font-medium tabular-nums">
+              {account.paypalSubscriptionId}
+            </span>
+            {account.paypalReportedAt ? (
+              <span className="text-amber-600">
+                {" "}
+                &middot; waiting for confirmation since{" "}
+                {formatDate(account.paypalReportedAt)}
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => onAction("pro_month")}>
             {account.planId === "pro-plan" ? "Add a Pro month" : "Start Pro"}

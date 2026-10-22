@@ -62,6 +62,23 @@ export async function ensureBillingAccount(organizationId: string) {
   ]);
 }
 
+/** Saves the PayPal subscription the customer's browser reported. A repeat
+ *  report replaces it (a new subscription after a canceled one). */
+export async function recordReportedPaypalSubscription(args: {
+  organizationId: string;
+  subscriptionId: string;
+  reportedAt: string;
+}) {
+  await ensureBillingAccount(args.organizationId);
+  await db
+    .update(billingAccounts)
+    .set({
+      paypalSubscriptionId: args.subscriptionId,
+      paypalSubscriptionReportedAt: args.reportedAt,
+    })
+    .where(eq(billingAccounts.organizationId, args.organizationId));
+}
+
 export async function getBillingAccountRow(organizationId: string) {
   const [row] = await db
     .select()

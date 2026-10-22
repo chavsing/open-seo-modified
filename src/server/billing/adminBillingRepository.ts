@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
@@ -27,38 +27,23 @@ import {
 // Plan changes and credit grants the client makes from the admin page after
 // a PayPal payment. Like the ledger, each change is one atomic runBatch.
 
-/**
- * Members whose email contains `query` (or, with no query, the newest
- * signups), with their org's plan and balances, for the admin page. Orgs
- * billing has never touched show no plan row.
- */
-export async function searchBillingAccounts(query: string | null) {
-  const pattern =
-    query === null
-      ? null
-      : `%${query
-          .trim()
-          .toLowerCase()
-          .replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
-  const members = await db
-    .select({
-      organizationId: member.organizationId,
-      organizationName: organization.name,
-      email: user.email,
-      role: member.role,
-    })
-    .from(member)
-    .innerJoin(user, eq(user.id, member.userId))
-    .innerJoin(organization, eq(organization.id, member.organizationId))
-    .where(
-      pattern === null
-        ? undefined
-        : sql`lower(${user.email}) like ${pattern} escape '\\'`,
-    )
-    // Without a query: the newest signups, who are the ones waiting to be
-    // activated after paying.
-    .orderBy(pattern === null ? desc(user.createdAt) : asc(user.email))
-    .limit(pattern === null ? 20 : 25);
+const memberFields = {
+  organizationId: member.organizationId,
+  organizationName: organization.name,
+  email: user.email,
+  role: member.role,
+};
+
+/** Adds each member's org plan and balances. Orgs billing has never touched
+ *  show no plan row. */
+async function withBillingDetails(
+  members: Array<{
+    organizationId: string;
+    organizationName: string;
+    email: string;
+    role: string;
+  }>,
+) {
   const orgIds = [...new Set(members.map((m) => m.organizationId))];
   if (orgIds.length === 0) return [];
 
@@ -85,6 +70,61 @@ export async function searchBillingAccounts(query: string | null) {
       topup: pool(AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID) ?? null,
     };
   });
+}
+
+/**
+ * Members whose email contains `query` (or, with no query, the newest
+ * signups), with their org's plan and balances, for the admin page.
+ */
+export async function searchBillingAccounts(query: string | null) {
+  const pattern =
+    query === null
+      ? null
+      : `%${query
+          .trim()
+          .toLowerCase()
+          .replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+  const members = await db
+    .select(memberFields)
+    .from(member)
+    .innerJoin(user, eq(user.id, member.userId))
+    .innerJoin(organization, eq(organization.id, member.organizationId))
+    .where(
+      pattern === null
+        ? undefined
+        : sql`lower(${user.email}) like ${pattern} escape '\\'`,
+    )
+    // Without a query: the newest signups, who are the ones waiting to be
+    // activated after paying.
+    .orderBy(pattern === null ? desc(user.createdAt) : asc(user.email))
+    .limit(pattern === null ? 20 : 25);
+  return withBillingDetails(members);
+}
+
+/**
+ * Owners of orgs whose browser reported a PayPal subscription, newest report
+ * first, with their plan and balances. The caller keeps the ones still
+ * waiting for the admin to confirm the payment.
+ */
+export async function listReportedPaypalSubscriptions() {
+  const members = await db
+    .select(memberFields)
+    .from(member)
+    .innerJoin(user, eq(user.id, member.userId))
+    .innerJoin(organization, eq(organization.id, member.organizationId))
+    .innerJoin(
+      billingAccounts,
+      eq(billingAccounts.organizationId, member.organizationId),
+    )
+    .where(
+      and(
+        isNotNull(billingAccounts.paypalSubscriptionReportedAt),
+        eq(member.role, "owner"),
+      ),
+    )
+    .orderBy(desc(billingAccounts.paypalSubscriptionReportedAt))
+    .limit(50);
+  return withBillingDetails(members);
 }
 
 export type AdminBillingAction =
@@ -173,6 +213,8 @@ export async function applyAdminBillingAction(args: {
                 currentPeriodEnd: periodEnd,
                 canceledAt: null,
                 updatedAt: nowIso,
+                // The customer's PayPal report, if any, is now handled.
+                paypalSubscriptionReportedAt: null,
               })
               .where(accountRow),
             tx
@@ -195,6 +237,8 @@ export async function applyAdminBillingAction(args: {
                 currentPeriodEnd: null,
                 canceledAt: null,
                 updatedAt: nowIso,
+                // The customer's PayPal report, if any, is now handled.
+                paypalSubscriptionReportedAt: null,
               })
               .where(accountRow),
             tx
@@ -228,6 +272,8 @@ export async function applyAdminBillingAction(args: {
                 currentPeriodEnd: null,
                 canceledAt: nowIso,
                 updatedAt: nowIso,
+                // The customer's PayPal report, if any, is now handled.
+                paypalSubscriptionReportedAt: null,
               })
               .where(accountRow),
             tx

@@ -10,7 +10,10 @@ vi.mock("cloudflare:workers", () => ({ env: { DATABASE_PROVIDER: "d1" } }));
 vi.mock("@/db", () => ({ db: testDb.db }));
 vi.mock("@/db/runBatch", () => ({ runBatch: testDb.runBatch }));
 
-import { getOrganizationBillingAccount } from "./billing-account";
+import {
+  getOrganizationBillingAccount,
+  reportPaypalSubscription,
+} from "./billing-account";
 
 // The harness seeds organization "organization".
 const context = {
@@ -64,6 +67,7 @@ describe("getOrganizationBillingAccount", () => {
       isPastDue: false,
       monthlyRefillsAt: null,
       invoiceEmailsEnabled: false,
+      pendingPaypalSubscriptionId: null,
     });
   });
 
@@ -110,5 +114,29 @@ describe("getOrganizationBillingAccount", () => {
     await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
       { planStatus: "paid", monthlyRefillsAt: null },
     );
+  });
+
+  it("shows a reported PayPal subscription as pending, without changing the plan", async () => {
+    await reportPaypalSubscription(
+      { organizationId: context.organizationId, role: "owner" },
+      "I-BW452GLLEP1G",
+    );
+
+    await expect(getOrganizationBillingAccount(context)).resolves.toMatchObject(
+      { planStatus: "free", pendingPaypalSubscriptionId: "I-BW452GLLEP1G" },
+    );
+  });
+
+  it("only lets the owner report a subscription", async () => {
+    await expect(
+      reportPaypalSubscription(
+        { organizationId: context.organizationId, role: "member" },
+        "I-BW452GLLEP1G",
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(
+      (await getOrganizationBillingAccount(context))
+        .pendingPaypalSubscriptionId,
+    ).toBeNull();
   });
 });

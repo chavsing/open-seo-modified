@@ -4,6 +4,7 @@ import { AUTUMN_SEO_DATA_CREDITS_PER_USD } from "@/shared/billing";
 import {
   applyBillingActionAsAdmin,
   isPlatformAdmin,
+  listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
 } from "@/server/billing/admin-billing";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
@@ -21,6 +22,10 @@ export const searchAdminAccounts = createServerFn({ method: "POST" })
   .handler(({ data, context }) =>
     searchAccountsAsAdmin(context.userEmail, data.query),
   );
+
+export const listWaitingAdminAccounts = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .handler(({ context }) => listWaitingAccountsAsAdmin(context.userEmail));
 
 const adminActionSchema = z.object({
   requestId: z.string().uuid(),

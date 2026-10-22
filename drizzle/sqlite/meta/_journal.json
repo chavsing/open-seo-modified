@@ -414,6 +414,13 @@
       "when": 1792421900823,
       "tag": "0058_flashy_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1792650159282,
+      "tag": "0059_youthful_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

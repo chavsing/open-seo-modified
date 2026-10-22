@@ -20,8 +20,10 @@ vi.mock("@/server/lib/runtime-env", () => ({
 
 import {
   applyBillingActionAsAdmin,
+  listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
 } from "./admin-billing";
+import { reportPaypalSubscription } from "./billing-account";
 
 // The harness seeds organization "organization"; this member is its owner.
 const ORG = "organization";
@@ -93,6 +95,25 @@ describe("admin billing", () => {
     const rows = await searchAccountsAsAdmin(ADMIN, null);
 
     expect(rows.map((row) => row.email)).toEqual(["newer@example.com", OWNER]);
+  });
+
+  it("lists a reported PayPal subscription until the admin activates Pro", async () => {
+    await reportPaypalSubscription(
+      { organizationId: ORG, role: "owner" },
+      "I-BW452GLLEP1G",
+    );
+    expect(await listWaitingAccountsAsAdmin(ADMIN)).toMatchObject([
+      { email: OWNER, paypalSubscriptionId: "I-BW452GLLEP1G" },
+    ]);
+
+    await apply({ action: "pro_month" });
+
+    expect(await listWaitingAccountsAsAdmin(ADMIN)).toEqual([]);
+    expect(await owner()).toMatchObject({
+      planId: "pro-plan",
+      paypalSubscriptionId: "I-BW452GLLEP1G",
+      paypalReportedAt: null,
+    });
   });
 
   it("starts Pro for a month with its monthly credits", async () => {

@@ -1,6 +1,7 @@
 import { autumnSeoDataCreditsToUsd } from "@/shared/billing";
 import {
   applyAdminBillingAction,
+  listReportedPaypalSubscriptions,
   searchBillingAccounts,
   type AdminBillingAction,
 } from "@/server/billing/adminBillingRepository";
@@ -33,8 +34,19 @@ export async function searchAccountsAsAdmin(
   query: string | null,
 ) {
   await requireAdmin(adminEmail);
-  const rows = await searchBillingAccounts(query);
-  return rows.map((row) => ({
+  return (await searchBillingAccounts(query)).map(toAdminAccount);
+}
+
+/** Customers whose PayPal subscription the admin has not handled yet. */
+export async function listWaitingAccountsAsAdmin(adminEmail: string) {
+  await requireAdmin(adminEmail);
+  return (await listReportedPaypalSubscriptions()).map(toAdminAccount);
+}
+
+function toAdminAccount(
+  row: Awaited<ReturnType<typeof searchBillingAccounts>>[number],
+) {
+  return {
     organizationId: row.organizationId,
     organizationName: row.organizationName,
     email: row.email,
@@ -44,7 +56,10 @@ export async function searchAccountsAsAdmin(
     paidUntil: row.account?.currentPeriodEnd ?? null,
     monthlyRemainingUsd: autumnSeoDataCreditsToUsd(row.monthly?.remaining ?? 0),
     extraRemainingUsd: autumnSeoDataCreditsToUsd(row.topup?.remaining ?? 0),
-  }));
+    paypalSubscriptionId: row.account?.paypalSubscriptionId ?? null,
+    // Set until the admin activates or downgrades the account.
+    paypalReportedAt: row.account?.paypalSubscriptionReportedAt ?? null,
+  };
 }
 
 export async function applyBillingActionAsAdmin(args: {

@@ -10,6 +10,7 @@ import {
 } from "@/client/features/billing/billingAccountQuery";
 import { PlanPageAccountMenu } from "@/client/features/billing/PlanPageAccountMenu";
 import { PlanOfferCard } from "@/client/features/billing/PlanOfferCard";
+import { PlanPaymentAction } from "@/client/features/billing/PlanPaymentAction";
 import {
   includedCreditsFeature,
   PLAN_OFFERS,
@@ -136,27 +137,7 @@ function SubscribePage() {
             features={planFeatures(offer)}
           >
             {canManageBilling ? (
-              <Button
-                className="w-full"
-                variant={offer.billing === "once" ? "default" : "secondary"}
-                nativeButton={false}
-                render={
-                  <a
-                    href={offer.paymentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() =>
-                      captureClientEvent("billing:paypal_click", {
-                        planId: offer.planId,
-                      })
-                    }
-                  />
-                }
-              >
-                {offer.billing === "once"
-                  ? "Pay once with PayPal"
-                  : "Subscribe with PayPal"}
-              </Button>
+              <PlanPaymentAction offer={offer} />
             ) : (
               <p className="text-sm text-muted-foreground">
                 Only the organization owner can subscribe. Ask them to upgrade

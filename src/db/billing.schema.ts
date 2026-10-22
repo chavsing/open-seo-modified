@@ -28,6 +28,11 @@ export const billingAccounts = sqliteTable("billing_accounts", {
   // End of the paid period; a canceled plan keeps access until then.
   currentPeriodEnd: text("current_period_end"),
   canceledAt: text("canceled_at"),
+  // The PayPal subscription the customer's browser reported after approving
+  // the Pro button. A lead for the admin to check in PayPal, not proof of
+  // payment: the browser could report anything.
+  paypalSubscriptionId: text("paypal_subscription_id"),
+  paypalSubscriptionReportedAt: text("paypal_subscription_reported_at"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),
