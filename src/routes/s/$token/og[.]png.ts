@@ -5,7 +5,6 @@ import {
   sharesEnabled,
 } from "@/server/features/reports/shareAccess";
 import { textResponse } from "@/shared/report-sandbox";
-import { MARKETING_SITE_URL } from "@/shared/brand";
 
 export async function handleReportSocialImage(
   token: string,
@@ -29,7 +28,7 @@ export async function handleReportSocialImage(
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `${MARKETING_SITE_URL}/social-card.jpg`,
+        Location: "/android-chrome-512x512.png",
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "X-Robots-Tag": "noindex, nofollow",

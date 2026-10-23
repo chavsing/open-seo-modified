@@ -31,7 +31,7 @@ import {
 import { CopyButton } from "@/client/components/CopyButton";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
-import { MARKETING_SITE_URL, APP_URL_FALLBACK } from "@/shared/brand";
+import { APP_URL_FALLBACK } from "@/shared/brand";
 
 // Better Auth rejects longer names with INVALID_NAME_LENGTH.
 const MAX_KEY_NAME_LENGTH = 32;
@@ -126,16 +126,6 @@ export function ApiKeySettings() {
           <p className="mt-1 text-sm text-muted-foreground">
             Use this for remote agents like Hermes where the normal login flow
             doesn't work.
-          </p>
-          <p className="mt-1 text-sm">
-            <a
-              className="text-primary underline-offset-4 hover:underline"
-              href={`${MARKETING_SITE_URL}/docs/mcp`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Setup guide
-            </a>
           </p>
         </div>
         <Button size="sm" onClick={() => setIsCreateOpen(true)}>

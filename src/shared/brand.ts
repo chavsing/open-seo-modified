@@ -4,16 +4,18 @@
 //
 // Not covered here, update by hand when rebranding: the logo and icon images
 // in src/public (transparent-logo.png, favicon*, android-chrome-*,
-// apple-touch-icon.png), src/public/site.webmanifest, and the static landing
-// page in landing/.
+// apple-touch-icon.png) and the static landing page in landing/.
 
 export const BRAND_NAME = "OpenSEO";
 
 export const SUPPORT_EMAIL = "support@openseo.so";
 
-// The public marketing site. Links to its terms, privacy, docs and blog
-// pages build on it, so those pages must exist there after a rebrand.
+// The public marketing site (the landing page in landing/).
 export const MARKETING_SITE_URL = "https://openseo.so";
+
+// The legal pages linked from sign-up. landing/ serves them at these paths.
+export const TERMS_URL = `${MARKETING_SITE_URL}/terms`;
+export const PRIVACY_URL = `${MARKETING_SITE_URL}/privacy`;
 
 // The app's own address, used only where the real one can't be read from the
 // current request.

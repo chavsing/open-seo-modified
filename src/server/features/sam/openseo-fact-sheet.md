@@ -4,9 +4,9 @@ This is the factual product reference for Sam, the OpenSEO onboarding agent. If 
 
 ## What OpenSEO is
 
-OpenSEO is an open-source SEO platform for keyword research, domain research, backlinks, rank tracking, site audits, Google Search Console, AI visibility, and AI-agent SEO workflows.
+OpenSEO is an SEO platform for keyword research, domain research, backlinks, rank tracking, site audits, Google Search Console, AI visibility, and AI-agent SEO workflows.
 
-OpenSEO is built for people who want useful SEO data without a bloated enterprise SEO suite. It can be used as a hosted app or self-hosted from the open-source codebase.
+OpenSEO is built for people who want useful SEO data without a bloated enterprise SEO suite.
 
 OpenSEO is AI-native. It is designed to work with AI agents through MCP so users can ask an agent to run SEO research, inspect data, save findings, and continue work in the OpenSEO app.
 
@@ -22,9 +22,9 @@ As the site earns topical authority in Google and AI systems, it becomes easier 
 
 When explaining traffic growth, Sam should frame OpenSEO as a tool for making better SEO and marketing decisions, not as a magic traffic button. OpenSEO provides the data, workflows, and agent access; the user's positioning, content quality, distribution, and execution still matter.
 
-## Hosted plan and credits
+## Plans and credits
 
-Hosted OpenSEO is free to try. Signing up requires no credit card, and new accounts include $1.00 of trial credits to test credit-using features before upgrading.
+OpenSEO is free to try. Signing up requires no credit card, and new accounts include $1.00 of trial credits to test credit-using features before upgrading.
 
 There are two paid plans. Both include every feature; the difference is how you pay:
 
@@ -35,7 +35,7 @@ Both plans include:
 
 - Keyword research, backlinks, rank tracking, and site audits.
 - AI visibility, prompt research, model comparisons, and prompt tracking.
-- MCP server and agent skills for Claude, Cursor, ChatGPT with a configured OpenSEO connection, Codex, and other MCP clients.
+- MCP server for Claude, Cursor, ChatGPT, Codex, and other MCP clients.
 - Google Search Console integration that does not use credits.
 - A 30-day money-back guarantee for the first charge.
 
@@ -45,7 +45,7 @@ OpenSEO uses usage credits for features that query paid SEO data providers, espe
 
 Pro's monthly credits refill each month when that month's payment is recorded; unused monthly credits do not roll over. Credits cannot be bought in the app. A customer who needs more credits, or who wants to switch from Pro to Lifetime, should contact support.
 
-New paid operations require credits. AI visibility setup research checks for a positive balance once, completes without further credit gates, and bills actual usage afterward. On hosted OpenSEO, Prompt Research and Prompt Explorer require the paid plan; prompt tracking only needs credits.
+New paid operations require credits. AI visibility setup research checks for a positive balance once, completes without further credit gates, and bills actual usage afterward. Prompt Research and Prompt Explorer require a paid plan; prompt tracking only needs credits.
 
 ## AI visibility
 
@@ -55,26 +55,16 @@ New paid operations require credits. AI visibility setup research checks for a p
 - Prompt Tracking collects answers from ChatGPT and Gemini by default, with optional Google AI Overviews. Users choose a market and daily, weekly, or monthly checks. Cost is previewed before collection, then actual provider usage is billed. The monthly allowance covers manual checks too.
 - Competitors and Citations review saved brand mentions, competitor appearances, and cited pages. Viewing and exporting saved results use no credits. Failed checks are not evidence of brand absence.
 
-The workflow guide is at `https://openseo.so/docs/ai-visibility`.
-
 ## Why OpenSEO for SEO consultants and agencies
 
 OpenSEO is a strong fit for SEO consultants, freelancers, and agencies managing SEO for clients. What you get:
 
-- You only pay for what you use. Billing runs on usage credits, so you are not forced into an expensive enterprise tier or charged per seat just to unlock basic work — no arbitrary upsells or features locked behind a paywall. This keeps costs predictable when you are running lean.
+- Every plan includes every feature. There are no per-seat charges and no features locked behind a higher tier; the plans differ only in how you pay.
 - You can run a project for every client. Set up as many projects as you need; you will not hit a per-project plan limit the way many SEO tools cap projects per tier.
 - You tune rank tracking to fit your budget. Rank tracking is the cost that scales fastest as an agency grows, since it runs on a schedule across every client's keywords — but OpenSEO makes it fully configurable so you stay in control. You choose how many keywords and devices to track, how many SERP pages deep to check, and how often it runs (weekly or daily), and OpenSEO shows a live cost estimate before each tracker runs. Scheduled checks run through DataForSEO's task queue, which is much cheaper than live lookups, so it stays inexpensive: as a rough guide, tracking 100 keywords on one device type, five pages deep, on the default weekly schedule costs only about $1-2/month. Searching deeper, adding the second device type, or switching to daily checks raises the cost proportionally, and the in-app estimate always shows the current number before you commit.
 - Your toolkit grows with the industry. OpenSEO works through MCP and AI agents, so as search shifts toward AI answers and AI-assisted workflows, you can have an agent run research, pull competitor data, and save findings into the right client project — without re-tooling.
 
 When answering this, Sam should speak directly to the user ("you" / "your clients") about what they get, not describe how OpenSEO is "positioned." Lead with these benefits in plain language and tie them to running an SEO practice. Sam should not invent specific competitor prices or exact rank-tracking rates; if asked for exact numbers it does not have, it should say so and suggest contacting `support@openseo.so`.
-
-## Self-hosting
-
-OpenSEO is open source and can be self-hosted for free.
-
-Self-hosted users bring their own provider API keys and pay providers such as DataForSEO directly. Self-hosting is appropriate for users who want more control, privacy, customization, or provider-level billing.
-
-The open-source repository is at `https://github.com/every-app/open-seo`.
 
 ## Data sources
 
@@ -84,7 +74,7 @@ Google Search Console data comes from the user's connected Search Console proper
 
 ## Google Search Console
 
-Hosted OpenSEO can connect to Google Search Console without requiring the user to create a Google Cloud project or OAuth client.
+OpenSEO can connect to Google Search Console without requiring the user to create a Google Cloud project or OAuth client.
 
 Search Console access is read-only. OpenSEO requests read-only access and cannot change the user's Search Console account.
 
@@ -110,7 +100,7 @@ When a user asks to compare OpenSEO and Claude, or why they would use OpenSEO in
 
 OpenSEO exposes an MCP server so compatible AI clients can call OpenSEO tools.
 
-Hosted MCP endpoint:
+MCP endpoint:
 
 ```txt
 https://app.openseo.so/mcp
@@ -135,9 +125,7 @@ OpenSEO MCP tools cover workflows such as:
 - Google URL inspection reads.
 - AI prompt research, model comparisons, tracking estimates/configuration, and saved answers, citations, trends, and exports.
 
-OpenSEO also provides agent skills for workflows such as SEO project setup, SEO coaching, keyword research, competitive landscape analysis, competitor analysis, keyword clustering, link prospecting, AI Prompt Research, and AI Visibility Audit.
-
-ChatGPT setup guidance: send users to https://openseo.so/docs/chatgpt. A regular ChatGPT conversation cannot install OpenSEO itself; pasting the setup prompt there makes ChatGPT list the manual connection steps. The custom ChatGPT connection works on Free and paid ChatGPT plans, subject to workspace permissions on Business, Enterprise, and Edu. The server URL must be entered in full as https://app.openseo.so/mcp; without https:// ChatGPT reports "Unsafe URL". Desktop users with Codex access can use it for agent-assisted setup. A local Codex connection does not connect ChatGPT web. Offer OpenSEO's app if their client cannot connect. Verify by asking OpenSEO to check the connection and list projects; those reads use no credits. Custom MCP connections provide tools only, while directory plugins can also supply skills. Do not tell users they must upgrade their ChatGPT plan.
+Setup: the Agent setup page in the app has a setup prompt to paste into the user's AI agent; it connects the MCP server and lists any manual steps. A regular ChatGPT conversation cannot install OpenSEO itself; pasting the setup prompt there makes ChatGPT list the manual connection steps. The custom ChatGPT connection works on Free and paid ChatGPT plans, subject to workspace permissions on Business, Enterprise, and Edu. The server URL must be entered in full as https://app.openseo.so/mcp; without https:// ChatGPT reports "Unsafe URL". Desktop users with Codex access can use it for agent-assisted setup. A local Codex connection does not connect ChatGPT web. Offer OpenSEO's app if their client cannot connect. Verify by asking OpenSEO to check the connection and list projects; those reads use no credits. Do not tell users they must upgrade their ChatGPT plan.
 
 ## App workflows
 
@@ -151,21 +139,18 @@ OpenSEO's app includes these practical workflows:
 - Site audit: crawl pages and inspect technical page-level signals such as status codes, titles, meta descriptions, headings, indexability, image alt coverage, links, response time, and optional Lighthouse findings.
 - Saved keywords: organize keyword opportunities for content planning, tracking, or AI-agent workflows.
 - Reports: agents connected over MCP save finished HTML reports into a project, where anyone in the workspace can read, print or export them from the Reports page in the sidebar. You cannot save reports yourself. Reports use no credits, and each project holds up to 10,000.
-- AI and MCP setup: connect OpenSEO to agents and install OpenSEO skills.
+- Agent setup: connect OpenSEO to AI agents through MCP.
 
 ## What users can do after subscribing
 
-After subscribing, a hosted user can:
+After subscribing, a user can:
 
 - Set up Google Search Console from onboarding or the app.
 - Use the OpenSEO app workflows, including keyword research, domain research, backlinks, rank tracking, site audits, and AI visibility.
 - Research any domain — their own or a competitor's — with domain overview, ranked keywords, and backlink data (one domain at a time, using credits).
 - Connect OpenSEO to an AI client through MCP.
-- Install OpenSEO skills for agent-driven SEO workflows.
 - Use the included credits, and contact support to add more if needed.
 
 ## Support and uncertainty
 
 If Sam is unsure about a product detail, current pricing, account-specific billing status, provider limits, or a feature not listed here, it should say it does not know from the product fact sheet and suggest contacting `support@openseo.so`.
-
-Users who want advice from other OpenSEO users, the community, or the team can join the OpenSEO Discord at `https://discord.gg/c9uGs3cFXr`.

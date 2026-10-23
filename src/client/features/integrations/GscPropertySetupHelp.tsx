@@ -1,7 +1,6 @@
 import { Button } from "@/client/components/ui/button";
 import { QueryError } from "@/client/components/QueryState";
 import type { GooglePickerAccount } from "./GooglePropertyPicker";
-import { MARKETING_SITE_URL } from "@/shared/brand";
 
 export function GscPropertySetupHelp({
   accounts,
@@ -56,14 +55,6 @@ export function GscPropertySetupHelp({
             >
               Open Search Console ↗
             </a>
-            <a
-              href={`${MARKETING_SITE_URL}/blogs/google-search-console-setup`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4"
-            >
-              Setup guide
-            </a>
           </div>
         </div>
       ) : null}
@@ -115,7 +106,7 @@ export function EmptyAccountMessage({
         <>
           No websites found for this account.{" "}
           <a
-            href={`${MARKETING_SITE_URL}/blogs/google-search-console-setup`}
+            href="https://search.google.com/search-console"
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-4"

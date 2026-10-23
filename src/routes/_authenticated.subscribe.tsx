@@ -27,7 +27,7 @@ import { BRAND_NAME } from "@/shared/brand";
 
 const planFeatures = (offer: PlanOffer) => [
   "Keyword research, backlinks, rank tracking, and site audits",
-  "MCP server and agent skills for Claude, Cursor, and ChatGPT",
+  "MCP server for Claude, Cursor, and ChatGPT",
   "Google Search Console Integration",
   includedCreditsFeature(offer),
 ];

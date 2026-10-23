@@ -1,17 +1,13 @@
-import installerSkill from "../../../../.agents/skills/setup-openseo/SKILL.md?raw";
-import updatePrompt from "./agentUpdatePrompt.md?raw";
-import { BRAND_NAME, SUPPORT_EMAIL, MARKETING_SITE_URL } from "@/shared/brand";
+import connectPrompt from "./agentConnectPrompt.md?raw";
+import { BRAND_NAME } from "@/shared/brand";
 
-export const agentUpdatePrompt = updatePrompt
-  .trim()
-  .replaceAll("OpenSEO", BRAND_NAME)
-  .replaceAll("support@openseo.so", SUPPORT_EMAIL)
-  .replaceAll("https://openseo.so", MARKETING_SITE_URL);
+const SERVER_NAME = BRAND_NAME.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-// The copyable installer and internal skill share one source of truth.
+// The copyable prompt that connects an AI agent to this instance's MCP server.
 export function getAgentSetupPrompt(origin: string) {
-  const instructions = installerSkill
-    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
-    .trim();
-  return instructions.replaceAll("https://app.openseo.so", origin);
+  return connectPrompt
+    .trim()
+    .replaceAll("{{BRAND}}", BRAND_NAME)
+    .replaceAll("{{SERVER_NAME}}", SERVER_NAME)
+    .replaceAll("{{ORIGIN}}", origin);
 }

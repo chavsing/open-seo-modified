@@ -11,9 +11,6 @@ import {
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { BRAND_NAME } from "@/shared/brand";
 
-const DISCORD_URL = "https://discord.gg/c9uGs3cFXr";
-const GITHUB_URL = "https://github.com/every-app/open-seo";
-
 export const Route = createFileRoute("/_app/support")({
   component: SupportPage,
 });
@@ -24,7 +21,7 @@ function SupportPage() {
       <div className="mx-auto max-w-7xl space-y-8">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">
-            Help & Community
+            Help & Support
           </p>
           <PageHeader
             title="We want to hear from you"
@@ -51,50 +48,8 @@ function SupportPage() {
               />
             </CardContent>
           </Card>
-
-          <SupportLinkCard
-            href={DISCORD_URL}
-            title="Discord"
-            description="Ask for help, share ideas and learn from the community."
-            cta="Join the Discord"
-          />
-
-          <SupportLinkCard
-            href={`${GITHUB_URL}/issues`}
-            title="GitHub Issues"
-            description="Report bugs or request features on GitHub."
-            cta="Open an issue"
-          />
         </div>
       </div>
     </div>
-  );
-}
-
-function SupportLinkCard({
-  href,
-  title,
-  description,
-  cta,
-}: {
-  href: string;
-  title: string;
-  description: string;
-  cta: string;
-}) {
-  return (
-    <a href={href} target="_blank" rel="noreferrer" className="group block">
-      <Card className="transition-colors group-hover:border-foreground/20">
-        <CardHeader>
-          <CardTitle>
-            <h2>{title}</h2>
-          </CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="font-medium">
-          {cta} <span aria-hidden="true">&rarr;</span>
-        </CardContent>
-      </Card>
-    </a>
   );
 }

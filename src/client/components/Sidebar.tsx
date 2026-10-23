@@ -252,7 +252,7 @@ function AccountFooter({ ready }: { ready: boolean }) {
         ) : null}
         <SidebarNavLink
           icon={CircleHelp}
-          label="Help & Community"
+          label="Help & Support"
           linkProps={{ to: "/support" }}
         />
         {email ? (

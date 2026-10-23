@@ -22,7 +22,7 @@ import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
 import { getSignInSearch, getVerifyEmailSearch } from "@/lib/auth-redirect";
 import { z } from "zod";
-import { BRAND_NAME, MARKETING_SITE_URL } from "@/shared/brand";
+import { BRAND_NAME, PRIVACY_URL, TERMS_URL } from "@/shared/brand";
 
 const signUpSchema = z
   .object({
@@ -158,7 +158,7 @@ function SignUpPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 By signing up, you agree to our{" "}
                 <a
-                  href={`${MARKETING_SITE_URL}/terms-and-conditions`}
+                  href={TERMS_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
@@ -167,7 +167,7 @@ function SignUpPage() {
                 </a>{" "}
                 and{" "}
                 <a
-                  href={`${MARKETING_SITE_URL}/privacy`}
+                  href={PRIVACY_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"

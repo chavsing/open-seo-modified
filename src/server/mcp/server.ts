@@ -109,7 +109,11 @@ import {
 } from "@/server/mcp/tools/site-audit-cleanup-tools";
 import { whoamiTool } from "@/server/mcp/tools/whoami";
 import { explorePromptTool } from "@/server/mcp/tools/explore-prompt";
-import { BRAND_NAME, MARKETING_SITE_URL } from "@/shared/brand";
+import {
+  APP_URL_FALLBACK,
+  BRAND_NAME,
+  MARKETING_SITE_URL,
+} from "@/shared/brand";
 
 type ToolSchema = z.ZodType | z.ZodRawShape;
 
@@ -180,7 +184,7 @@ export function createOpenSeoMcpServer(authProps: McpProps) {
       websiteUrl: MARKETING_SITE_URL,
       icons: [
         {
-          src: `${MARKETING_SITE_URL}/android-chrome-512x512.png`,
+          src: `${APP_URL_FALLBACK}/android-chrome-512x512.png`,
           mimeType: "image/png",
           sizes: ["512x512"],
         },
