@@ -80,6 +80,12 @@ import { explorePromptTool } from "@/server/mcp/tools/explore-prompt";
 import { discoverSiteUrls, readPages, readSite } from "@/server/lib/scrape";
 import { capToolOutput } from "@/server/features/sam/samToolOutput";
 import openSeoFactSheet from "@/server/features/sam/openseo-fact-sheet.md?raw";
+import {
+  APP_URL_FALLBACK,
+  BRAND_NAME,
+  MARKETING_SITE_URL,
+  SUPPORT_EMAIL,
+} from "@/shared/brand";
 
 // Enough pages for SAM to work out what a business does, sells, and positions
 // against on its own.
@@ -371,10 +377,16 @@ export function buildSamMcpTools(
     // On-demand product reference (kept out of the system prompt: inlining it
     // made the agent narrate hosted/self-hosted framing at signed-in users).
     get_product_info: tool({
-      description:
-        "The OpenSEO fact sheet: what the product does, plans/pricing, credit costs, integrations, MCP setup. Call before answering questions about OpenSEO itself. Uses no credits.",
+      description: `The ${BRAND_NAME} fact sheet: what the product does, plans/pricing, credit costs, integrations, MCP setup. Call before answering questions about ${BRAND_NAME} itself. Uses no credits.`,
       inputSchema: z.object({}),
-      execute: () => Promise.resolve({ factSheet: openSeoFactSheet }),
+      execute: () =>
+        Promise.resolve({
+          factSheet: openSeoFactSheet
+            .replaceAll("OpenSEO", BRAND_NAME)
+            .replaceAll("support@openseo.so", SUPPORT_EMAIL)
+            .replaceAll("https://openseo.so", MARKETING_SITE_URL)
+            .replaceAll("https://app.openseo.so", APP_URL_FALLBACK),
+        }),
     }),
     ...scrapeTools(project.domain),
     whoami: adaptTool(whoamiTool),

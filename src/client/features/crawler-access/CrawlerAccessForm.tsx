@@ -8,6 +8,7 @@ import {
   isCrawlerAccessExpired,
   parseSignatureExpiry,
 } from "@/shared/crawler-access";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const crawlerCredentialsQueryKey = ["crawler-credentials"];
 export const saveCrawlerCredentialMutationKey = ["save-crawler-credential"];
@@ -115,7 +116,7 @@ export function CrawlerAccessForm({
           {(field) => (
             <field.TextField
               label="Signature"
-              description="Shopify also shows a Signature-Agent value. You don't need to paste it: OpenSEO sends it with every request."
+              description={`Shopify also shows a Signature-Agent value. You don't need to paste it: ${BRAND_NAME} sends it with every request.`}
               type="password"
               autoComplete="off"
               data-ph-mask

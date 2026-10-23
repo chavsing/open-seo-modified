@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Button } from "@/client/components/ui/button";
 import { AuthPageCard, AuthPageShell } from "@/client/features/auth/AuthPage";
 import { googleAuthErrorCopy } from "@/client/features/integrations/googleAuthErrorCopy";
+import { BRAND_NAME } from "@/shared/brand";
 
 const authErrorSearchSchema = z.object({
   error: z.string().optional(),
@@ -43,7 +44,7 @@ function AuthErrorPage() {
           variant="secondary"
           className="w-full"
         >
-          Back to OpenSEO
+          Back to {BRAND_NAME}
         </Button>
       </AuthPageCard>
     </AuthPageShell>

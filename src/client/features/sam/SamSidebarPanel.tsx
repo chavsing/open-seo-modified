@@ -16,6 +16,7 @@ import {
 } from "@/client/components/ui/sidebar";
 import { useSamBetaOptIn } from "./samBetaOptIn";
 import { useSamSessions } from "./useSamSessions";
+import { BRAND_NAME } from "@/shared/brand";
 
 const BETA_NOTICE_DISMISSED_KEY = "sam-beta-notice-dismissed";
 
@@ -48,8 +49,8 @@ function BetaNotice() {
         </Button>
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        For more powerful AI workflows, use the OpenSEO MCP with your own agent
-        like Claude Code or Hermes.
+        For more powerful AI workflows, use the {BRAND_NAME} MCP with your own
+        agent like Claude Code or Hermes.
       </p>
       <Link
         to="/ai"

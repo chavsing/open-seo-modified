@@ -3,6 +3,7 @@ import { ShieldAlert, Wrench } from "lucide-react";
 import { GateCard } from "@/client/components/GateCard";
 import { Alert, AlertDescription } from "@/client/components/ui/alert";
 import { Button } from "@/client/components/ui/button";
+import { BRAND_NAME } from "@/shared/brand";
 
 export function SamSetupGate({
   errorMessage,
@@ -21,10 +22,10 @@ export function SamSetupGate({
       description={
         <>
           <p>
-            SAM, OpenSEO&apos;s in-app AI agent, needs an OpenRouter API key.
-            Create a key on OpenRouter, set it as the{" "}
+            SAM, {BRAND_NAME}&apos;s in-app AI agent, needs an OpenRouter API
+            key. Create a key on OpenRouter, set it as the{" "}
             <code>OPENROUTER_API_KEY</code> environment variable, restart
-            OpenSEO, then confirm here.
+            {BRAND_NAME}, then confirm here.
           </p>
           <p className="text-xs">
             Step-by-step instructions for every deployment are in the{" "}

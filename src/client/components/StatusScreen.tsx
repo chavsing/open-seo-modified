@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "cn";
 import { Spinner } from "@/client/components/Spinner";
+import { BRAND_NAME } from "@/shared/brand";
 
 const WIDTHS = {
   sm: "max-w-xs",
@@ -47,7 +48,7 @@ export function StatusScreen({
         {logo ? (
           <img
             src="/transparent-logo.png"
-            alt="OpenSEO"
+            alt={BRAND_NAME}
             className="size-10 rounded-lg"
           />
         ) : null}

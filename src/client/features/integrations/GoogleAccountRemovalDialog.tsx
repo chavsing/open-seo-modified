@@ -14,6 +14,7 @@ import {
   getGoogleAccountRemovalImpact,
   removeGoogleAccount,
 } from "@/serverFunctions/googleAccounts";
+import { BRAND_NAME } from "@/shared/brand";
 
 export function GoogleAccountRemovalDialog({
   provider,
@@ -77,8 +78,8 @@ export function GoogleAccountRemovalDialog({
         <DialogHeader>
           <DialogTitle>Remove Google account?</DialogTitle>
           <DialogDescription>
-            This removes the account’s {name} connection from OpenSEO. You can
-            reconnect it anytime.
+            This removes the account’s {name} connection from {BRAND_NAME}. You
+            can reconnect it anytime.
           </DialogDescription>
         </DialogHeader>
         <p className="break-all text-sm font-medium">{label}</p>

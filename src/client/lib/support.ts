@@ -1,1 +1,1 @@
-export const SUPPORT_EMAIL = "support@openseo.so";
+export { SUPPORT_EMAIL } from "@/shared/brand";

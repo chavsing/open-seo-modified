@@ -8,6 +8,7 @@ import { shouldCaptureAppErrorCode } from "@/shared/error-codes";
 import { type ToolContext } from "@/server/mcp/context";
 import { incrementSelfHostMcpToolCallCount } from "@/server/lib/self-host-telemetry";
 import { toolErrorMessage } from "@/server/mcp/tool-error-message";
+import { BRAND_NAME } from "@/shared/brand";
 
 type ToolHandler<TArgs> = (
   args: TArgs,
@@ -214,6 +215,6 @@ function agentFacingError(error: unknown, appError: AppError | null): unknown {
     appError.message === appError.code ? "" : `${appError.message} `;
   return new AppError(
     "INSUFFICIENT_CREDITS",
-    `${detail}This OpenSEO organization doesn't have enough credits for this request. Retrying won't help until the organization has more credits.`,
+    `${detail}This ${BRAND_NAME} organization doesn't have enough credits for this request. Retrying won't help until the organization has more credits.`,
   );
 }

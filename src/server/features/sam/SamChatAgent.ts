@@ -13,8 +13,7 @@ import type {
 } from "@cloudflare/think";
 import { clearChatTerminal } from "agents/chat";
 import { createCompactFunction } from "agents/experimental/memory/utils";
-import { generateText } from "ai";
-import type { UIMessage } from "ai";
+import { generateText, type UIMessage } from "ai";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, withPgClient } from "@/db";
@@ -45,6 +44,7 @@ import { getPublicOrigin } from "@/server/mcp/public-origin";
 import { MCP_SCOPE } from "@/lib/oauth-resource";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import type { ToolAuthContext } from "@/server/mcp/context";
+import { BRAND_NAME, APP_URL_FALLBACK } from "@/shared/brand";
 
 // SAM's read-only view of the project's shared memory. The block has no `set`
 // provider, so Think exposes no set_context tool for it; writes go through the
@@ -266,7 +266,7 @@ export class SamChatAgent extends Think {
     return withPgClient(async () => {
       const ctx = await this.loadSamContext();
       if (!ctx) {
-        return "You are SAM, the SEO agent inside OpenSEO. This chat session no longer exists; tell the user to start a new chat.";
+        return `You are SAM, the SEO agent inside ${BRAND_NAME}. This chat session no longer exists; tell the user to start a new chat.`;
       }
       const context = await ProjectContextService.getProjectContext(
         ctx.project.id,
@@ -349,7 +349,7 @@ export class SamChatAgent extends Think {
 
       const baseUrl =
         (await this.ctx.storage.get<string>(PUBLIC_ORIGIN_KEY)) ??
-        "https://app.openseo.so";
+        APP_URL_FALLBACK;
       // Delegated/self-host orgs have no member rows — implicit owner. In
       // hosted mode a missing member row means the user was removed from the
       // workspace; fail closed instead of letting the open socket keep

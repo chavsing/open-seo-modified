@@ -26,6 +26,7 @@ import type {
   GscSearchAnalyticsRequest,
   GscSearchAnalyticsRow,
 } from "@/server/lib/gscClient";
+import { BRAND_NAME } from "@/shared/brand";
 
 const SITE_UNVERIFIED_PERMISSION = "siteUnverifiedUser";
 
@@ -157,7 +158,7 @@ async function setSite(input: {
   if (!grants.some((grant) => grant.accountId === input.accountId)) {
     throw new AppError(
       "NOT_FOUND",
-      "That Google account isn't connected to your OpenSEO account.",
+      `That Google account isn't connected to your ${BRAND_NAME} account.`,
     );
   }
 

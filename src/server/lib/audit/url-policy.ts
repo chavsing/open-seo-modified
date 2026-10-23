@@ -1,5 +1,6 @@
 import { AppError } from "@/server/lib/errors";
 import { crawlerHeadersFor, type CrawlerAccess } from "@/shared/crawler-access";
+import { CRAWLER_USER_AGENT } from "@/shared/brand";
 
 const BLOCKED_HOSTS = new Set([
   "localhost",
@@ -269,7 +270,7 @@ export async function resolveStartUrlRedirects(
         method: "HEAD",
         redirect: "manual",
         headers: {
-          "User-Agent": "OpenSEO-Audit/1.0",
+          "User-Agent": CRAWLER_USER_AGENT,
           ...crawlerHeadersFor(current, access),
         },
         signal: AbortSignal.timeout(START_URL_PROBE_TIMEOUT_MS),

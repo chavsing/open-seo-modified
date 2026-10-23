@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/client/components/ui/card";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_authenticated/oauth-consent")({
   component: OAuthConsentPage,
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/oauth-consent")({
 const SCOPES = [
   {
     icon: Database,
-    label: "Read your OpenSEO data",
+    label: `Read your ${BRAND_NAME} data`,
     description: "Projects, keyword reports, and audit results.",
   },
   {
@@ -72,7 +73,7 @@ function OAuthConsentPage() {
         setError("Authorization response did not include a redirect URL.");
       }
     } catch {
-      setError("We couldn't reach OpenSEO. Please try again.");
+      setError(`We couldn't reach ${BRAND_NAME}. Please try again.`);
     }
     setPendingAction(null);
   }
@@ -82,14 +83,14 @@ function OAuthConsentPage() {
       <CardHeader className="flex flex-col items-center text-center">
         <img
           src="/transparent-logo.png"
-          alt="OpenSEO"
+          alt={BRAND_NAME}
           className="size-10 rounded-lg"
         />
         <CardTitle className="mt-5 text-xl">
           <h1>Authorize MCP access</h1>
         </CardTitle>
         <p className="mt-2 text-sm text-muted-foreground">
-          An MCP client is requesting access to your OpenSEO workspace.
+          An MCP client is requesting access to your {BRAND_NAME} workspace.
         </p>
       </CardHeader>
       <CardContent>

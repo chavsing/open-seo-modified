@@ -6,6 +6,7 @@ import { XMLParser } from "fast-xml-parser";
 import { isSameOrigin, normalizeUrl } from "./url-utils";
 import { isCrawlableUrl } from "./url-policy";
 import { crawlerHeadersFor, type CrawlerAccess } from "@/shared/crawler-access";
+import { CRAWLER_USER_AGENT } from "@/shared/brand";
 
 const SITEMAP_FETCH_TIMEOUT_MS = 15_000;
 // robots.txt is checkpointed as durable Workflow step state (~1MiB cap, shared
@@ -75,7 +76,7 @@ async function fetchFollowingRedirects(
   for (let hop = 0; hop <= MAX_DISCOVERY_REDIRECT_HOPS; hop++) {
     const response = await fetch(current, {
       headers: {
-        "User-Agent": "OpenSEO-Audit/1.0",
+        "User-Agent": CRAWLER_USER_AGENT,
         ...crawlerHeadersFor(current, access),
       },
       redirect: "manual",

@@ -3,6 +3,7 @@ import { AuthPageCard, AuthPageShell } from "@/client/features/auth/AuthPage";
 import { useHostedAuthRouteGuard } from "@/client/features/auth/useHostedAuthRouteGuard";
 import { PageLoading } from "@/client/components/Spinner";
 import { Button } from "@/client/components/ui/button";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedShellLayout,
@@ -25,7 +26,7 @@ function AuthenticatedShellLayout() {
             variant="secondary"
             className="w-full"
           >
-            Back to OpenSEO
+            Back to {BRAND_NAME}
           </Button>
         </AuthPageCard>
       </AuthPageShell>

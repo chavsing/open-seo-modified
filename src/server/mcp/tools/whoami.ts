@@ -7,13 +7,13 @@ import { type ToolContext } from "@/server/mcp/context";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { optionalMetaOutputSchema } from "@/server/mcp/output-schemas";
 import { z } from "zod";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const whoamiTool = {
   name: "whoami",
   config: {
     title: "Who am I",
-    description:
-      "Confirms the connected OpenSEO account, server mode, token scopes, and current credit balance when the user asks to check their account or connection. Initializes billing for new hosted accounts. Uses no credits — does not call DataForSEO. Returns creditsRemaining: null when the balance is unavailable.",
+    description: `Confirms the connected ${BRAND_NAME} account, server mode, token scopes, and current credit balance when the user asks to check their account or connection. Initializes billing for new hosted accounts. Uses no credits — does not call DataForSEO. Returns creditsRemaining: null when the balance is unavailable.`,
     inputSchema: {} as Record<string, never>,
     outputSchema: z.looseObject({
       userEmail: z.string(),

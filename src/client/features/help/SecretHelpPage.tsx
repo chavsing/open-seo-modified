@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/client/components/ui/card";
 import { Separator } from "@/client/components/ui/separator";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const helpLinkClassName =
   "font-medium text-primary underline underline-offset-4";
@@ -73,7 +74,8 @@ export function SecretHelpPage({
             <ol className="list-decimal space-y-2 pl-5">
               <li>
                 In Cloudflare, go to <code>Compute</code> -&gt;{" "}
-                <code>Workers &amp; Pages</code> and open your OpenSEO Worker.
+                <code>Workers &amp; Pages</code> and open your {BRAND_NAME}{" "}
+                Worker.
               </li>
               <li>
                 Open <code>Settings</code>.

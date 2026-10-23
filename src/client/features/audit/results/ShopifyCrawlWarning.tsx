@@ -20,6 +20,7 @@ import {
   SHOPIFY_CRAWLER_ACCESS_DOC_URL,
   isCrawlerAccessExpired,
 } from "@/shared/crawler-access";
+import { BRAND_NAME } from "@/shared/brand";
 
 /**
  * Shown instead of the generic crawl warnings when a Shopify storefront
@@ -160,7 +161,7 @@ export function ShopifyCrawlWarning({
             <p className="text-muted-foreground">
               Shopify rate-limits crawlers it hasn't authorized, so parts of
               this report are missing. If you own this store, authorizing
-              OpenSEO takes about a minute.
+              {BRAND_NAME} takes about a minute.
             </p>
           </>
         )}

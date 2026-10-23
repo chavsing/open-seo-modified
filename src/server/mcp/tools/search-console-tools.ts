@@ -30,6 +30,7 @@ import {
   GscTokenError,
 } from "@/server/lib/gscErrors";
 import { GSC_SELF_HOSTED_SETUP_DOCS_URL } from "@/shared/gsc";
+import { BRAND_NAME } from "@/shared/brand";
 
 type GscPerfRow = {
   keys?: string[];
@@ -68,7 +69,7 @@ async function missingSelfHostedGoogleClientResponse(
   if (await hasGoogleOAuthConfig()) return null;
 
   return mcpResponse({
-    text: `This self-hosted OpenSEO deployment is not configured for Search Console yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and BETTER_AUTH_SECRET, then reconnect Search Console from the project's settings page. Setup docs: ${GSC_SELF_HOSTED_SETUP_DOCS_URL}`,
+    text: `This self-hosted ${BRAND_NAME} deployment is not configured for Search Console yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and BETTER_AUTH_SECRET, then reconnect Search Console from the project's settings page. Setup docs: ${GSC_SELF_HOSTED_SETUP_DOCS_URL}`,
     meta: buildProjectMeta(context, projectId),
     structuredContent: {
       ok: false,
@@ -241,8 +242,7 @@ export const getSearchConsolePerformanceTool = {
   name: "get_search_console_performance",
   config: {
     title: "Get Google Search Console performance",
-    description:
-      "Query the connected Search Console property's Search Analytics: clicks, impressions, CTR, and average position by query/page/country/device/date. First-party data — use it for what already ranks, near-ranking queries, and pages with real demand. Google sorts by clicks and can't filter by position, so minPosition/maxPosition/minImpressions are applied server-side over the top 1000 rows of the window — use them instead of fetching everything. ctr is a 0-1 fraction; position is a 1-based average and is omitted from rows when type is 'discover' or 'googleNews' (Google does not report it there — treat it as unavailable, not a failure); dates are Pacific Time; the last ~3 days may be incomplete. Reads only the Search Console property already connected to an OpenSEO project the caller is authorized to access. The server selects the Google account and property from that project's saved connection. Read-only; uses no credits.",
+    description: `Query the connected Search Console property's Search Analytics: clicks, impressions, CTR, and average position by query/page/country/device/date. First-party data — use it for what already ranks, near-ranking queries, and pages with real demand. Google sorts by clicks and can't filter by position, so minPosition/maxPosition/minImpressions are applied server-side over the top 1000 rows of the window — use them instead of fetching everything. ctr is a 0-1 fraction; position is a 1-based average and is omitted from rows when type is 'discover' or 'googleNews' (Google does not report it there — treat it as unavailable, not a failure); dates are Pacific Time; the last ~3 days may be incomplete. Reads only the Search Console property already connected to an ${BRAND_NAME} project the caller is authorized to access. The server selects the Google account and property from that project's saved connection. Read-only; uses no credits.`,
     inputSchema: perfInputSchema,
     outputSchema: z.looseObject({
       ok: z.boolean(),
@@ -498,8 +498,7 @@ export const inspectUrlsTool = {
   name: "inspect_urls",
   config: {
     title: "Inspect URLs in Google Search Console",
-    description:
-      "Read Google Search Console's existing index status for up to 10 URLs of the connected property: index/coverage state, last crawl time, Google-selected vs declared canonical, and mobile/rich-results verdicts. Use it to answer 'is this page indexed? why not?'. Google requires each URL to belong to that property. This does not run a live crawl. Per-URL failures are reported inline. Reads only the Search Console property already connected to an OpenSEO project the caller is authorized to access. The server selects the Google account and property from that project's saved connection. Read-only; uses no credits.",
+    description: `Read Google Search Console's existing index status for up to 10 URLs of the connected property: index/coverage state, last crawl time, Google-selected vs declared canonical, and mobile/rich-results verdicts. Use it to answer 'is this page indexed? why not?'. Google requires each URL to belong to that property. This does not run a live crawl. Per-URL failures are reported inline. Reads only the Search Console property already connected to an ${BRAND_NAME} project the caller is authorized to access. The server selects the Google account and property from that project's saved connection. Read-only; uses no credits.`,
     inputSchema: inspectInputSchema,
     outputSchema: z.looseObject({
       ok: z.boolean(),

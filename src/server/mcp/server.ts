@@ -109,6 +109,7 @@ import {
 } from "@/server/mcp/tools/site-audit-cleanup-tools";
 import { whoamiTool } from "@/server/mcp/tools/whoami";
 import { explorePromptTool } from "@/server/mcp/tools/explore-prompt";
+import { BRAND_NAME, MARKETING_SITE_URL } from "@/shared/brand";
 
 type ToolSchema = z.ZodType | z.ZodRawShape;
 
@@ -171,15 +172,15 @@ function registerOpenSeoTool<Input extends ToolSchema>(
 export function createOpenSeoMcpServer(authProps: McpProps) {
   const server = new McpServer(
     {
-      name: "OpenSEO MCP",
-      title: "OpenSEO",
+      name: `${BRAND_NAME} MCP`,
+      title: BRAND_NAME,
       version: "0.0.12",
       description:
         "SEO research tools for AI agents: keyword research and metrics, SERP and local SERP results, domain and backlink analysis, rank tracking, and Google Search Console performance.",
-      websiteUrl: "https://openseo.so",
+      websiteUrl: MARKETING_SITE_URL,
       icons: [
         {
-          src: "https://openseo.so/android-chrome-512x512.png",
+          src: `${MARKETING_SITE_URL}/android-chrome-512x512.png`,
           mimeType: "image/png",
           sizes: ["512x512"],
         },
@@ -191,8 +192,7 @@ export function createOpenSeoMcpServer(authProps: McpProps) {
       // use it to decide whether to open a subscriptions/listen stream.
       // Without the pre-declaration, registerTool defaults it to true.
       capabilities: { tools: { listChanged: false } },
-      instructions:
-        "OpenSEO research tools use credits. Proceed with normal focused research, but ask the user for confirmation before planned batches over 2,000 credits. OpenSEO cannot purchase credits or charge cards. Explain unsupported purchase requests without promoting subscriptions, upgrades or credit purchases, or directing users to checkout.",
+      instructions: `${BRAND_NAME} research tools use credits. Proceed with normal focused research, but ask the user for confirmation before planned batches over 2,000 credits. ${BRAND_NAME} cannot purchase credits or charge cards. Explain unsupported purchase requests without promoting subscriptions, upgrades or credit purchases, or directing users to checkout.`,
     },
   );
 

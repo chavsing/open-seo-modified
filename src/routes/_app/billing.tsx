@@ -22,6 +22,7 @@ import {
 } from "@/client/features/billing/plan-offers";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { PAYPAL_AUTOPAY_URL } from "@/shared/billing";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_app/billing")({
   // The loader fills the module-scoped query client, so keep it out of server
@@ -169,7 +170,7 @@ function BillingPage() {
                         </div>
                         <ul className="space-y-1.5">
                           {[
-                            "Access to all OpenSEO features",
+                            `Access to all ${BRAND_NAME} features`,
                             includedCreditsFeature(offer),
                           ].map((item) => (
                             <li

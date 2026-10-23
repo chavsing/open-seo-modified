@@ -5,6 +5,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/client/components/ui/alert";
+import { BRAND_NAME } from "@/shared/brand";
 
 export function GoogleOAuthSetupWarning({
   integrationName,
@@ -19,8 +20,8 @@ export function GoogleOAuthSetupWarning({
       <AlertTitle>Google OAuth client not configured</AlertTitle>
       <AlertDescription>
         <p>
-          Add your Google client ID and secret to this OpenSEO deployment before
-          connecting {integrationName}.
+          Add your Google client ID and secret to this {BRAND_NAME} deployment
+          before connecting {integrationName}.
         </p>
         <SafeExternalLink
           url={docsUrl}

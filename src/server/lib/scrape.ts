@@ -6,6 +6,7 @@
 // same interface later.
 
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
+import { BRAND_NAME, MARKETING_SITE_URL } from "@/shared/brand";
 
 const MAX_PAGES = 5;
 const PER_PAGE_CHAR_LIMIT = 4000;
@@ -13,7 +14,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 // Covers chains like https://apex -> http://www -> https://www.
 const MAX_REDIRECTS = 3;
 const MAX_RESPONSE_BYTES = 2_000_000;
-const USER_AGENT = "OpenSEO-Onboarding/1.0 (+https://openseo.so)";
+const USER_AGENT = `${BRAND_NAME}-Onboarding/1.0 (+${MARKETING_SITE_URL})`;
 
 type ScrapedPage = {
   url: string;

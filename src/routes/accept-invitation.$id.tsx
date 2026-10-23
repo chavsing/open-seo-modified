@@ -9,6 +9,7 @@ import { clearLastProjectId } from "@/client/lib/active-project";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient, signOutAndRedirect, useSession } from "@/lib/auth-client";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/accept-invitation/$id")({
   beforeLoad: () => {
@@ -45,8 +46,8 @@ function SignedOutInvitationCard({ invitationId }: { invitationId: string }) {
   return (
     <AuthPageCard title="You&rsquo;re invited">
       <p className="text-sm text-muted-foreground">
-        You&rsquo;ve been invited to join an organization on OpenSEO. Sign in
-        with the email address that received the invitation to accept it.
+        You&rsquo;ve been invited to join an organization on {BRAND_NAME}. Sign
+        in with the email address that received the invitation to accept it.
       </p>
       <div className="space-y-2">
         <Button
@@ -234,7 +235,7 @@ function InvitationCard({
         <span className="font-medium">
           {invitationQuery.data.organizationName}
         </span>{" "}
-        on OpenSEO.
+        on {BRAND_NAME}.
       </p>
       {actionError ? (
         <Alert variant="destructive">

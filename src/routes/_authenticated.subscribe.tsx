@@ -23,6 +23,7 @@ import { normalizeAuthRedirect } from "@/lib/auth-redirect";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { Button } from "@/client/components/ui/button";
+import { BRAND_NAME } from "@/shared/brand";
 
 const planFeatures = (offer: PlanOffer) => [
   "Keyword research, backlinks, rank tracking, and site audits",
@@ -114,15 +115,15 @@ function SubscribePage() {
       <div className="space-y-3 text-center">
         <img
           src="/transparent-logo.png"
-          alt="OpenSEO"
+          alt={BRAND_NAME}
           className="mx-auto size-10 rounded-lg"
         />
         <h1 className="text-xl font-semibold">
           {isUpgradeFlow
             ? "Upgrade your plan"
             : firstName
-              ? `Welcome to OpenSEO, ${firstName}!`
-              : "Welcome to OpenSEO!"}
+              ? `Welcome to ${BRAND_NAME}, ${firstName}!`
+              : `Welcome to ${BRAND_NAME}!`}
         </h1>
         <p className="text-sm text-muted-foreground">
           SEO on your terms. All your SEO tools in one place at a fair price.

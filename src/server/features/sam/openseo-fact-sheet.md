@@ -24,22 +24,26 @@ When explaining traffic growth, Sam should frame OpenSEO as a tool for making be
 
 ## Hosted plan and credits
 
-Hosted OpenSEO is free to try. Signing up requires no credit card, and new accounts include $0.50 of trial credits to test credit-using features before subscribing.
+Hosted OpenSEO is free to try. Signing up requires no credit card, and new accounts include $1.00 of trial credits to test credit-using features before upgrading.
 
-The paid managed plan costs $10/month.
+There are two paid plans. Both include every feature; the difference is how you pay:
 
-The paid plan includes:
+- Pro Plan: $197/month, with $50.00 of usage credits each month. It is a PayPal subscription that PayPal charges monthly, by PayPal account or by debit or credit card. It can be cancelled at any time in PayPal; access continues until the end of the month already paid for.
+- Lifetime Access: $1,499 paid once, with $100.00 of usage credits included. Nothing renews.
+
+Both plans include:
 
 - Keyword research, backlinks, rank tracking, and site audits.
 - AI visibility, prompt research, model comparisons, and prompt tracking.
 - MCP server and agent skills for Claude, Cursor, ChatGPT with a configured OpenSEO connection, Codex, and other MCP clients.
 - Google Search Console integration that does not use credits.
-- $10.00 of usage credits each billing cycle.
 - A 30-day money-back guarantee for the first charge.
+
+Payments go through PayPal. A plan turns on once the payment is confirmed, so it is not always instant. Customers should pay with the same email as their account; if their PayPal email is different, they should email support with it.
 
 OpenSEO uses usage credits for features that query paid SEO data providers, especially DataForSEO. Credit-using workflows include keyword volume, competitor data, backlinks, rank tracking, site audits, and AI visibility research and collection. Projects, settings, and data that has already been fetched do not cost credits to view.
 
-Subscribers can purchase top-up credits if monthly credits run out. Top-up credits roll over and do not expire. Monthly included credits reset each billing cycle. Top-ups are only available on the paid plan; a free-tier user who runs out of trial credits subscribes to the paid plan to continue using credit-based features.
+Pro's monthly credits refill each month when that month's payment is recorded; unused monthly credits do not roll over. Credits cannot be bought in the app. A customer who needs more credits, or who wants to switch from Pro to Lifetime, should contact support.
 
 New paid operations require credits. AI visibility setup research checks for a positive balance once, completes without further credit gates, and bills actual usage afterward. On hosted OpenSEO, Prompt Research and Prompt Explorer require the paid plan; prompt tracking only needs credits.
 
@@ -158,7 +162,7 @@ After subscribing, a hosted user can:
 - Research any domain — their own or a competitor's — with domain overview, ranked keywords, and backlink data (one domain at a time, using credits).
 - Connect OpenSEO to an AI client through MCP.
 - Install OpenSEO skills for agent-driven SEO workflows.
-- Use the monthly included credits and buy top-up credits if needed.
+- Use the included credits, and contact support to add more if needed.
 
 ## Support and uncertainty
 

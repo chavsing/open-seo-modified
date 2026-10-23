@@ -27,6 +27,7 @@ import { withMcpProjectAuth } from "@/server/mcp/project-auth";
 import { projectIdSchema } from "@/server/mcp/schemas";
 import { renderingEstimateText } from "@/shared/audit-rendering";
 import { RENDERED_MAX_AUDIT_PAGES } from "@/shared/audit-limits";
+import { BRAND_NAME } from "@/shared/brand";
 
 const auditIdSchema = z
   .string()
@@ -184,8 +185,7 @@ export const getAuditStatusTool = {
   name: "get_audit_status",
   config: {
     title: "Get site audit status",
-    description:
-      "Check the progress of a site audit (phase, pages crawled, Lighthouse progress). Free — reads OpenSEO state and may reconcile a dead workflow by marking its audit failed. Omit auditId for the most recent audit.",
+    description: `Check the progress of a site audit (phase, pages crawled, Lighthouse progress). Free — reads ${BRAND_NAME} state and may reconcile a dead workflow by marking its audit failed. Omit auditId for the most recent audit.`,
     inputSchema: statusInputSchema,
     outputSchema: z
       .object({
@@ -281,8 +281,7 @@ export const getAuditIssuesTool = {
   name: "get_audit_issues",
   config: {
     title: "Get site audit issues",
-    description:
-      "Read the prioritized issue report from a completed site audit. Every issue carries a how_to_fix with concrete remediation steps an agent can act on. Free — reads OpenSEO state. Omit auditId for the most recent audit.",
+    description: `Read the prioritized issue report from a completed site audit. Every issue carries a how_to_fix with concrete remediation steps an agent can act on. Free — reads ${BRAND_NAME} state. Omit auditId for the most recent audit.`,
     inputSchema: issuesInputSchema,
     outputSchema: z
       .object({
@@ -466,8 +465,7 @@ export const getAuditPagesTool = {
   name: "get_audit_pages",
   config: {
     title: "Get site audit pages",
-    description:
-      "List crawled pages from a site audit with per-page SEO data (status, title, description, word count, indexability, crawl depth, link counts). Free — reads OpenSEO state. Omit auditId for the most recent audit.",
+    description: `List crawled pages from a site audit with per-page SEO data (status, title, description, word count, indexability, crawl depth, link counts). Free — reads ${BRAND_NAME} state. Omit auditId for the most recent audit.`,
     inputSchema: pagesInputSchema,
     outputSchema: z
       .object({

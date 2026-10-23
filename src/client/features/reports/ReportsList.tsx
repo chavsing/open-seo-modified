@@ -16,6 +16,7 @@ import { formatCreatedBy } from "@/client/features/reports/shared";
 import { formatRelativeTime } from "@/client/lib/relative-time";
 import type { ReportListItem } from "@/serverFunctions/reports";
 import { REPORT_APP_LIST_LIMIT } from "@/types/schemas/reports";
+import { BRAND_NAME } from "@/shared/brand";
 
 export function ReportsList({
   projectId,
@@ -31,7 +32,7 @@ export function ReportsList({
       <EmptyState
         icon={FileText}
         title="No reports yet"
-        description="Run an OpenSEO skill such as seo-audit from Claude Code or Codex and the report will appear here."
+        description={`Run an ${BRAND_NAME} skill such as seo-audit from Claude Code or Codex and the report will appear here.`}
       />
     );
   }

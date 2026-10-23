@@ -5,6 +5,7 @@ import { type ToolContext } from "@/server/mcp/context";
 import { optionalMetaOutputSchema } from "@/server/mcp/output-schemas";
 import { buildDashboardUrl } from "@/server/mcp/urls";
 import { z } from "zod";
+import { BRAND_NAME } from "@/shared/brand";
 
 // The org(s) whose projects the caller can see. Pinned credentials (self-host,
 // SAM) see the bound org; user-scoped credentials (hosted OAuth tokens and API
@@ -40,8 +41,7 @@ export const listProjectsTool = {
   name: "list_projects",
   config: {
     title: "List projects",
-    description:
-      "Lists the user's projects. Uses no credits — does not call DataForSEO. Use this whenever you need a `projectId` for another OpenSEO tool. Returns an array of {id, name, domain, locationCode, languageCode}; pass the `id` value as `projectId`. locationCode/languageCode are the project's default market — tools fall back to them when a call omits location/language args. When the user belongs to several organizations, each project is labeled with its organization and organizationId (pass that to create_project).",
+    description: `Lists the user's projects. Uses no credits — does not call DataForSEO. Use this whenever you need a \`projectId\` for another ${BRAND_NAME} tool. Returns an array of {id, name, domain, locationCode, languageCode}; pass the \`id\` value as \`projectId\`. locationCode/languageCode are the project's default market — tools fall back to them when a call omits location/language args. When the user belongs to several organizations, each project is labeled with its organization and organizationId (pass that to create_project).`,
     inputSchema: {} as Record<string, never>,
     outputSchema: z.looseObject({
       projects: z.array(

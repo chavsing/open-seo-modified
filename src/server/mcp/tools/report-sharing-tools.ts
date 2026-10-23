@@ -9,6 +9,7 @@ import { projectIdSchema } from "@/server/mcp/schemas";
 import { buildDashboardUrl } from "@/server/mcp/urls";
 import { sharePath } from "@/shared/report-share";
 import type { ReportMetadata } from "@/types/schemas/reports";
+import { BRAND_NAME } from "@/shared/brand";
 
 export async function reportShareUrl(report: ReportMetadata, baseUrl: string) {
   return report.shareToken && (await sharesEnabled())
@@ -35,8 +36,7 @@ export const setReportSharingTool = {
   name: "set_report_sharing",
   config: {
     title: "Set report sharing",
-    description:
-      "Enables or revokes public sharing for one saved report. Uses no credits. New reports are private. Only enable sharing when the user explicitly asks for it in their prompt or instructions for the skill. Anyone with shareUrl can read the latest saved version without an account. Public sharing is available only on hosted OpenSEO. Repeating true preserves the existing link; false revokes it, and enabling again creates a new link. Returns the app url and shareUrl (null after revocation). Use get_report to retrieve an existing link without changing access.",
+    description: `Enables or revokes public sharing for one saved report. Uses no credits. New reports are private. Only enable sharing when the user explicitly asks for it in their prompt or instructions for the skill. Anyone with shareUrl can read the latest saved version without an account. Public sharing is available only on hosted ${BRAND_NAME}. Repeating true preserves the existing link; false revokes it, and enabling again creates a new link. Returns the app url and shareUrl (null after revocation). Use get_report to retrieve an existing link without changing access.`,
     inputSchema: sharingInputSchema,
     outputSchema: z.looseObject({
       reportId: z.string(),

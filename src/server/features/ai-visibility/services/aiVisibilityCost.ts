@@ -21,6 +21,7 @@ import {
 import { scheduledChecksPerMonth } from "@/shared/rank-tracking";
 import type { EstimateAiCostInput } from "@/types/schemas/ai-visibility";
 import { projectPatch } from "./aiVisibilityMutation";
+import { BRAND_NAME } from "@/shared/brand";
 
 /**
  * Raw DataForSEO USD for one answer. Claude and Perplexity always use the
@@ -91,8 +92,8 @@ export async function estimateCost(
     currency: "USD",
     warnings: [
       hosted
-        ? "Customer cost uses OpenSEO data credits, including the service markup."
-        : "Self-hosted: cost estimates your own DataForSEO account charges. OpenSEO credits are not used.",
+        ? `Customer cost uses ${BRAND_NAME} data credits, including the service markup.`
+        : `Self-hosted: cost estimates your own DataForSEO account charges. ${BRAND_NAME} credits are not used.`,
       `One fresh answer per prompt and engine. The ${scheduleInterval} estimate assumes ${checksPerMonth} ${checksPerMonth === 1 ? "check" : "checks"} per month.`,
       ...(liveEngines.length
         ? [

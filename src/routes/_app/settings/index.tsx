@@ -8,6 +8,7 @@ import { Switch } from "@/client/components/ui/switch";
 import { authClient, useSession } from "@/lib/auth-client";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { version } from "../../../../package.json";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_app/settings/")({
   component: PersonalSettings,
@@ -56,7 +57,7 @@ function PersonalSettings() {
             <SectionHeader title="Analytics" />
             <div className="flex items-start justify-between gap-6">
               <div>
-                <p className="text-sm">Help improve OpenSEO</p>
+                <p className="text-sm">Help improve {BRAND_NAME}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Share analytics and usage data.
                 </p>

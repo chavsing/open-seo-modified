@@ -5,6 +5,7 @@ import {
   getOAuthSignedQuery,
 } from "@/lib/auth-redirect";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { BRAND_NAME } from "@/shared/brand";
 
 export const authRedirectSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -112,7 +113,7 @@ export function AuthPageCard({
       <div className="space-y-3 text-center">
         <img
           src="/transparent-logo.png"
-          alt="OpenSEO"
+          alt={BRAND_NAME}
           className="mx-auto size-10 rounded-lg"
         />
         <div>

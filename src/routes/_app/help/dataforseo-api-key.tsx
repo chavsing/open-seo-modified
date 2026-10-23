@@ -4,6 +4,7 @@ import {
   helpLinkClassName,
   SecretHelpPage,
 } from "@/client/features/help/SecretHelpPage";
+import { BRAND_NAME } from "@/shared/brand";
 
 const DATAFORSEO_API_ACCESS_URL = "https://app.dataforseo.com/api-access";
 
@@ -17,7 +18,7 @@ function DataforseoApiKeyHelpPage() {
       title="Set up your DataForSEO API key"
       intro={
         <>
-          OpenSEO needs the <code>DATAFORSEO_API_KEY</code> secret before
+          {BRAND_NAME} needs the <code>DATAFORSEO_API_KEY</code> secret before
           keyword, domain, and SEO data workflows can run.
         </>
       }
