@@ -1,11 +1,12 @@
 import { autumnSeoDataCreditsToUsd } from "@/shared/billing";
 import {
   applyAdminBillingAction,
+  listProRenewalsDue,
   listReportedPaypalSubscriptions,
   searchBillingAccounts,
   type AdminBillingAction,
 } from "@/server/billing/adminBillingRepository";
-import { hasPaidAccess } from "@/server/billing/plan-access";
+import { hasPaidAccess, paidAccessEndsAt } from "@/server/billing/plan-access";
 import { AppError } from "@/server/lib/errors";
 import {
   getOptionalEnvValue,
@@ -43,6 +44,12 @@ export async function listWaitingAccountsAsAdmin(adminEmail: string) {
   return (await listReportedPaypalSubscriptions()).map(toAdminAccount);
 }
 
+/** Pro customers whose paid month ends soon or ended lately. */
+export async function listRenewalsDueAsAdmin(adminEmail: string) {
+  await requireAdmin(adminEmail);
+  return (await listProRenewalsDue()).map(toAdminAccount);
+}
+
 function toAdminAccount(
   row: Awaited<ReturnType<typeof searchBillingAccounts>>[number],
 ) {
@@ -54,6 +61,8 @@ function toAdminAccount(
     planId: row.account?.planId ?? "free",
     hasPaidAccess: hasPaidAccess(row.account),
     paidUntil: row.account?.currentPeriodEnd ?? null,
+    // The paid period plus its grace days.
+    accessEndsAt: paidAccessEndsAt(row.account),
     monthlyRemainingUsd: autumnSeoDataCreditsToUsd(row.monthly?.remaining ?? 0),
     extraRemainingUsd: autumnSeoDataCreditsToUsd(row.topup?.remaining ?? 0),
     paypalSubscriptionId: row.account?.paypalSubscriptionId ?? null,

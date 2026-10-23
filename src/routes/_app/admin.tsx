@@ -6,15 +6,18 @@ import { ConfirmDialog } from "@/client/components/ConfirmDialog";
 import { PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { Button } from "@/client/components/ui/button";
-import { Card, CardContent } from "@/client/components/ui/card";
 import { Input } from "@/client/components/ui/input";
 import { Skeleton } from "@/client/components/ui/skeleton";
-import { getPlanName } from "@/client/features/billing/plan-offers";
+import {
+  AdminAccountCard,
+  type AdminAccount,
+} from "@/client/features/admin/AdminAccountCard";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import {
   applyAdminBillingChange,
   getAdminStatus,
+  listRenewalsDueAdminAccounts,
   listWaitingAdminAccounts,
   searchAdminAccounts,
 } from "@/serverFunctions/admin";
@@ -32,7 +35,7 @@ export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
 });
 
-type Account = Awaited<ReturnType<typeof searchAdminAccounts>>[number];
+type Account = AdminAccount;
 type Change =
   | { action: "pro_month" }
   | { action: "lifetime" }
@@ -46,13 +49,6 @@ type Pending = {
 };
 
 const usd = (credits: number) => `$${autumnSeoDataCreditsToUsd(credits)}`;
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
 function AdminPage() {
   const statusQuery = useQuery({
     queryKey: ["admin", "status"],
@@ -95,6 +91,11 @@ function AdminBilling() {
     queryKey: ["admin", "waiting"],
     queryFn: () => listWaitingAdminAccounts(),
   });
+  // Pro customers whose paid month ends soon or ended lately.
+  const renewalsQuery = useQuery({
+    queryKey: ["admin", "renewals"],
+    queryFn: () => listRenewalsDueAdminAccounts(),
+  });
 
   const mutation = useMutation({
     mutationFn: (args: Pending & { change: Change }) =>
@@ -110,6 +111,7 @@ function AdminBilling() {
       setPending(null);
       void searchQuery.refetch();
       void waitingQuery.refetch();
+      void renewalsQuery.refetch();
     },
     onError: (error) => toast.error(getStandardErrorMessage(error)),
   });
@@ -172,8 +174,26 @@ function AdminBilling() {
             Then click Start Pro.
           </p>
           {waitingQuery.data.map((account) => (
-            <AccountCard
+            <AdminAccountCard
               key={`waiting:${account.organizationId}:${account.email}`}
+              account={account}
+              onAction={(kind) => open(account, kind)}
+            />
+          ))}
+        </section>
+      ) : null}
+
+      {renewalsQuery.data && renewalsQuery.data.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="font-medium">Due for renewal</h2>
+          <p className="text-sm text-muted-foreground">
+            PayPal charges these Pro customers every month. When you see this
+            month&rsquo;s payment in PayPal, click Add a Pro month. Access ends
+            3 days after the paid month unless it is renewed.
+          </p>
+          {renewalsQuery.data.map((account) => (
+            <AdminAccountCard
+              key={`renewal:${account.organizationId}:${account.email}`}
               account={account}
               onAction={(kind) => open(account, kind)}
             />
@@ -219,7 +239,7 @@ function AdminBilling() {
       ) : (
         <div className="space-y-3">
           {searchQuery.data.map((account) => (
-            <AccountCard
+            <AdminAccountCard
               key={`${account.organizationId}:${account.email}`}
               account={account}
               onAction={(kind) => open(account, kind)}
@@ -263,101 +283,6 @@ function AdminBilling() {
         </ConfirmDialog>
       ) : null}
     </div>
-  );
-}
-
-function AccountCard({
-  account,
-  onAction,
-}: {
-  account: Account;
-  onAction: (kind: Change["action"]) => void;
-}) {
-  const plan = account.planId === "free" ? "Free" : getPlanName(account.planId);
-  return (
-    <Card>
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate font-medium" data-ph-mask>
-              {account.email}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {account.organizationName} &middot; {account.role}
-            </p>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              Account ID: {account.organizationId}
-            </p>
-          </div>
-          <p className="text-sm">
-            <span className="font-medium">{plan}</span>
-            {account.paidUntil ? (
-              <span className="text-muted-foreground">
-                {" "}
-                &middot; paid until {formatDate(account.paidUntil)}
-              </span>
-            ) : null}
-            {account.planId !== "free" && !account.hasPaidAccess ? (
-              <span className="text-destructive"> &middot; expired</span>
-            ) : null}
-          </p>
-        </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          Credits: ${account.monthlyRemainingUsd.toFixed(2)} plan &middot; $
-          {account.extraRemainingUsd.toFixed(2)} extra
-        </p>
-        {account.paypalSubscriptionId ? (
-          <p className="text-xs">
-            PayPal subscription{" "}
-            <span className="font-medium tabular-nums">
-              {account.paypalSubscriptionId}
-            </span>
-            {account.paypalSubscriptionShared ? (
-              <span className="font-medium text-destructive">
-                {" "}
-                &middot; another account reported this same ID: check in PayPal
-                which account it belongs to before activating
-              </span>
-            ) : null}
-            {account.paypalReportedAt ? (
-              <span className="text-amber-600">
-                {" "}
-                &middot; waiting for confirmation since{" "}
-                {formatDate(account.paypalReportedAt)}
-              </span>
-            ) : null}
-          </p>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => onAction("pro_month")}>
-            {account.planId === "pro-plan" ? "Add a Pro month" : "Start Pro"}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onAction("lifetime")}
-            disabled={account.planId === "lifetime-plan"}
-          >
-            Activate Lifetime
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onAction("add_credits")}
-          >
-            Add credits
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onAction("downgrade")}
-            disabled={account.planId === "free"}
-          >
-            Downgrade to free
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

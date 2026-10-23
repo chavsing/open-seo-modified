@@ -18,6 +18,15 @@ type PlanRow = {
  * counts. A plan with a paid period (Pro) lasts until that period ends, plus
  * the grace above; one without (Lifetime) lasts until it is canceled.
  */
+/** When a plan with a paid period stops granting access: its end plus the
+ *  grace days. Null for plans without a period (Lifetime, free). */
+export function paidAccessEndsAt(row: PlanRow | null) {
+  if (!row?.currentPeriodEnd) return null;
+  return new Date(
+    Date.parse(row.currentPeriodEnd) + RENEWAL_GRACE_MS,
+  ).toISOString();
+}
+
 export function hasPaidAccess(row: PlanRow | null, now = new Date()) {
   if (!row || row.planId === FREE_PLAN_ID) return false;
   if (row.currentPeriodEnd === null) return row.planStatus !== "canceled";

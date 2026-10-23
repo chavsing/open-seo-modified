@@ -20,6 +20,7 @@ vi.mock("@/server/lib/runtime-env", () => ({
 
 import {
   applyBillingActionAsAdmin,
+  listRenewalsDueAsAdmin,
   listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
 } from "./admin-billing";
@@ -142,6 +143,44 @@ describe("admin billing", () => {
       true,
       true,
     ]);
+  });
+
+  it("lists Pro for renewal from 3 days before its month ends until 30 days after", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_month" }); // paid until 2026-04-10
+    const due = async () =>
+      (await listRenewalsDueAsAdmin(ADMIN)).map((a) => a.email);
+
+    vi.setSystemTime(new Date("2026-04-05T12:00:00Z"));
+    expect(await due()).toEqual([]);
+
+    vi.setSystemTime(new Date("2026-04-08T12:00:00Z"));
+    expect(await due()).toEqual([OWNER]);
+
+    // In the grace days: still has access, still due.
+    vi.setSystemTime(new Date("2026-04-11T12:00:00Z"));
+    expect(await due()).toEqual([OWNER]);
+    expect((await owner()).accessEndsAt).toBe("2026-04-13T12:00:00.000Z");
+
+    vi.setSystemTime(new Date("2026-05-20T12:00:00Z"));
+    expect(await due()).toEqual([]);
+  });
+
+  it("drops a customer from the renewal list once the month is recorded", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_month" });
+    vi.setSystemTime(new Date("2026-04-09T12:00:00Z"));
+    expect(await listRenewalsDueAsAdmin(ADMIN)).toHaveLength(1);
+
+    await apply({ action: "pro_month" });
+
+    expect(await listRenewalsDueAsAdmin(ADMIN)).toEqual([]);
   });
 
   it("starts Pro for a month with its monthly credits", async () => {

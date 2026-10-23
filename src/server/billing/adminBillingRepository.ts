@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lte,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
@@ -151,6 +161,44 @@ export async function listReportedPaypalSubscriptions() {
       ),
     )
     .orderBy(desc(billingAccounts.paypalSubscriptionReportedAt))
+    .limit(50);
+  return withBillingDetails(members);
+}
+
+const DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * Owners of Pro accounts whose paid month ends within the next 3 days, or
+ * ended in the last 30 (in the grace days, or lapsed while a payment may
+ * have gone unrecorded), soonest first. PayPal charges every month, but each
+ * month is recorded by hand, so this is the admin's renewal to-do list.
+ */
+export async function listProRenewalsDue(now = new Date()) {
+  const members = await db
+    .select(memberFields)
+    .from(member)
+    .innerJoin(user, eq(user.id, member.userId))
+    .innerJoin(organization, eq(organization.id, member.organizationId))
+    .innerJoin(
+      billingAccounts,
+      eq(billingAccounts.organizationId, member.organizationId),
+    )
+    .where(
+      and(
+        eq(billingAccounts.planId, AUTUMN_PRO_PLAN_ID),
+        isNotNull(billingAccounts.currentPeriodEnd),
+        lte(
+          billingAccounts.currentPeriodEnd,
+          new Date(now.getTime() + 3 * DAY_MS).toISOString(),
+        ),
+        gte(
+          billingAccounts.currentPeriodEnd,
+          new Date(now.getTime() - 30 * DAY_MS).toISOString(),
+        ),
+        eq(member.role, "owner"),
+      ),
+    )
+    .orderBy(asc(billingAccounts.currentPeriodEnd))
     .limit(50);
   return withBillingDetails(members);
 }
