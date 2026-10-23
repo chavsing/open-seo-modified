@@ -6,11 +6,7 @@ import type { searchAdminAccounts } from "@/serverFunctions/admin";
 export type AdminAccount = Awaited<
   ReturnType<typeof searchAdminAccounts>
 >[number];
-type AdminAction =
-  | "pro_month"
-  | "lifetime"
-  | "add_credits"
-  | "downgrade";
+type AdminAction = "pro_month" | "lifetime" | "add_credits" | "downgrade";
 
 const DAY_MS = 24 * 60 * 60_000;
 
