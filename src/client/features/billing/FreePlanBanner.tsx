@@ -68,7 +68,7 @@ export function FreePlanBanner() {
   if (isLowCredits) {
     return (
       <AppBanner variant="warning">
-        You&rsquo;re running low on credits. {creditsActionLink} to keep using
+        You&rsquo;re running low on credits. {creditsActionLink} to keep using{" "}
         {BRAND_NAME}.
       </AppBanner>
     );

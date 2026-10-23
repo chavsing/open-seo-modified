@@ -24,7 +24,7 @@ export function SamSetupGate({
           <p>
             SAM, {BRAND_NAME}&apos;s in-app AI agent, needs an OpenRouter API
             key. Create a key on OpenRouter, set it as the{" "}
-            <code>OPENROUTER_API_KEY</code> environment variable, restart
+            <code>OPENROUTER_API_KEY</code> environment variable, restart{" "}
             {BRAND_NAME}, then confirm here.
           </p>
           <p className="text-xs">
