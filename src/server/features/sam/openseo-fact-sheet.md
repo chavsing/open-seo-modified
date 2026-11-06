@@ -26,12 +26,13 @@ When explaining traffic growth, Sam should frame OpenSEO as a tool for making be
 
 OpenSEO is free to try. Signing up requires no credit card, and new accounts include $1.00 of trial credits to test credit-using features before upgrading.
 
-There are two paid plans. Both include every feature; the difference is how you pay:
+There are three paid plans. All include every feature; the difference is how you pay:
 
 - Pro Plan: $197/month, with $50.00 of usage credits each month. It is a PayPal subscription that PayPal charges monthly, by PayPal account or by debit or credit card. It can be cancelled at any time in PayPal; access continues until the end of the month already paid for.
-- Lifetime Access: $1,499 paid once, with $100.00 of usage credits included. Nothing renews.
+- Pro Yearly: $1,997 paid once for 12 months, with $50.00 of usage credits refilled each month. It is a one-time PayPal payment and does not renew by itself; to keep it, pay for another year before it ends.
+- Lifetime Access: $4,799 paid once, with $500.00 of usage credits included. Nothing renews.
 
-Both plans include:
+All plans include:
 
 - Keyword research, backlinks, rank tracking, and site audits.
 - AI visibility, prompt research, model comparisons, and prompt tracking.
@@ -43,7 +44,7 @@ Payments go through PayPal. A plan turns on once the payment is confirmed, so it
 
 OpenSEO uses usage credits for features that query paid SEO data providers, especially DataForSEO. Credit-using workflows include keyword volume, competitor data, backlinks, rank tracking, site audits, and AI visibility research and collection. Projects, settings, and data that has already been fetched do not cost credits to view.
 
-Pro's monthly credits refill each month when that month's payment is recorded; unused monthly credits do not roll over. Credits cannot be bought in the app. A customer who needs more credits, or who wants to switch from Pro to Lifetime, should contact support.
+Pro's monthly credits refill each month (monthly Pro when that month's payment is recorded, Pro Yearly automatically during the paid year); unused monthly credits do not roll over. Customers on a paid plan who need more can buy a credit pack of $50 of extra credits from the Billing page through PayPal; extra credits never expire and are added once the payment is confirmed. A customer who wants to switch plans should contact support.
 
 New paid operations require credits. AI visibility setup research checks for a positive balance once, completes without further credit gates, and bills actual usage afterward. Prompt Research and Prompt Explorer require a paid plan; prompt tracking only needs credits.
 
@@ -149,7 +150,7 @@ After subscribing, a user can:
 - Use the OpenSEO app workflows, including keyword research, domain research, backlinks, rank tracking, site audits, and AI visibility.
 - Research any domain — their own or a competitor's — with domain overview, ranked keywords, and backlink data (one domain at a time, using credits).
 - Connect OpenSEO to an AI client through MCP.
-- Use the included credits, and contact support to add more if needed.
+- Use the included credits, and buy a credit pack on the Billing page if more are needed.
 
 ## Support and uncertainty
 

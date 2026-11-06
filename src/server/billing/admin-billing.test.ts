@@ -25,6 +25,7 @@ import {
   searchAccountsAsAdmin,
 } from "./admin-billing";
 import { reportPaypalSubscription } from "./billing-account";
+import { refillYearlyPlanCredits } from "./creditLedger";
 
 // The harness seeds organization "organization"; this member is its owner.
 const ORG = "organization";
@@ -241,6 +242,97 @@ describe("admin billing", () => {
 
     vi.setSystemTime(new Date("2026-04-14T12:00:00Z"));
     expect((await owner()).hasPaidAccess).toBe(false);
+  });
+
+  it("starts Pro yearly for 12 months with its first month of credits", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+
+    await apply({ action: "pro_year" });
+
+    expect(await owner()).toMatchObject({
+      planId: "pro-yearly-plan",
+      hasPaidAccess: true,
+      paidUntil: "2027-03-10T12:00:00.000Z",
+      monthlyRemainingUsd: PRO_MONTHLY_CREDITS / 1000,
+    });
+  });
+
+  it("refills Pro yearly credits once a month, 12 grants in all", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_year" });
+    await testDb.client.execute(
+      "UPDATE credit_balances SET remaining = 0 WHERE pool = 'usage_credits'",
+    );
+
+    // Not due yet.
+    expect(
+      await refillYearlyPlanCredits(new Date("2026-04-09T12:00:00Z")),
+    ).toBe(0);
+    expect((await owner()).monthlyRemainingUsd).toBe(0);
+
+    // Due: refills once, even when the cron runs twice.
+    const due = new Date("2026-04-10T12:05:00Z");
+    expect(await refillYearlyPlanCredits(due)).toBe(1);
+    expect(await refillYearlyPlanCredits(due)).toBe(0);
+    expect((await owner()).monthlyRemainingUsd).toBe(
+      PRO_MONTHLY_CREDITS / 1000,
+    );
+
+    // The other 10 monthly refills, then nothing once the year is over.
+    let refills = 1;
+    for (let month = 5; month <= 15; month++) {
+      const at = new Date(Date.UTC(2026, month - 1, 10, 12, 5));
+      refills += await refillYearlyPlanCredits(at);
+    }
+    expect(refills).toBe(11);
+    expect(
+      await refillYearlyPlanCredits(new Date("2027-06-10T12:05:00Z")),
+    ).toBe(0);
+  });
+
+  it("extends a running year from its end without a second month of credits", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_year" });
+    await testDb.client.execute(
+      "UPDATE credit_balances SET remaining = 1000 WHERE pool = 'usage_credits'",
+    );
+
+    vi.setSystemTime(new Date("2027-02-20T12:00:00Z"));
+    await apply({ action: "pro_year" });
+
+    expect(await owner()).toMatchObject({
+      paidUntil: "2028-03-10T12:00:00.000Z",
+      monthlyRemainingUsd: 1,
+    });
+    // The refills carry on into the new year.
+    expect(
+      await refillYearlyPlanCredits(new Date("2027-03-10T12:05:00Z")),
+    ).toBe(1);
+  });
+
+  it("lists Pro yearly for renewal two weeks before the year ends", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_year" }); // paid until 2027-03-10
+    const due = async () =>
+      (await listRenewalsDueAsAdmin(ADMIN)).map((a) => a.email);
+
+    vi.setSystemTime(new Date("2027-02-20T12:00:00Z"));
+    expect(await due()).toEqual([]);
+
+    vi.setSystemTime(new Date("2027-02-28T12:00:00Z"));
+    expect(await due()).toEqual([OWNER]);
   });
 
   it("activates Lifetime and adds its credits to what is left", async () => {

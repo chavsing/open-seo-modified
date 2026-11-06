@@ -10,8 +10,10 @@ import { Input } from "@/client/components/ui/input";
 import { Skeleton } from "@/client/components/ui/skeleton";
 import {
   AdminAccountCard,
+  isYearRunning,
   type AdminAccount,
 } from "@/client/features/admin/AdminAccountCard";
+import { SignupAccessSection } from "@/client/features/admin/SignupAccessSection";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import {
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/_app/admin")({
 type Account = AdminAccount;
 type Change =
   | { action: "pro_month" }
+  | { action: "pro_year" }
   | { action: "lifetime" }
   | { action: "add_credits"; amountUsd: number }
   | { action: "downgrade" };
@@ -141,8 +144,11 @@ function AdminBilling() {
       <PageHeader title="Admin" />
       <p className="text-sm text-muted-foreground">
         After a PayPal payment, find the customer by the email they signed up
-        with and record it here. Each Pro payment adds one month.
+        with and record it here. Each monthly Pro payment adds one month; a Pro
+        yearly payment adds 12 months, with credits refilled each month.
       </p>
+
+      <SignupAccessSection />
 
       <form
         className="flex gap-2"
@@ -187,9 +193,11 @@ function AdminBilling() {
         <section className="space-y-3">
           <h2 className="font-medium">Due for renewal</h2>
           <p className="text-sm text-muted-foreground">
-            PayPal charges these Pro customers every month. When you see this
-            month&rsquo;s payment in PayPal, click Add a Pro month. Access ends
-            3 days after the paid month unless it is renewed.
+            PayPal charges monthly Pro customers every month: when you see this
+            month&rsquo;s payment in PayPal, click Add a Pro month. Yearly
+            customers show here two weeks before their year ends, so you can
+            remind them to pay for the next year; when they do, click Add a Pro
+            year. Access ends 3 days after the paid period unless it is renewed.
           </p>
           {renewalsQuery.data.map((account) => (
             <AdminAccountCard
@@ -290,6 +298,8 @@ function dialogTitle(kind: Change["action"]) {
   switch (kind) {
     case "pro_month":
       return "Record a Pro payment?";
+    case "pro_year":
+      return "Record a Pro yearly payment?";
     case "lifetime":
       return "Activate Lifetime?";
     case "add_credits":
@@ -305,10 +315,14 @@ function dialogBody({ account, kind }: Pending) {
       return account.planId === "pro-plan" && account.paidUntil
         ? `Adds one month to the paid period and refills the monthly credits to ${usd(PRO_MONTHLY_CREDITS)}.`
         : `Starts Pro for one month from today with ${usd(PRO_MONTHLY_CREDITS)} of credits.`;
+    case "pro_year":
+      return isYearRunning(account)
+        ? `Adds 12 months to the paid year. Credits keep refilling to ${usd(PRO_MONTHLY_CREDITS)} each month.`
+        : `Starts Pro for 12 months from today with ${usd(PRO_MONTHLY_CREDITS)} of credits, refilled each month.`;
     case "lifetime":
       return `Gives lifetime access and adds ${usd(LIFETIME_CREDITS)} of credits. If they pay for Pro in PayPal, cancel that subscription there so they are not charged again.`;
     case "add_credits":
-      return "Adds extra credits that never expire. Use it after a customer pays for more credits.";
+      return "Adds extra credits that never expire. Use it after a customer buys a credit pack ($50 of credits), or to add credits by hand.";
     case "downgrade":
       return "Removes paid access and all remaining credits now. Use it for refunds. A canceled Pro plan ends on its own when the paid month runs out.";
   }

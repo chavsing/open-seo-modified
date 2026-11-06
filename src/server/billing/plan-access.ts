@@ -13,6 +13,20 @@ type PlanRow = {
   currentPeriodEnd: string | null;
 };
 
+// Same day `months` later, clamped to that month's last day (Jan 31 + 1 ->
+// Feb 28). Paid periods and yearly credit refills both count months this way.
+export function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  const day = next.getUTCDate();
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  next.setUTCDate(Math.min(day, lastDay));
+  return next;
+}
+
 /**
  * Whether an org's plan grants the paid features. Any plan other than free
  * counts. A plan with a paid period (Pro) lasts until that period ends, plus

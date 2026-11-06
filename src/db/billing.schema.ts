@@ -106,7 +106,7 @@ export const billingAdminActions = sqliteTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     action: text("action", {
-      enum: ["pro_month", "lifetime", "add_credits", "downgrade"],
+      enum: ["pro_month", "pro_year", "lifetime", "add_credits", "downgrade"],
     }).notNull(),
     credits: integer("credits"),
     adminEmail: text("admin_email").notNull(),

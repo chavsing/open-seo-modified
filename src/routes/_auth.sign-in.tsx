@@ -10,7 +10,10 @@ import {
   authRedirectSearchSchema,
   useAuthPageState,
 } from "@/client/features/auth/AuthPage";
-import { useGoogleAuth } from "@/client/features/auth/useGoogleAuth";
+import {
+  isMicrosoftSignInEnabled,
+  useSocialAuth,
+} from "@/client/features/auth/useSocialAuth";
 import { getFormError } from "@/client/lib/forms";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
@@ -38,7 +41,9 @@ function SignInPage() {
     search.redirect,
   );
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const google = useGoogleAuth({ redirectTo });
+  const google = useSocialAuth({ provider: "google", redirectTo });
+  const microsoft = useSocialAuth({ provider: "microsoft", redirectTo });
+  const socialError = google.error ?? microsoft.error;
 
   const form = useAppForm({
     defaultValues: {
@@ -137,17 +142,28 @@ function SignInPage() {
           <AuthMethodChooser
             googleLabel="Continue with Google"
             disabled={!isHostedMode}
-            isBusy={google.isStarting}
+            isBusy={google.isStarting || microsoft.isStarting}
+            busyProvider={microsoft.isStarting ? "microsoft" : "google"}
+            onContinueWithMicrosoft={
+              isMicrosoftSignInEnabled
+                ? () => {
+                    google.clearError();
+                    void microsoft.start();
+                  }
+                : undefined
+            }
             onContinueWithGoogle={() => {
+              microsoft.clearError();
               void google.start();
             }}
             onContinueWithEmail={() => {
               setShowEmailForm(true);
               google.clearError();
+              microsoft.clearError();
             }}
           />
-          {google.error ? (
-            <p className="text-sm text-destructive">{google.error}</p>
+          {socialError ? (
+            <p className="text-sm text-destructive">{socialError}</p>
           ) : null}
         </>
       ) : (

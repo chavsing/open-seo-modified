@@ -64,6 +64,8 @@ describe("getOrganizationBillingAccount", () => {
       topUpRemainingUsd: 0,
       hasManagedAccess: true,
       isLifetime: false,
+      isYearly: false,
+      paidUntil: null,
       isPastDue: false,
       monthlyRefillsAt: null,
       invoiceEmailsEnabled: false,

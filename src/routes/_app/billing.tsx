@@ -13,6 +13,7 @@ import { BillingUsageCard } from "@/client/features/billing/BillingUsageCard";
 import { PlanPaymentAction } from "@/client/features/billing/PlanPaymentAction";
 import { billingUsageEventsQueryOptions } from "@/client/features/billing/useBillingUsageEvents";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
+import { BuyCreditsAction } from "@/client/features/billing/BuyCreditsAction";
 import {
   formatPlanPrice,
   getPlanName,
@@ -122,15 +123,15 @@ function BillingPage() {
                       {isFreePlan
                         ? "You’ve used your free credits. Upgrade your plan to continue."
                         : refillDate
-                          ? `You’ve used this month’s credits. They refill on ${refillDate}, or email ${SUPPORT_EMAIL} to add more.`
-                          : `You’ve used your credits. Email ${SUPPORT_EMAIL} to add more.`}
+                          ? `You’ve used this month’s credits. They refill on ${refillDate}, or buy extra credits below.`
+                          : "You’ve used your credits. Buy extra credits below."}
                     </p>
                   ) : isLowCredits ? (
                     <p className="mt-2 text-xs text-amber-600">
                       You&rsquo;re running low on credits.{" "}
                       {isFreePlan
                         ? `Upgrade to get $${PRO_PLAN_OFFER.includedCreditsUsd}/month.`
-                        : `Email ${SUPPORT_EMAIL} to add more.`}
+                        : "Buy extra credits below."}
                     </p>
                   ) : null}
                 </div>
@@ -195,7 +196,19 @@ function BillingPage() {
                   </div>
                 ) : account.isLifetime ? (
                   <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-                    Lifetime access: nothing to renew. Need more credits? Email{" "}
+                    Lifetime access: nothing to renew. Questions? Email{" "}
+                    {supportLink}.
+                  </p>
+                ) : account.isYearly ? (
+                  <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+                    {account.paidUntil
+                      ? `Paid through ${new Date(account.paidUntil).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}. `
+                      : null}
+                    {refillDate
+                      ? `Your credits refill on ${refillDate}. `
+                      : null}
+                    The yearly plan doesn&rsquo;t renew by itself: to keep it,
+                    pay for another year before it ends. Questions? Email{" "}
                     {supportLink}.
                   </p>
                 ) : (
@@ -222,6 +235,7 @@ function BillingPage() {
                     </Button>
                   </div>
                 )}
+                {canManageBilling && !isFreePlan ? <BuyCreditsAction /> : null}
               </CardContent>
             </Card>
           </div>

@@ -39,6 +39,8 @@ export function AuthMethodChooser({
   isBusy,
   disabled,
   onContinueWithGoogle,
+  busyProvider,
+  onContinueWithMicrosoft,
   onContinueWithEmail,
 }: {
   googleLabel: string;
@@ -46,20 +48,43 @@ export function AuthMethodChooser({
   isBusy?: boolean;
   disabled?: boolean;
   onContinueWithGoogle: () => void;
+  /** Which social button is opening, for its "Opening..." label. */
+  busyProvider?: "google" | "microsoft";
+  /** Shows the Microsoft button when set. */
+  onContinueWithMicrosoft?: () => void;
   onContinueWithEmail: () => void;
 }) {
+  const socialClassName =
+    "w-full border-black/10 !bg-white font-semibold !text-neutral-900 hover:border-black/20 hover:!bg-neutral-50";
   return (
     <div className="space-y-3">
       <Button
         type="button"
         variant="outline"
-        className="w-full border-black/10 !bg-white font-semibold !text-neutral-900 hover:border-black/20 hover:!bg-neutral-50"
+        className={socialClassName}
         onClick={onContinueWithGoogle}
         disabled={disabled || isBusy}
       >
         <GoogleLogo />
-        {isBusy ? "Opening Google..." : googleLabel}
+        {isBusy && busyProvider !== "microsoft"
+          ? "Opening Google..."
+          : googleLabel}
       </Button>
+
+      {onContinueWithMicrosoft ? (
+        <Button
+          type="button"
+          variant="outline"
+          className={socialClassName}
+          onClick={onContinueWithMicrosoft}
+          disabled={disabled || isBusy}
+        >
+          <MicrosoftLogo />
+          {isBusy && busyProvider === "microsoft"
+            ? "Opening Microsoft..."
+            : "Continue with Microsoft"}
+        </Button>
+      ) : null}
 
       <Button
         type="button"
@@ -71,6 +96,17 @@ export function AuthMethodChooser({
         {emailLabel}
       </Button>
     </div>
+  );
+}
+
+function MicrosoftLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 21 21" className="size-4 shrink-0">
+      <path fill="#F25022" d="M1 1h9v9H1z" />
+      <path fill="#7FBA00" d="M11 1h9v9h-9z" />
+      <path fill="#00A4EF" d="M1 11h9v9H1z" />
+      <path fill="#FFB900" d="M11 11h9v9h-9z" />
+    </svg>
   );
 }
 

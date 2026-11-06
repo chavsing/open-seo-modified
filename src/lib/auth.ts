@@ -20,6 +20,11 @@ import {
 } from "@/lib/auth-turnstile";
 import { resolveSignInHostedOrganization } from "@/server/auth/default-hosted-organization";
 import { onInvitationAccepted } from "@/server/auth/invited-member";
+import { canEmailSignUp } from "@/server/auth/signup-access";
+import {
+  INVITE_ONLY_SIGNUP_MESSAGE,
+  UNVERIFIED_PROVIDER_EMAIL_MESSAGE,
+} from "@/shared/signup-access";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { captureDubReferralSignup } from "@/server/referrals/dub";
 import {
@@ -142,7 +147,14 @@ function createAuth() {
         // stale key or a throttled caller included. The /mcp handler already logs
         // the response it returns at the right level (debug for 401, warn for 429),
         // so drop the duplicate.
-        if (message.startsWith("Failed to validate API key")) return;
+        // Better Auth also logs raw errors here (a refused Google sign-up logs
+        // the hook's APIError), so `message` is not always a string.
+        if (
+          typeof message === "string" &&
+          message.startsWith("Failed to validate API key")
+        ) {
+          return;
+        }
         // "Failed to parse state" is user/browser behavior: a replayed OAuth
         // callback URL (back button, restored tab), or a consent screen left
         // open past the state's lifetime. The request already redirects the
@@ -213,13 +225,37 @@ function createAuth() {
           // Hosted only: keep cheap mass-signups off the free plan by rejecting
           // throwaway-inbox domains before the user row is created. Self-hosted
           // has no shared credit pool to protect, so it's left untouched.
-          before: async (user) => {
+          before: async (user, ctx) => {
+            // A social sign-up arrives through /callback/:id. Google always
+            // confirms emails; Microsoft work tenants can set any address, and
+            // such a session would skip the inbox check that email sign-up
+            // gets. Refuse it so nobody can sign up as an address they don't
+            // own (or slip past invite-only with an allowed one).
+            if (
+              isHostedAuthMode(env.AUTH_MODE) &&
+              ctx?.path?.startsWith("/callback/") &&
+              !user.emailVerified
+            ) {
+              throw new APIError("FORBIDDEN", {
+                message: UNVERIFIED_PROVIDER_EMAIL_MESSAGE,
+              });
+            }
             if (
               isHostedAuthMode(env.AUTH_MODE) &&
               isDisposableEmailDomain(user.email)
             ) {
               throw new APIError("BAD_REQUEST", {
                 message: "Please sign up with a non-disposable email address.",
+              });
+            }
+            // Invite-only mode: refuse emails the admin hasn't allowed. Covers
+            // email and Google sign-up alike; existing users never get here.
+            if (
+              isHostedAuthMode(env.AUTH_MODE) &&
+              !(await canEmailSignUp(user.email))
+            ) {
+              throw new APIError("FORBIDDEN", {
+                message: INVITE_ONLY_SIGNUP_MESSAGE,
               });
             }
             return { data: user };
@@ -339,8 +375,44 @@ function getSocialProviders() {
 
   return {
     google: getGoogleSocialProviderConfig(),
+    ...getMicrosoftSocialProviderConfig(),
   };
 }
+
+// Optional: Microsoft sign-in (Outlook, Hotmail, Live and work accounts) is on
+// only when both values are set. The client shows its button from the same
+// MICROSOFT_CLIENT_ID at build time.
+function getMicrosoftSocialProviderConfig() {
+  const clientId = env.MICROSOFT_CLIENT_ID?.trim();
+  const clientSecret = env.MICROSOFT_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) return {};
+
+  return {
+    microsoft: {
+      clientId,
+      clientSecret,
+      tenantId: "common",
+      prompt: "select_account" as const,
+      disableProfilePhoto: true,
+      // Better Auth only trusts email_verified / verified_primary_email, which
+      // personal accounts never send, so every Outlook sign-up would be
+      // refused. Personal accounts live in Microsoft's fixed consumer tenant
+      // and their email is confirmed when the account is made; work accounts
+      // count only when Microsoft says the email's domain is verified (the
+      // xms_edov optional claim). Anything else stays unconfirmed and is
+      // refused by the user create hook.
+      mapProfileToUser: (profile: { tid?: string; xms_edov?: unknown }) =>
+        profile.tid === MICROSOFT_CONSUMER_TENANT_ID ||
+        profile.xms_edov === true ||
+        profile.xms_edov === "1" ||
+        profile.xms_edov === 1
+          ? { emailVerified: true }
+          : {},
+    },
+  };
+}
+
+const MICROSOFT_CONSUMER_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad";
 
 function getGoogleSocialProviderConfig() {
   const googleClientId = env.GOOGLE_CLIENT_ID?.trim();

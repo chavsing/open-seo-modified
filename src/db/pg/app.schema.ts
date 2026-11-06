@@ -468,5 +468,21 @@ export const crawlerCredentials = pgTable(
   ],
 );
 
+// Invite-only sign-up (hosted). The admin lists who may create an account;
+// emails are stored lowercased. Existing accounts are never affected.
+export const signupAllowedEmails = pgTable("signup_allowed_emails", {
+  email: text("email").primaryKey(),
+  addedByEmail: text("added_by_email").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+// The admin's sign-up switch: one row, id "default". No row means invite-only.
+export const signupSettings = pgTable("signup_settings", {
+  id: text("id").primaryKey(),
+  inviteOnly: boolean("invite_only").notNull(),
+  updatedByEmail: text("updated_by_email").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 // Cross-request refresh claims survive Worker instances and prevent duplicate spend.
 export { dataRefreshClaims } from "./dashboard.schema";

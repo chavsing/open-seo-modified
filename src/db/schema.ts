@@ -98,6 +98,8 @@ export const {
   backlinkSnapshots,
   dataRefreshClaims,
   crawlerCredentials,
+  signupAllowedEmails,
+  signupSettings,
   projectContextSections,
   projectCompetitors,
   projectKeyPages,

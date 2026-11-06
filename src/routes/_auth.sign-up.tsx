@@ -16,13 +16,22 @@ import {
   useTurnstileCaptcha,
 } from "@/client/features/auth/TurnstileWidget";
 import { passwordSchema } from "@/client/features/auth/passwordSchema";
-import { useGoogleAuth } from "@/client/features/auth/useGoogleAuth";
+import {
+  isMicrosoftSignInEnabled,
+  useSocialAuth,
+} from "@/client/features/auth/useSocialAuth";
 import { getFormError } from "@/client/lib/forms";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
 import { getSignInSearch, getVerifyEmailSearch } from "@/lib/auth-redirect";
 import { z } from "zod";
-import { BRAND_NAME, PRIVACY_URL, TERMS_URL } from "@/shared/brand";
+import {
+  BRAND_NAME,
+  PRIVACY_URL,
+  SUPPORT_EMAIL,
+  TERMS_URL,
+} from "@/shared/brand";
+import { INVITE_ONLY_SIGNUP_MESSAGE } from "@/shared/signup-access";
 
 const signUpSchema = z
   .object({
@@ -55,7 +64,17 @@ function SignUpPage() {
         ? `/onboarding?${new URLSearchParams({ domain: search.domain }).toString()}`
         : "/onboarding";
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const google = useGoogleAuth({ redirectTo, postSignupRedirect });
+  const google = useSocialAuth({
+    provider: "google",
+    redirectTo,
+    postSignupRedirect,
+  });
+  const microsoft = useSocialAuth({
+    provider: "microsoft",
+    redirectTo,
+    postSignupRedirect,
+  });
+  const socialError = google.error ?? microsoft.error;
 
   // Turnstile is active only in hosted mode with a configured site key.
   const isTurnstileEnabled = isHostedMode && Boolean(TURNSTILE_SITE_KEY);
@@ -110,7 +129,10 @@ function SignUpPage() {
           if (isTurnstileEnabled) captcha.reset();
           formApi.setErrorMap({
             onSubmit: {
-              form: result.error.message || "Unable to create account.",
+              form:
+                result.error.message === INVITE_ONLY_SIGNUP_MESSAGE
+                  ? `${BRAND_NAME} is invite-only. Email ${SUPPORT_EMAIL} to get access.`
+                  : result.error.message || "Unable to create account.",
               fields: {},
             },
           });
@@ -142,53 +164,53 @@ function SignUpPage() {
       title="Create your account"
       footer={
         isHostedMode ? (
-          showEmailForm ? (
-            <button
-              type="button"
-              className="text-sm text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-              onClick={() => {
-                setShowEmailForm(false);
-                google.clearError();
-              }}
-            >
-              Back to signup
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                By signing up, you agree to our{" "}
-                <a
-                  href={TERMS_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-                >
-                  Terms
-                </a>{" "}
-                and{" "}
-                <a
-                  href={PRIVACY_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-                >
-                  Privacy Policy
-                </a>
-                .
-              </p>
+          <div className="space-y-4">
+            {showEmailForm ? (
+              <button
+                type="button"
+                className="text-sm text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
+                onClick={() => {
+                  setShowEmailForm(false);
+                  google.clearError();
+                  microsoft.clearError();
+                }}
+              >
+                Other sign-up options
+              </button>
+            ) : null}
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              By signing up, you agree to our{" "}
+              <a
+                href={TERMS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
+              >
+                Terms
+              </a>{" "}
+              and{" "}
+              <a
+                href={PRIVACY_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
 
-              <p className="text-sm text-foreground/50">
-                Already have an account?{" "}
-                <Link
-                  to="/sign-in"
-                  search={getSignInSearch(redirectTo)}
-                  className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-                >
-                  Sign in
-                </Link>
-              </p>
-            </div>
-          )
+            <p className="text-sm text-foreground/50">
+              Already have an account?{" "}
+              <Link
+                to="/sign-in"
+                search={getSignInSearch(redirectTo)}
+                className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
         ) : null
       }
     >
@@ -197,17 +219,28 @@ function SignUpPage() {
           <AuthMethodChooser
             googleLabel="Continue with Google"
             disabled={!isHostedMode}
-            isBusy={google.isStarting}
+            isBusy={google.isStarting || microsoft.isStarting}
+            busyProvider={microsoft.isStarting ? "microsoft" : "google"}
+            onContinueWithMicrosoft={
+              isMicrosoftSignInEnabled
+                ? () => {
+                    google.clearError();
+                    void microsoft.start();
+                  }
+                : undefined
+            }
             onContinueWithGoogle={() => {
+              microsoft.clearError();
               void google.start();
             }}
             onContinueWithEmail={() => {
               setShowEmailForm(true);
               google.clearError();
+              microsoft.clearError();
             }}
           />
-          {google.error ? (
-            <p className="text-sm text-destructive">{google.error}</p>
+          {socialError ? (
+            <p className="text-sm text-destructive">{socialError}</p>
           ) : null}
         </>
       ) : (

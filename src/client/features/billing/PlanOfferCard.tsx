@@ -63,7 +63,9 @@ export function PlanOfferCard({
           </Tooltip>
           {offer.billing === "monthly"
             ? ". Cancel anytime in PayPal."
-            : ". Pay once, no renewals. Paid with PayPal."}
+            : offer.billing === "yearly"
+              ? ". One payment for 12 months, no automatic renewal. Paid with PayPal."
+              : ". Pay once, no renewals. Paid with PayPal."}
         </p>
       </CardContent>
     </Card>

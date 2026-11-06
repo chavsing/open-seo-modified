@@ -52,10 +52,15 @@ export default defineConfig(({ mode, command }) => {
     envPrefix: [
       "VITE_",
       "AUTH_MODE",
-      "BYPASS_EMAIL_VERIFICATION",
+      // Dev only. Builds also read .env.local, so a local-dev bypass would
+      // otherwise ship to production and skip the verify-email screen.
+      ...(command === "serve" ? ["BYPASS_EMAIL_VERIFICATION"] : []),
       "POSTHOG_PUBLIC_KEY",
       "POSTHOG_HOST",
       "TURNSTILE_SITE_KEY",
+      // Public client ID; the sign-in pages show the Microsoft button only
+      // when it is set. The secret stays server-side.
+      "MICROSOFT_CLIENT_ID",
     ],
     server: {
       allowedHosts,

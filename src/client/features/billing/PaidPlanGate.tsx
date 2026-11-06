@@ -9,6 +9,7 @@ import {
   formatPlanPrice,
   LIFETIME_PLAN_OFFER,
   PRO_PLAN_OFFER,
+  PRO_YEARLY_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
 import { SUBSCRIBE_ROUTE } from "@/shared/billing";
 
@@ -45,7 +46,8 @@ export function PaidPlanGate({
             <p className="max-w-xl">{description}</p>
             <p className="max-w-xl">
               It runs on costlier AI data, so it&apos;s part of the paid plans:
-              the {PRO_PLAN_OFFER.name} at {formatPlanPrice(PRO_PLAN_OFFER)}, or{" "}
+              the {PRO_PLAN_OFFER.name} at {formatPlanPrice(PRO_PLAN_OFFER)} or{" "}
+              {formatPlanPrice(PRO_YEARLY_PLAN_OFFER)}, or{" "}
               {LIFETIME_PLAN_OFFER.name} for{" "}
               {formatPlanPrice(LIFETIME_PLAN_OFFER)}.
             </p>

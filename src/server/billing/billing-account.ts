@@ -1,5 +1,6 @@
 import {
   AUTUMN_LIFETIME_PLAN_ID,
+  AUTUMN_PRO_YEARLY_PLAN_ID,
   autumnSeoDataCreditsToUsd,
   type PlanStatus,
 } from "@/shared/billing";
@@ -28,6 +29,12 @@ type BillingAccount = {
   /** The paid plan was a one-time purchase (lifetime access): no renewals,
    *  nothing to cancel. */
   isLifetime: boolean;
+  /** Pro paid once for 12 months: it ends unless paid again, and its
+   *  credits refill each month on their own. */
+  isYearly: boolean;
+  /** When the paid period ends, in epoch ms. Null without one (Lifetime,
+   *  free). */
+  paidUntil: number | null;
   isPastDue: boolean;
   /** When the monthly credits refill, in epoch ms. Null for one-time
    *  credits and for a canceled plan, which ends instead of refilling. */
@@ -65,6 +72,11 @@ export async function getOrganizationBillingAccount(
     // Every hosted org gets the free plan, which grants the app itself.
     hasManagedAccess: true,
     isLifetime: paid && account.planId === AUTUMN_LIFETIME_PLAN_ID,
+    isYearly: paid && account.planId === AUTUMN_PRO_YEARLY_PLAN_ID,
+    paidUntil:
+      paid && account.currentPeriodEnd
+        ? Date.parse(account.currentPeriodEnd)
+        : null,
     isPastDue: account.planStatus === "past_due",
     monthlyRefillsAt:
       account.planStatus === "canceled" || !monthly.nextResetAt

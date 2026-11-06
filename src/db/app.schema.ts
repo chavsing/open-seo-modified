@@ -485,4 +485,20 @@ export const crawlerCredentials = sqliteTable(
   ],
 );
 
+// Invite-only sign-up (hosted). The admin lists who may create an account;
+// emails are stored lowercased. Existing accounts are never affected.
+export const signupAllowedEmails = sqliteTable("signup_allowed_emails", {
+  email: text("email").primaryKey(),
+  addedByEmail: text("added_by_email").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+// The admin's sign-up switch: one row, id "default". No row means invite-only.
+export const signupSettings = sqliteTable("signup_settings", {
+  id: text("id").primaryKey(),
+  inviteOnly: integer("invite_only", { mode: "boolean" }).notNull(),
+  updatedByEmail: text("updated_by_email").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export { dataRefreshClaims } from "./dashboard.schema";

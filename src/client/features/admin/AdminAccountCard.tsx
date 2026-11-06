@@ -6,7 +6,12 @@ import type { searchAdminAccounts } from "@/serverFunctions/admin";
 export type AdminAccount = Awaited<
   ReturnType<typeof searchAdminAccounts>
 >[number];
-type AdminAction = "pro_month" | "lifetime" | "add_credits" | "downgrade";
+type AdminAction =
+  | "pro_month"
+  | "pro_year"
+  | "lifetime"
+  | "add_credits"
+  | "downgrade";
 
 const DAY_MS = 24 * 60 * 60_000;
 
@@ -35,12 +40,24 @@ function RenewalStatus({ account }: { account: AdminAccount }) {
     );
   }
   const days = Math.ceil((paidUntil - now) / DAY_MS);
-  return days <= 3 ? (
+  // A yearly customer pays again by hand, so they show two weeks ahead.
+  const notice = account.planId === "pro-yearly-plan" ? 14 : 3;
+  return days <= notice ? (
     <span className="text-amber-600">
       {" "}
       &middot; renews in {days} {days === 1 ? "day" : "days"}
     </span>
   ) : null;
+}
+
+/** A paid year still running: paying again extends it instead of starting a
+ *  new year today. Matches the server's pro_year rule. */
+export function isYearRunning(account: AdminAccount) {
+  return (
+    account.planId === "pro-yearly-plan" &&
+    account.paidUntil !== null &&
+    Date.parse(account.paidUntil) > Date.now()
+  );
 }
 
 /** One customer on the admin page, with the plan and credit actions. */
@@ -107,6 +124,9 @@ export function AdminAccountCard({
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => onAction("pro_month")}>
             {account.planId === "pro-plan" ? "Add a Pro month" : "Start Pro"}
+          </Button>
+          <Button size="sm" onClick={() => onAction("pro_year")}>
+            {isYearRunning(account) ? "Add a Pro year" : "Start Pro yearly"}
           </Button>
           <Button
             size="sm"

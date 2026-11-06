@@ -1,4 +1,4 @@
-import { and, asc, eq, exists, gte, lt, sql } from "drizzle-orm";
+import { and, asc, eq, exists, gte, lt, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
@@ -8,10 +8,13 @@ import {
   creditHolds,
 } from "@/db/schema";
 import {
+  AUTUMN_PRO_YEARLY_PLAN_ID,
   AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
   FREE_PLAN_CREDITS,
+  PRO_MONTHLY_CREDITS,
 } from "@/shared/billing";
+import { addMonths } from "@/server/billing/plan-access";
 
 // The app-owned credit ledger: plan rows, balances, holds and the usage log.
 // Every write that moves credits runs as one runBatch, which is a single
@@ -305,6 +308,67 @@ export async function releaseExpiredCreditHolds(now = new Date()) {
     });
   }
   return expired.length;
+}
+
+/**
+ * Refills the monthly credits of Pro yearly accounts whose refill date has
+ * passed, and schedules the next one. Runs from the 5-minute cron. Each
+ * update only lands if the refill date is still the one read, so overlapping
+ * runs refill once. The year's last refill leaves no next date; a year that
+ * has ended stops refilling.
+ */
+export async function refillYearlyPlanCredits(now = new Date()) {
+  const nowIso = now.toISOString();
+  const due = await db
+    .select({
+      organizationId: creditBalances.organizationId,
+      nextResetAt: creditBalances.nextResetAt,
+      currentPeriodEnd: billingAccounts.currentPeriodEnd,
+    })
+    .from(creditBalances)
+    .innerJoin(
+      billingAccounts,
+      eq(billingAccounts.organizationId, creditBalances.organizationId),
+    )
+    .where(
+      and(
+        eq(creditBalances.pool, AUTUMN_SEO_DATA_BALANCE_FEATURE_ID),
+        eq(billingAccounts.planId, AUTUMN_PRO_YEARLY_PLAN_ID),
+        lte(creditBalances.nextResetAt, nowIso),
+      ),
+    )
+    .orderBy(asc(creditBalances.nextResetAt))
+    .limit(100);
+
+  let refilled = 0;
+  for (const row of due) {
+    if (!row.nextResetAt) continue;
+    const scheduled = and(
+      balanceRow(row.organizationId, AUTUMN_SEO_DATA_BALANCE_FEATURE_ID),
+      eq(creditBalances.nextResetAt, row.nextResetAt),
+    );
+    if (!row.currentPeriodEnd || row.currentPeriodEnd <= nowIso) {
+      await db
+        .update(creditBalances)
+        .set({ nextResetAt: null })
+        .where(scheduled);
+      continue;
+    }
+    // A missed date (the cron was down) refills once, then moves on.
+    let next = addMonths(new Date(row.nextResetAt), 1);
+    while (next <= now) next = addMonths(next, 1);
+    const nextIso = next.toISOString();
+    await db
+      .update(creditBalances)
+      .set({
+        granted: PRO_MONTHLY_CREDITS,
+        remaining: PRO_MONTHLY_CREDITS,
+        nextResetAt: nextIso < row.currentPeriodEnd ? nextIso : null,
+      })
+      .where(scheduled);
+    refilled += 1;
+  }
+  return refilled;
 }
 
 export async function listCreditEvents(args: {

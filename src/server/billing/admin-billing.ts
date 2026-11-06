@@ -26,7 +26,7 @@ export async function isPlatformAdmin(email: string) {
   return admins.includes(email.trim().toLowerCase());
 }
 
-async function requireAdmin(email: string) {
+export async function requireAdmin(email: string) {
   if (!(await isPlatformAdmin(email))) throw new AppError("FORBIDDEN");
 }
 

@@ -5,12 +5,16 @@ import { Button } from "@/client/components/ui/button";
 import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
-import { SUPPORT_EMAIL } from "@/client/lib/support";
-import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
+import { CREDIT_PACK_LABEL } from "@/client/features/billing/BuyCreditsAction";
+import {
+  BILLING_ROUTE,
+  PAYPAL_CREDIT_PACK_URL,
+  SUBSCRIBE_ROUTE,
+} from "@/shared/billing";
 
 /**
  * An out-of-credits failure that says how to get more: a free plan upgrades,
- * a paid plan asks support to add credits, and until the customer loads the
+ * a paid plan buys a credit pack, and until the customer loads the
  * generic copy points at Billing. A retry can't fix it, so there is no retry button.
  *
  * The member role is left to the banner and the billing page: reading it here
@@ -43,12 +47,18 @@ export function InsufficientCreditsError({
     );
   } else {
     message = refillDate
-      ? `You don't have enough credits for this. Your monthly credits refill on ${refillDate}, or email ${SUPPORT_EMAIL} to add more.`
-      : `You don't have enough credits for this. Email ${SUPPORT_EMAIL} to add more.`;
+      ? `You don't have enough credits for this. Your monthly credits refill on ${refillDate}, or buy extra credits now.`
+      : `You don't have enough credits for this. Buy extra credits to keep going.`;
     action = (
       <CreditsButton
-        link={<a href={`mailto:${SUPPORT_EMAIL}`} />}
-        label="Email support"
+        link={
+          <a
+            href={PAYPAL_CREDIT_PACK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          />
+        }
+        label={CREDIT_PACK_LABEL}
       />
     );
   }

@@ -67,7 +67,8 @@ function loadPaypalSdk(): Promise<PaypalSdk> {
 }
 
 /**
- * How a plan is paid for: Lifetime opens the client's PayPal payment link;
+ * How a plan is paid for: Pro yearly and Lifetime open the client's PayPal
+ * payment links;
  * Pro renders PayPal's subscription button, tagged with this organization so
  * the client can tell whose subscription it is. A reported, unconfirmed
  * subscription replaces the button so nobody subscribes twice.
@@ -75,7 +76,7 @@ function loadPaypalSdk(): Promise<PaypalSdk> {
 export function PlanPaymentAction({ offer }: { offer: PlanOffer }) {
   const { data: account } = useQuery(billingAccountQueryOptions());
 
-  if (offer.billing === "once") {
+  if (offer.billing !== "monthly") {
     return (
       <Button
         className="w-full"
@@ -93,7 +94,9 @@ export function PlanPaymentAction({ offer }: { offer: PlanOffer }) {
           />
         }
       >
-        Pay once with PayPal
+        {offer.billing === "yearly"
+          ? "Pay for a year with PayPal"
+          : "Pay once with PayPal"}
       </Button>
     );
   }

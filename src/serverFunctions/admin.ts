@@ -8,6 +8,12 @@ import {
   listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
 } from "@/server/billing/admin-billing";
+import {
+  addAllowedEmailAsAdmin,
+  getSignupAccessAsAdmin,
+  removeAllowedEmailAsAdmin,
+  setInviteOnlyAsAdmin,
+} from "@/server/auth/signup-access";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 
 export const getAdminStatus = createServerFn({ method: "POST" })
@@ -37,6 +43,7 @@ const adminActionSchema = z.object({
   organizationId: z.string().min(1),
   change: z.discriminatedUnion("action", [
     z.object({ action: z.literal("pro_month") }),
+    z.object({ action: z.literal("pro_year") }),
     z.object({ action: z.literal("lifetime") }),
     z.object({ action: z.literal("downgrade") }),
     z.object({
@@ -62,4 +69,29 @@ export const applyAdminBillingChange = createServerFn({ method: "POST" })
             }
           : data.change,
     }),
+  );
+
+export const getSignupAccess = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .handler(({ context }) => getSignupAccessAsAdmin(context.userEmail));
+
+export const setSignupInviteOnly = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(z.object({ inviteOnly: z.boolean() }))
+  .handler(({ data, context }) =>
+    setInviteOnlyAsAdmin(context.userEmail, data.inviteOnly),
+  );
+
+export const addSignupAllowedEmail = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(z.object({ email: z.string().trim().email().max(320) }))
+  .handler(({ data, context }) =>
+    addAllowedEmailAsAdmin(context.userEmail, data.email),
+  );
+
+export const removeSignupAllowedEmail = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(z.object({ email: z.string().trim().min(1).max(320) }))
+  .handler(({ data, context }) =>
+    removeAllowedEmailAsAdmin(context.userEmail, data.email),
   );

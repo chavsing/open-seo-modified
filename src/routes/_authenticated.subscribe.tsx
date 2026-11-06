@@ -109,7 +109,7 @@ function SubscribePage() {
   const accountEmail = session?.user?.email;
 
   return (
-    <div className="w-full max-w-sm space-y-6 md:max-w-3xl">
+    <div className="w-full max-w-sm space-y-6 md:max-w-5xl">
       <PlanPageAccountMenu email={accountEmail} />
 
       <div className="space-y-3 text-center">
@@ -130,7 +130,7 @@ function SubscribePage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         {PLAN_OFFERS.map((offer) => (
           <PlanOfferCard
             key={offer.planId}

@@ -7,6 +7,7 @@ import {
   inArray,
   isNotNull,
   lte,
+  or,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -23,11 +24,14 @@ import {
   balanceRow,
   ensureBillingAccount,
   getBillingAccountRow,
+  getCreditBalanceRows,
   type CreditPool,
 } from "@/server/billing/creditLedger";
+import { addMonths } from "@/server/billing/plan-access";
 import {
   AUTUMN_LIFETIME_PLAN_ID,
   AUTUMN_PRO_PLAN_ID,
+  AUTUMN_PRO_YEARLY_PLAN_ID,
   AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
   LIFETIME_CREDITS,
@@ -168,10 +172,11 @@ export async function listReportedPaypalSubscriptions() {
 const DAY_MS = 24 * 60 * 60_000;
 
 /**
- * Owners of Pro accounts whose paid month ends within the next 3 days, or
+ * Owners of Pro accounts whose paid period ends soon (monthly within 3 days,
+ * yearly within 14, since a yearly customer has to pay again by hand), or
  * ended in the last 30 (in the grace days, or lapsed while a payment may
- * have gone unrecorded), soonest first. PayPal charges every month, but each
- * month is recorded by hand, so this is the admin's renewal to-do list.
+ * have gone unrecorded), soonest first. Each payment is recorded by hand, so
+ * this is the admin's renewal to-do list.
  */
 export async function listProRenewalsDue(now = new Date()) {
   const members = await db
@@ -185,11 +190,22 @@ export async function listProRenewalsDue(now = new Date()) {
     )
     .where(
       and(
-        eq(billingAccounts.planId, AUTUMN_PRO_PLAN_ID),
         isNotNull(billingAccounts.currentPeriodEnd),
-        lte(
-          billingAccounts.currentPeriodEnd,
-          new Date(now.getTime() + 3 * DAY_MS).toISOString(),
+        or(
+          and(
+            eq(billingAccounts.planId, AUTUMN_PRO_PLAN_ID),
+            lte(
+              billingAccounts.currentPeriodEnd,
+              new Date(now.getTime() + 3 * DAY_MS).toISOString(),
+            ),
+          ),
+          and(
+            eq(billingAccounts.planId, AUTUMN_PRO_YEARLY_PLAN_ID),
+            lte(
+              billingAccounts.currentPeriodEnd,
+              new Date(now.getTime() + 14 * DAY_MS).toISOString(),
+            ),
+          ),
         ),
         gte(
           billingAccounts.currentPeriodEnd,
@@ -205,22 +221,10 @@ export async function listProRenewalsDue(now = new Date()) {
 
 export type AdminBillingAction =
   | { action: "pro_month" }
+  | { action: "pro_year" }
   | { action: "lifetime" }
   | { action: "add_credits"; credits: number }
   | { action: "downgrade" };
-
-// Same day next month, clamped to the month's last day (Jan 31 -> Feb 28).
-function addOneMonth(date: Date) {
-  const next = new Date(date);
-  const day = next.getUTCDate();
-  next.setUTCDate(1);
-  next.setUTCMonth(next.getUTCMonth() + 1);
-  const lastDay = new Date(
-    Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  next.setUTCDate(Math.min(day, lastDay));
-  return next;
-}
 
 /**
  * Applies an admin's plan change or credit grant, and logs it, in one batch.
@@ -229,6 +233,10 @@ function addOneMonth(date: Date) {
  *
  * - pro_month: one more paid month of Pro, counted from the current paid
  *   period's end while it lasts, else from now; monthly credits refill.
+ * - pro_year: Pro paid for 12 months. A new year starts now with its first
+ *   month of credits; the cron refills the rest each month (see
+ *   refillYearlyPlanCredits). Renewing a running year extends it by 12
+ *   months and keeps the refills going.
  * - lifetime: Lifetime access; its credits are added to what is left.
  * - add_credits: adds extra credits, which never expire.
  * - downgrade: back to free, with no credits left (refunds and cancellations).
@@ -264,7 +272,27 @@ export async function applyAdminBillingAction(args: {
         ? new Date(account.currentPeriodEnd)
         : null;
     const from = paidUntil && paidUntil > now ? paidUntil : now;
-    periodEnd = addOneMonth(from).toISOString();
+    periodEnd = addMonths(from, 1).toISOString();
+  }
+
+  // A running year renews from its end; anything else starts a year now.
+  const yearPaidUntil =
+    account?.planId === AUTUMN_PRO_YEARLY_PLAN_ID && account.currentPeriodEnd
+      ? new Date(account.currentPeriodEnd)
+      : null;
+  const renewsRunningYear = yearPaidUntil !== null && yearPaidUntil > now;
+  let yearlyNextRefill: string | null = null;
+  if (change.action === "pro_year") {
+    if (renewsRunningYear) {
+      periodEnd = addMonths(yearPaidUntil, 12).toISOString();
+      // After the year's last refill the schedule has stopped; it picks up
+      // again where the old year ends.
+      const { monthly } = await getCreditBalanceRows(organizationId);
+      yearlyNextRefill = monthly?.nextResetAt ?? yearPaidUntil.toISOString();
+    } else {
+      periodEnd = addMonths(now, 12).toISOString();
+      yearlyNextRefill = addMonths(now, 1).toISOString();
+    }
   }
 
   try {
@@ -300,6 +328,34 @@ export async function applyAdminBillingAction(args: {
                 remaining: PRO_MONTHLY_CREDITS,
                 nextResetAt: periodEnd,
               })
+              .where(monthlyRow),
+          ];
+        case "pro_year":
+          return [
+            log,
+            tx
+              .update(billingAccounts)
+              .set({
+                planId: AUTUMN_PRO_YEARLY_PLAN_ID,
+                planStatus: "active",
+                currentPeriodEnd: periodEnd,
+                canceledAt: null,
+                updatedAt: nowIso,
+                // The customer's PayPal report, if any, is now handled.
+                paypalSubscriptionReportedAt: null,
+              })
+              .where(accountRow),
+            tx
+              .update(creditBalances)
+              .set(
+                renewsRunningYear
+                  ? { nextResetAt: yearlyNextRefill }
+                  : {
+                      granted: PRO_MONTHLY_CREDITS,
+                      remaining: PRO_MONTHLY_CREDITS,
+                      nextResetAt: yearlyNextRefill,
+                    },
+              )
               .where(monthlyRow),
           ];
         case "lifetime":

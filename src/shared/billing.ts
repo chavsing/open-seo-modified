@@ -4,15 +4,19 @@ export const SUBSCRIBE_ROUTE = "/subscribe";
 export type PlanStatus = "free" | "paid";
 
 export const AUTUMN_PRO_PLAN_ID = "pro-plan";
+// Pro paid once for 12 months. Its monthly credits refill automatically.
+export const AUTUMN_PRO_YEARLY_PLAN_ID = "pro-yearly-plan";
 // Paid once, never renews. Its included credits are a one-time grant.
 export const AUTUMN_LIFETIME_PLAN_ID = "lifetime-plan";
 /** The plans the app sells. */
 export type PaidPlanId =
   | typeof AUTUMN_PRO_PLAN_ID
+  | typeof AUTUMN_PRO_YEARLY_PLAN_ID
   | typeof AUTUMN_LIFETIME_PLAN_ID;
 
 // The client's PayPal links. Pro is a PayPal Subscribe button, so PayPal
-// charges it every month; Lifetime is a one-time payment link. PayPal does
+// charges it every month; Pro yearly and Lifetime are one-time payment
+// links. PayPal does
 // not tell the app who paid: the client activates each account from the
 // admin page. Pro is his PayPal subscription plan, sold with PayPal's
 // embedded button (the client ID is public, made for web pages); the plan's
@@ -23,8 +27,14 @@ export const PAYPAL_PRO_PLAN_ID = "P-8YU711352S373290VNLMYYLA";
 export const PAYPAL_PRO_SUBSCRIBE_URL = `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${PAYPAL_PRO_PLAN_ID}`;
 // PayPal subscription IDs, e.g. I-BW452GLLEP1G.
 export const PAYPAL_SUBSCRIPTION_ID_PATTERN = /^I-[A-Z0-9]{10,20}$/;
+// A one-time top-up for paid plans: the client adds CREDIT_PACK_CREDITS as
+// extra credits from the admin page once the payment arrives.
+export const PAYPAL_CREDIT_PACK_URL =
+  "https://www.paypal.com/ncp/payment/V4Y2TBK52J77Y";
+export const PAYPAL_PRO_YEARLY_PAYMENT_URL =
+  "https://www.paypal.com/ncp/payment/CHM339HPXC6E8";
 export const PAYPAL_LIFETIME_PAYMENT_URL =
-  "https://www.paypal.com/ncp/payment/3TY635ZNKHS5A";
+  "https://www.paypal.com/ncp/payment/LCS24A5ZRK82S";
 // Where a PayPal customer manages or cancels their automatic payments.
 export const PAYPAL_AUTOPAY_URL = "https://www.paypal.com/myaccount/autopay/";
 // The shared usage-credit pool. Both DataForSEO and agent-LLM spend deduct
@@ -34,9 +44,11 @@ export const AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID = "topup_credits";
 export const AUTUMN_SEO_DATA_CREDITS_PER_USD = 1000;
 // One-time credits every new org starts with ($1).
 export const FREE_PLAN_CREDITS = 1000;
-// What each paid plan grants: Pro every month it is paid, Lifetime once.
+// What each paid plan grants: Pro every month (monthly or yearly), Lifetime
+// once.
 export const PRO_MONTHLY_CREDITS = 50_000;
-export const LIFETIME_CREDITS = 100_000;
+export const LIFETIME_CREDITS = 500_000;
+export const CREDIT_PACK_CREDITS = 50_000;
 const SEO_DATA_COST_MARKUP = 1.28;
 export const LOW_CREDITS_THRESHOLD_USD = 0.25;
 // DataForSEO's raw price for one Google Ads search_volume live call (up to
