@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { load } from "cheerio";
 import { renderSharePage } from "./sharePage";
 import { REPORT_IFRAME_SANDBOX } from "@/shared/report-sandbox";
+import { BRAND_NAME } from "@/shared/brand";
 
 const mocks = vi.hoisted(() => ({
   env: {
@@ -47,7 +48,7 @@ describe("renderSharePage", () => {
       `<iframe src="/s/${TOKEN}/raw" sandbox="${REPORT_IFRAME_SANDBOX}"`,
     );
     expect(html).toContain(
-      "<title>badseo.dev &lt;SEO&gt; audit · OpenSEO</title>",
+      `<title>badseo.dev &lt;SEO&gt; audit · ${BRAND_NAME}</title>`,
     );
     expect(html).toContain(
       '<meta property="og:description" content="Fix the &quot;titles&quot; first."/>',
@@ -61,10 +62,10 @@ describe("renderSharePage", () => {
     expect($('meta[property="og:image"]').attr("content")).toBe(imageUrl);
     expect($('meta[name="twitter:image"]').attr("content")).toBe(imageUrl);
     expect($('meta[property="og:image:alt"]').attr("content")).toBe(
-      `${SHARED_REPORT.title} · OpenSEO`,
+      `${SHARED_REPORT.title} · ${BRAND_NAME}`,
     );
     expect($('meta[name="twitter:image:alt"]').attr("content")).toBe(
-      `${SHARED_REPORT.title} · OpenSEO`,
+      `${SHARED_REPORT.title} · ${BRAND_NAME}`,
     );
     // No app bundle: the reader has never signed in and needs none of it.
     expect(html).not.toContain("/assets/");
