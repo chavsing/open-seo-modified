@@ -388,5 +388,29 @@ details p {
 
 /* Legal pages */
 .legal {
-  padding: 3rem 0 4rem;
+  /* Top and bottom only, so the container keeps its side gutter on phones. */
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+.legal h2 {
+  margin-top: 2.25rem;
+  font-size: 1.25rem;
+}
+
+.legal p,
+.legal li {
+  line-height: 1.65;
+}
+
+.legal ul {
+  padding-left: 1.25rem;
+}
+
+.legal li + li {
+  margin-top: 0.4rem;
+}
+
+.legal .updated {
+  color: var(--muted-foreground);
 }
