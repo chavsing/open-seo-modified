@@ -1,3 +1,4 @@
+import { ThemeToggleButton } from "@/client/components/ThemePreferenceMenuItems";
 import * as React from "react";
 import { projectsQueryOptions } from "@/client/features/projects/projectQueries";
 import { Link, useLocation } from "@tanstack/react-router";
@@ -142,9 +143,14 @@ function MobileTopBar() {
   return (
     <div className="flex shrink-0 items-center gap-1 border-b border-border bg-card px-2 py-1.5 md:hidden">
       <SidebarTrigger aria-label="Toggle sidebar" />
-      <Link to="/" className="ml-1 font-semibold text-foreground">
+      <Link
+        to="/"
+        className="ml-1 flex items-center gap-2 font-bold tracking-tight text-foreground"
+      >
+        <img src="/transparent-logo.png" alt="" className="size-6" />
         {BRAND_NAME}
       </Link>
+      <ThemeToggleButton className="ml-auto text-muted-foreground" />
     </div>
   );
 }

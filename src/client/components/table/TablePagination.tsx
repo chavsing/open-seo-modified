@@ -154,8 +154,9 @@ function PageButton({
 }: PageButtonProps) {
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon-sm"
+      className="rounded-full"
       aria-label={label}
       disabled={disabled}
       onClick={() => onPageChange(page)}

@@ -22,7 +22,7 @@ import {
 } from "@/client/features/billing/useBillingUsageEvents";
 
 const chartConfig = {
-  credits: { label: "Usage", color: "#7c3aed" },
+  credits: { label: "Usage", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 export function BillingUsageChart() {

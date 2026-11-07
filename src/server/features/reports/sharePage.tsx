@@ -45,8 +45,8 @@ function shareDescription(summary: string): string {
 // product without loading its stylesheet. Dark follows the OS: an anonymous
 // reader has no stored preference.
 const STYLES = `
-:root{color-scheme:light dark;--bg:oklch(97% 0 0);--surface:oklch(100% 0 0);--border:oklch(92% 0 0);--text:oklch(20% 0 0);--muted:oklch(20% 0 0 / .5);--primary:oklch(50% 0.12 262);--primary-text:oklch(100% 0 0);--ghost-hover:oklch(20% 0 0 / .08)}
-@media (prefers-color-scheme:dark){:root{--bg:oklch(12% 0 0);--surface:oklch(18% 0 0);--border:oklch(27% 0 0);--text:oklch(92% 0 0);--muted:oklch(92% 0 0 / .5);--primary:oklch(66% 0.12 262);--ghost-hover:oklch(92% 0 0 / .1)}}
+:root{color-scheme:light dark;--bg:oklch(97% 0 0);--surface:oklch(100% 0 0);--border:oklch(92% 0 0);--text:oklch(20% 0 0);--muted:oklch(20% 0 0 / .5);--primary:#7b2cbf;--primary-text:oklch(100% 0 0);--ghost-hover:oklch(20% 0 0 / .08)}
+@media (prefers-color-scheme:dark){:root{--bg:oklch(12% 0 0);--surface:oklch(18% 0 0);--border:oklch(27% 0 0);--text:oklch(92% 0 0);--muted:oklch(92% 0 0 / .5);--primary:#9d4edd;--ghost-hover:oklch(92% 0 0 / .1)}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}

@@ -21,9 +21,12 @@ export function DomainPageLink({
       aria-label={label}
       aria-disabled={disabled}
       className={buttonVariants({
-        variant: "ghost",
+        variant: "outline",
         size: "icon-sm",
-        className: disabled && "pointer-events-none opacity-50",
+        className: [
+          "rounded-full",
+          disabled && "pointer-events-none opacity-50",
+        ],
       })}
       onClick={(event) => {
         if (disabled) {

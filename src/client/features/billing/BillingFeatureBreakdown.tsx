@@ -156,7 +156,7 @@ function BreakdownRows({ events }: { events: BillingUsageEvent[] }) {
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-[#7c3aed]"
+              className="h-full rounded-full bg-brand"
               style={{ width: `${(row.usd / total) * 100}%` }}
             />
           </div>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { SegmentedToggle } from "@/client/components/SegmentedToggle";
+import { Button } from "@/client/components/ui/button";
 import {
   DropdownMenuLabel,
   DropdownMenuGroup,
@@ -29,6 +30,32 @@ export function ThemePreferenceRadio() {
       value={themePreference}
       onChange={setThemePreference}
     />
+  );
+}
+
+/** One-click light/dark switch. From "system" it flips to the opposite of
+ *  what the device shows now; "System" stays available in Settings. */
+export function ThemeToggleButton({ className }: { className?: string }) {
+  const { themePreference, setThemePreference } = useThemePreference();
+  // The theme hook re-renders on device theme changes, so this stays current.
+  const isDark =
+    themePreference === "dark" ||
+    (themePreference === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+
+  return (
+    <Button
+      variant="outline"
+      size="icon-sm"
+      className={className}
+      aria-label={label}
+      title={label}
+      onClick={() => setThemePreference(isDark ? "light" : "dark")}
+    >
+      {isDark ? <Sun /> : <Moon />}
+    </Button>
   );
 }
 

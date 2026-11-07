@@ -1,7 +1,13 @@
 import { GoogleSearchConsoleLogo } from "@/client/features/integrations/GoogleProductLogos";
 import { startAudit } from "@/serverFunctions/audit";
 import { QueryError } from "@/client/components/QueryState";
-import { LoaderCircle, ScanSearch } from "lucide-react";
+import {
+  Eye,
+  Hash,
+  LoaderCircle,
+  MousePointerClick,
+  ScanSearch,
+} from "lucide-react";
 import { CardShell } from "@/client/components/CardShell";
 import { Progress } from "@/client/components/ui/progress";
 import { Button } from "@/client/components/ui/button";
@@ -20,8 +26,10 @@ import {
 import { getSearchPerformanceReport } from "@/serverFunctions/searchPerformance";
 import {
   formatDay,
+  HeadlineMetric,
   moreDetailsClass,
   MetricsTableSkeleton,
+  StatTile,
 } from "@/client/features/dashboard/cardParts";
 import { percentChange } from "@/client/components/MetricsTable";
 import {
@@ -84,7 +92,7 @@ export function GscCard({
         </Link>
       }
     >
-      <p className="mb-4 text-sm font-medium text-muted-foreground">
+      <p className="mb-3 text-sm font-medium text-muted-foreground">
         Last 28 days
       </p>
       {reportQuery.isError ? (
@@ -94,59 +102,39 @@ export function GscCard({
       ) : !report ? (
         <MetricsTableSkeleton />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Metric</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="text-right">Change</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[
-              {
-                label: "Clicks",
-                value: formatCount(report.totals.clicks),
-                change: percentChange(
-                  report.totals.clicks,
-                  report.prevTotals.clicks,
-                ),
-              },
-              {
-                label: "Impressions",
-                value: formatCount(report.totals.impressions),
-                change: percentChange(
-                  report.totals.impressions,
-                  report.prevTotals.impressions,
-                ),
-              },
-              {
-                label: "Click-through rate",
-                value: formatCtr(report.totals.ctr),
-                change: null,
-              },
-              {
-                label: "Average position",
-                value: formatPosition(report.totals.position),
-                change: null,
-              },
-            ].map((metric) => (
-              <TableRow key={metric.label}>
-                <TableCell>{metric.label}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {metric.value}
-                </TableCell>
-                <TableCell
-                  className={`text-right tabular-nums ${metric.change === null || metric.change === 0 ? "text-muted-foreground" : metric.change > 0 ? "text-success" : "text-destructive"}`}
-                >
-                  {metric.change === null
-                    ? "—"
-                    : `${metric.change > 0 ? "+" : ""}${metric.change}%`}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <>
+          <HeadlineMetric
+            label="Clicks from Google"
+            value={formatCount(report.totals.clicks)}
+            change={percentChange(
+              report.totals.clicks,
+              report.prevTotals.clicks,
+            )}
+          />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile
+              icon={<Eye />}
+              label="Impressions"
+              value={formatCount(report.totals.impressions)}
+              change={percentChange(
+                report.totals.impressions,
+                report.prevTotals.impressions,
+              )}
+            />
+            <StatTile
+              icon={<MousePointerClick />}
+              label="Click-through rate"
+              value={formatCtr(report.totals.ctr)}
+              change={null}
+            />
+            <StatTile
+              icon={<Hash />}
+              label="Average position"
+              value={formatPosition(report.totals.position)}
+              change={null}
+            />
+          </div>
+        </>
       )}
     </CardShell>
   );

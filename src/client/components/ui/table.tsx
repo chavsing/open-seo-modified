@@ -1,8 +1,10 @@
 import * as React from "react";
 import { cn } from "cn";
 
-// Row hover and selection use a foreground and primary tint: bg-muted is the
-// page background in the light theme, so it would not show on a card.
+// The header row, row hover and selection use a foreground and primary tint:
+// bg-muted is the page background in the light theme, so it would not show on
+// a card. The header tint is see-through, so a sticky header's own bg-card
+// still hides the rows scrolling under it.
 // Cells wrap, because tables hold long URLs and titles.
 
 /** The card around a table and its toolbar or footer. The table runs edge to edge. */
@@ -43,7 +45,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
     <thead
       data-slot="table-header"
       className={cn(
-        "[&_tr]:border-b [&_tr]:border-border [&_tr]:hover:bg-transparent",
+        "[&_tr]:border-b [&_tr]:border-border [&_tr]:bg-foreground/[0.035] [&_tr]:hover:bg-foreground/[0.035]",
         className,
       )}
       {...props}

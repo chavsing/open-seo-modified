@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  Sparkles,
   User,
 } from "lucide-react";
 import { organizationContextQueryOptions } from "@/client/features/team/organizationQueries";
@@ -27,10 +28,17 @@ import {
   SamChatListSkeleton,
   SamSidebarPanel,
 } from "@/client/features/sam/SamSidebarPanel";
-import { ThemePreferenceRadio } from "@/client/components/ThemePreferenceMenuItems";
+import {
+  ThemePreferenceRadio,
+  ThemeToggleButton,
+} from "@/client/components/ThemePreferenceMenuItems";
+import { Button } from "@/client/components/ui/button";
+import { PRO_PLAN_OFFER } from "@/client/features/billing/plan-offers";
+import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
+import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { signOutAndRedirect, useSession } from "@/lib/auth-client";
-import { BILLING_ROUTE } from "@/shared/billing";
+import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
 import {
   Sidebar as UiSidebar,
   SidebarContent,
@@ -56,8 +64,9 @@ import {
 } from "@/client/components/ui/dropdown-menu";
 import { BRAND_NAME } from "@/shared/brand";
 
+// The active page is a filled violet pill with white text.
 const navButtonClass =
-  "relative text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:before:absolute data-active:before:inset-y-1 data-active:before:left-0 data-active:before:w-[3px] data-active:before:rounded-r-full data-active:before:bg-primary";
+  "relative text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-primary data-active:font-semibold data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary/90 data-active:hover:text-sidebar-primary-foreground";
 
 function SidebarNavLink({
   icon: Icon,
@@ -144,13 +153,17 @@ export function Sidebar({
   return (
     <UiSidebar variant="inset" collapsible="offcanvas" className="md:!p-0">
       <SidebarHeader className="gap-0 px-3 pb-1 pt-3">
-        <Link
-          to="/"
-          onClick={() => setOpenMobile(false)}
-          className="px-1 pb-2 text-base font-semibold text-sidebar-foreground"
-        >
-          {BRAND_NAME}
-        </Link>
+        <div className="flex items-center justify-between gap-2 pb-2">
+          <Link
+            to="/"
+            onClick={() => setOpenMobile(false)}
+            className="flex items-center gap-2 px-1 text-base font-bold tracking-tight text-sidebar-foreground"
+          >
+            <img src="/transparent-logo.png" alt="" className="size-7" />
+            {BRAND_NAME}
+          </Link>
+          <ThemeToggleButton className="text-sidebar-foreground/70" />
+        </div>
         <ProjectSwitcher
           activeProjectId={projectId}
           ready={ready}
@@ -201,8 +214,53 @@ export function Sidebar({
           </nav>
         )}
       </SidebarContent>
+      {/* Billing exists only in hosted mode, and waits for the session. */}
+      {ready && isHostedClientAuthMode() ? (
+        <UpgradeCard onNavigate={() => setOpenMobile(false)} />
+      ) : null}
       <AccountFooter ready={ready} />
     </UiSidebar>
+  );
+}
+
+/** Free-plan nudge at the foot of the sidebar, for whoever can upgrade. */
+function UpgradeCard({ onNavigate }: { onNavigate: () => void }) {
+  const { accountQuery, isFreePlan } = useCreditBalance();
+  const canManageBilling = useCanManageBilling();
+  if (!accountQuery.data || !isFreePlan || !canManageBilling) return null;
+
+  return (
+    // Hidden on short screens, where it would push the menu out of view.
+    <div className="relative mx-3 mb-3 overflow-hidden rounded-xl border glass-panel p-4 [@media(max-height:820px)]:hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-10 -right-10 size-32 rounded-full bg-brand/25 blur-2xl"
+      />
+      <div className="relative space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-sidebar-foreground">
+          <Sparkles className="size-4 text-primary" />
+          Upgrade to Pro
+        </div>
+        <p className="text-xs leading-relaxed text-sidebar-foreground/70">
+          Every feature and ${PRO_PLAN_OFFER.includedCreditsUsd} of credits each
+          month.
+        </p>
+        <Button
+          size="sm"
+          className="w-full"
+          nativeButton={false}
+          render={
+            <Link
+              to={SUBSCRIBE_ROUTE}
+              search={{ upgrade: true }}
+              onClick={onNavigate}
+            />
+          }
+        >
+          Go Pro
+        </Button>
+      </div>
+    </div>
   );
 }
 

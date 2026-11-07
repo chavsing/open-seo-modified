@@ -3,6 +3,7 @@ import {
   ChartGrid,
   ChartXAxis,
   ChartYAxis,
+  endValueLabels,
 } from "@/client/components/ChartAxes";
 import {
   ChartContainer,
@@ -13,8 +14,8 @@ import {
 import type { AiTrend } from "@/shared/ai-visibility";
 
 export const trendSeries = [
-  { key: "mentionRate", label: "Brand mentions", color: "#2563eb" },
-  { key: "citationRate", label: "Owned citations", color: "#14b8a6" },
+  { key: "mentionRate", label: "Brand mentions", color: "var(--chart-1)" },
+  { key: "citationRate", label: "Owned citations", color: "var(--chart-2)" },
 ] as const;
 
 const chartConfig: ChartConfig = Object.fromEntries(
@@ -23,6 +24,8 @@ const chartConfig: ChartConfig = Object.fromEntries(
     { label: series.label, color: series.color },
   ]),
 );
+
+const formatPercent = (value: unknown) => `${String(value)}%`;
 
 const shortDate = (value: string | number) =>
   new Date(value).toLocaleDateString(undefined, {
@@ -49,6 +52,7 @@ export function VisibilityTrendChart({ trend }: { trend: AiTrend }) {
     citationRate: run.citationRate,
     collected: `${run.coverage.answered} of ${run.coverage.expected} answers collected`,
   }));
+  const endLabel = endValueLabels();
   return (
     <ChartContainer
       config={chartConfig}
@@ -78,7 +82,7 @@ export function VisibilityTrendChart({ trend }: { trend: AiTrend }) {
                   ? `${new Date(point.time).toLocaleString()} · ${point.collected}`
                   : "";
               }}
-              valueFormatter={(value) => `${String(value)}%`}
+              valueFormatter={(value) => formatPercent(value)}
             />
           }
         />
@@ -88,6 +92,12 @@ export function VisibilityTrendChart({ trend }: { trend: AiTrend }) {
           stroke="var(--color-mentionRate)"
           strokeWidth={2}
           dot={data.length < 40}
+          label={endLabel(
+            data,
+            "mentionRate",
+            formatPercent,
+            "var(--color-mentionRate)",
+          )}
         />
         <Line
           type="monotone"
@@ -95,6 +105,12 @@ export function VisibilityTrendChart({ trend }: { trend: AiTrend }) {
           stroke="var(--color-citationRate)"
           strokeWidth={2}
           dot={data.length < 40}
+          label={endLabel(
+            data,
+            "citationRate",
+            formatPercent,
+            "var(--color-citationRate)",
+          )}
         />
       </LineChart>
     </ChartContainer>

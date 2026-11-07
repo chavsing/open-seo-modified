@@ -28,9 +28,9 @@ import {
 } from "./RankTrackingTrendChart";
 
 const BUCKETS = [
-  { key: "top3", label: "Top 3", color: "#16a34a" },
-  { key: "top4to10", label: "4–10", color: "#2563eb" },
-  { key: "top11to20", label: "11–20", color: "#f59e0b" },
+  { key: "top3", label: "Top 3", color: "var(--chart-1)" },
+  { key: "top4to10", label: "4–10", color: "var(--chart-3)" },
+  { key: "top11to20", label: "11–20", color: "var(--chart-2)" },
   { key: "notRanking", label: "Not in top 20", color: "#6b7280" },
   // Missing data, not a ranking: lighter fill so it doesn't read as lost
   // positions.

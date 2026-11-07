@@ -3,6 +3,7 @@ import {
   ChartGrid,
   ChartXAxis,
   ChartYAxis,
+  endValueLabels,
 } from "@/client/components/ChartAxes";
 import {
   ChartContainer,
@@ -20,8 +21,8 @@ import {
 } from "./backlinksPageUtils";
 
 const trendChartConfig = {
-  backlinks: { label: "Backlinks", color: "#2563eb" },
-  referringDomains: { label: "Referring domains", color: "#14b8a6" },
+  backlinks: { label: "Backlinks", color: "var(--chart-1)" },
+  referringDomains: { label: "Referring domains", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 const newLostChartConfig = {
@@ -51,6 +52,7 @@ export function BacklinksTrendChart({
     return <EmptyChartState />;
   }
 
+  const endLabel = endValueLabels();
   return (
     <ChartContainer
       config={trendChartConfig}
@@ -80,6 +82,12 @@ export function BacklinksTrendChart({
           stroke="var(--color-backlinks)"
           strokeWidth={2}
           dot={false}
+          label={endLabel(
+            data,
+            "backlinks",
+            formatTooltipValue,
+            "var(--color-backlinks)",
+          )}
         />
         <Line
           yAxisId="right"
@@ -88,6 +96,12 @@ export function BacklinksTrendChart({
           stroke="var(--color-referringDomains)"
           strokeWidth={2}
           dot={false}
+          label={endLabel(
+            data,
+            "referringDomains",
+            formatTooltipValue,
+            "var(--color-referringDomains)",
+          )}
         />
       </LineChart>
     </ChartContainer>
@@ -103,6 +117,7 @@ export function BacklinksNewLostChart({
     return <EmptyChartState />;
   }
 
+  const endLabel = endValueLabels();
   return (
     <ChartContainer
       config={newLostChartConfig}
@@ -125,6 +140,12 @@ export function BacklinksNewLostChart({
           stroke="var(--color-lostBacklinks)"
           strokeWidth={2}
           dot={false}
+          label={endLabel(
+            data,
+            "lostBacklinks",
+            formatTooltipValue,
+            "var(--color-lostBacklinks)",
+          )}
         />
         <Line
           type="monotone"
@@ -132,6 +153,12 @@ export function BacklinksNewLostChart({
           stroke="var(--color-newBacklinks)"
           strokeWidth={2}
           dot={false}
+          label={endLabel(
+            data,
+            "newBacklinks",
+            formatTooltipValue,
+            "var(--color-newBacklinks)",
+          )}
         />
       </LineChart>
     </ChartContainer>

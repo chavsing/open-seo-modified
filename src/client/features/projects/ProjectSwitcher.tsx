@@ -53,7 +53,7 @@ export function ProjectSwitcher({
     // button's slot, so nothing moves when the projects arrive.
     return (
       <div
-        className="flex items-stretch rounded-lg border border-sidebar-border bg-card"
+        className="flex items-stretch rounded-lg border glass-panel"
         aria-busy
       >
         <div className="flex min-w-0 flex-1 flex-col px-3 py-1.5">
@@ -107,7 +107,7 @@ export function ProjectSwitcher({
           if (project) handleSelect(project);
         }}
       >
-        <div className="flex items-stretch rounded-lg border border-sidebar-border bg-card">
+        <div className="flex items-stretch rounded-lg border glass-panel">
           <ComboboxTrigger
             aria-label="Switch project"
             className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-l-lg px-3 py-1.5 text-left hover:bg-accent"

@@ -4,6 +4,7 @@ import {
   ChartGrid,
   ChartXAxis,
   ChartYAxis,
+  endValueLabels,
 } from "@/client/components/ChartAxes";
 import {
   ChartContainer,
@@ -19,7 +20,7 @@ type Props = {
 };
 
 const chartConfig = {
-  volume: { label: "Mentions", color: "hsl(220 70% 50%)" },
+  volume: { label: "Mentions", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 export function BrandLookupMentionTrendCard({ result }: Props) {
@@ -32,6 +33,7 @@ export function BrandLookupMentionTrendCard({ result }: Props) {
     [result.monthlyVolume],
   );
 
+  const endLabel = endValueLabels();
   return (
     <ChartContainer config={chartConfig} className="h-56">
       <LineChart
@@ -54,6 +56,12 @@ export function BrandLookupMentionTrendCard({ result }: Props) {
           stroke="var(--color-volume)"
           strokeWidth={2}
           dot={false}
+          label={endLabel(
+            chartData,
+            "volume",
+            formatCount,
+            "var(--color-volume)",
+          )}
         />
       </LineChart>
     </ChartContainer>

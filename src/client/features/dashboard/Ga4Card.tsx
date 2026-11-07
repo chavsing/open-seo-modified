@@ -3,8 +3,13 @@ import { CardShell } from "@/client/components/CardShell";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
-import { moreDetailsClass } from "@/client/features/dashboard/cardParts";
-import { MetricsTable, percentChange } from "@/client/components/MetricsTable";
+import { Activity, Target, Users } from "lucide-react";
+import {
+  HeadlineMetric,
+  moreDetailsClass,
+  StatTile,
+} from "@/client/features/dashboard/cardParts";
+import { percentChange } from "@/client/components/MetricsTable";
 import { Ga4ConnectCard } from "@/client/features/dashboard/Ga4ConnectCard";
 import {
   formatCount,
@@ -94,58 +99,42 @@ export function Ga4Card({
         </p>
       ) : (
         <div className="space-y-4">
-          <MetricsTable
-            showChange
-            rows={[
-              {
-                label: "Sessions",
-                value: statValue(report.totals.sessions, formatCount),
-                change: percentChange(
-                  report.totals.sessions,
-                  report.prevTotals.sessions,
-                ),
-              },
-              {
-                label: "Active users",
-                value: statValue(report.totals.activeUsers, formatCount),
-                change: percentChange(
+          <div>
+            <HeadlineMetric
+              label="Organic sessions"
+              value={statValue(report.totals.sessions, formatCount)}
+              change={percentChange(
+                report.totals.sessions,
+                report.prevTotals.sessions,
+              )}
+            />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatTile
+                icon={<Users />}
+                label="Active users"
+                value={statValue(report.totals.activeUsers, formatCount)}
+                change={percentChange(
                   report.totals.activeUsers,
                   report.prevTotals.activeUsers,
-                ),
-              },
-              {
-                label: "Engagement rate",
-                value: statValue(report.totals.engagementRate, formatCtr),
-                change: null,
-              },
-              {
-                label: "Key events",
-                value: statValue(report.totals.keyEvents, formatCount),
-                change: percentChange(
+                )}
+              />
+              <StatTile
+                icon={<Activity />}
+                label="Engagement rate"
+                value={statValue(report.totals.engagementRate, formatCtr)}
+                change={null}
+              />
+              <StatTile
+                icon={<Target />}
+                label="Key events"
+                value={statValue(report.totals.keyEvents, formatCount)}
+                change={percentChange(
                   report.totals.keyEvents,
                   report.prevTotals.keyEvents,
-                ),
-              },
-            ].map((metric) => ({
-              label: metric.label,
-              value: metric.value,
-              change:
-                metric.change === null ? undefined : (
-                  <span
-                    className={
-                      metric.change > 0
-                        ? "text-success"
-                        : metric.change < 0
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    {metric.change > 0 ? "+" : ""}
-                    {metric.change}%
-                  </span>
-                ),
-            }))}
-          />
+                )}
+              />
+            </div>
+          </div>
           <ChartContainer config={sessionsChartConfig} className="h-24">
             <AreaChart
               data={report.trend}

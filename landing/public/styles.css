@@ -1,32 +1,47 @@
 /* Colors match the app (src/client/styles/app.css) so both feel like one
    product. */
 :root {
-  --background: oklch(95.5% 0 0);
-  --foreground: oklch(20% 0 0);
+  --background: oklch(97% 0.004 300);
+  --foreground: oklch(19% 0.01 300);
   --card: oklch(100% 0 0);
-  --primary: oklch(50% 0.12 262);
+  /* Violet fill with white text for buttons; --primary is the readable
+     violet for borders, ticks and accents. */
+  --brand: #7b2cbf;
+  --brand-foreground: oklch(100% 0 0);
+  --primary: #7b2cbf;
   --primary-foreground: oklch(100% 0 0);
-  --secondary: oklch(92% 0 0);
-  --muted-foreground: oklch(20% 0 0 / 65%);
-  --border: oklch(90% 0 0);
-  --section-alt: oklch(97.5% 0 0);
-  --radius: 0.5rem;
+  --secondary: oklch(93% 0.005 300);
+  --muted-foreground: oklch(19% 0.01 300 / 65%);
+  --border: oklch(91% 0.005 300);
+  --section-alt: oklch(98.5% 0.003 300);
+  --radius: 0.625rem;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(18% 0 0);
-    --foreground: oklch(92% 0 0);
-    --card: oklch(23% 0 0);
-    --primary: oklch(66% 0.12 262);
-    --primary-foreground: oklch(100% 0 0);
-    --secondary: oklch(28% 0 0);
-    --muted-foreground: oklch(92% 0 0 / 65%);
-    --border: oklch(30% 0 0);
-    --section-alt: oklch(20.5% 0 0);
+    --background: oklch(14.5% 0.005 300);
+    --foreground: oklch(95% 0.005 300);
+    --card: oklch(19% 0.006 300);
+    --brand: #9d4edd;
+    --primary: #c77dff;
+    --primary-foreground: oklch(18% 0.03 300);
+    --secondary: oklch(24% 0.006 300);
+    --muted-foreground: oklch(95% 0.005 300 / 62%);
+    --border: oklch(26% 0.006 300);
+    --section-alt: oklch(17% 0.005 300);
     color-scheme: dark;
   }
+}
+
+/* Space Grotesk, the app's font, served from this site (SIL Open Font
+   License, see fonts/space-grotesk-LICENSE.txt). */
+@font-face {
+  font-family: "Space Grotesk Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 700;
+  src: url("/fonts/space-grotesk-latin-wght-normal.woff2") format("woff2-variations");
 }
 
 * {
@@ -38,6 +53,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family:
+    "Space Grotesk Variable",
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -106,9 +122,16 @@ p {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 700;
   font-size: 1.1rem;
   text-decoration: none;
+}
+
+.brand img {
+  border-radius: 0.4rem;
 }
 
 .header-nav {
@@ -149,8 +172,8 @@ p {
 }
 
 .button-primary {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--brand);
+  color: var(--brand-foreground);
 }
 
 .button-primary:hover {
