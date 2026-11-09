@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { waitUntil } from "cloudflare:workers";
 import { BlogService } from "@/server/features/blog/services/BlogService";
 import {
   createBlogBrief,
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
+import { writeBlogArticle } from "@/server/features/blog/services/blogWriter";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
@@ -14,6 +16,7 @@ import {
   skipBlogTopicSchema,
   updateBlogArticleSchema,
   updateBlogSettingsSchema,
+  writeBlogArticleSchema,
 } from "@/types/schemas/blog";
 
 export const getBlogSettings = createServerFn({ method: "POST" })
@@ -115,3 +118,18 @@ export const sendBlogArticle = createServerFn({ method: "POST" })
       publish: data.publish,
     }),
   );
+
+export const writeBlogArticleWithAi = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(writeBlogArticleSchema)
+  .handler(({ data, context }) => {
+    const work = writeBlogArticle(
+      context.project,
+      { articleId: data.articleId, replace: data.replace },
+      context,
+    );
+    // The result is saved on the server, so a closed tab doesn't waste a paid
+    // run: keep the work alive within the request's background grace period.
+    waitUntil(work.catch(() => undefined));
+    return work;
+  });

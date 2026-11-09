@@ -99,28 +99,51 @@ async function updateSettings(projectId: string, input: UpdateBlogSettings) {
   return getSettings(projectId);
 }
 
+/**
+ * The client only receives error codes, and one code can't tell a wrong
+ * password from a wrong address or a blocked API. So the reasons WordPress
+ * refuses come back as a result, in our own wording; anything else still throws.
+ */
+function wordpressRefusal(error: unknown) {
+  if (
+    error instanceof AppError &&
+    (error.code === "VALIDATION_ERROR" || error.code === "UPSTREAM_UNAVAILABLE")
+  )
+    return { ok: false as const, message: error.message };
+  throw error;
+}
+
 /** Saves the login only after WordPress accepts it. */
 async function connectWordpress(projectId: string, input: ConnectWordpress) {
-  const connection = {
-    siteUrl: await validateSiteUrl(input.url),
-    username: input.username.trim(),
-    // WordPress shows application passwords in groups of four; either form works.
-    password: input.password.replace(/\s+/g, ""),
-  };
-  const user = await verifyWordpressLogin(connection);
-  await BlogRepository.upsertSettings(projectId, {
-    wordpressUrl: connection.siteUrl,
-    wordpressUsername: connection.username,
-    wordpressPassword: await symmetricEncrypt({
-      key: await getEncryptionKey(),
-      data: connection.password,
-    }),
-  });
-  return { name: user.name };
+  try {
+    const connection = {
+      siteUrl: await validateSiteUrl(input.url),
+      username: input.username.trim(),
+      // WordPress shows application passwords in groups of four; either form works.
+      password: input.password.replace(/\s+/g, ""),
+    };
+    const user = await verifyWordpressLogin(connection);
+    await BlogRepository.upsertSettings(projectId, {
+      wordpressUrl: connection.siteUrl,
+      wordpressUsername: connection.username,
+      wordpressPassword: await symmetricEncrypt({
+        key: await getEncryptionKey(),
+        data: connection.password,
+      }),
+    });
+    return { ok: true as const, name: user.name };
+  } catch (error) {
+    return wordpressRefusal(error);
+  }
 }
 
 async function testWordpress(projectId: string) {
-  return verifyWordpressLogin(await openConnection(projectId));
+  try {
+    const user = await verifyWordpressLogin(await openConnection(projectId));
+    return { ok: true as const, name: user.name };
+  } catch (error) {
+    return wordpressRefusal(error);
+  }
 }
 
 async function disconnectWordpress(projectId: string) {
@@ -229,8 +252,9 @@ async function sendToWordpress(
         `Fix the ${quality.total - quality.passed} failing quality checks before publishing, or send it as a draft.`,
       );
   }
-  const connection = await openConnection(project.id);
   try {
+    // Inside the try, so a missing or broken connection is recorded too.
+    const connection = await openConnection(project.id);
     const post = await saveWordpressPost(connection, {
       postId: article.wordpressPostId,
       title: article.title,

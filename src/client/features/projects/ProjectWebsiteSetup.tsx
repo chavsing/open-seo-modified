@@ -8,6 +8,7 @@ import { Button } from "@/client/components/ui/button";
 import { Input } from "@/client/components/ui/input";
 import { Field, FieldLabel } from "@/client/components/ui/field";
 import { Alert, AlertDescription } from "@/client/components/ui/alert";
+import { getErrorCode } from "@/client/lib/error-messages";
 import { projectsQueryOptions } from "@/client/features/projects/projectQueries";
 import { projectContextQueryKey } from "@/client/features/projects/project-context/shared";
 import { getProjectContext } from "@/serverFunctions/projectContext";
@@ -117,8 +118,10 @@ export function ProjectWebsiteSetup({ projectId }: { projectId: string }) {
           {researchMutation.isError && (
             <Alert variant="destructive">
               <AlertDescription>
-                We couldn’t research this website. Check the URL, provider
-                settings, and available usage credits, then try again.
+                {/* Also what a missing AI key looks like, so don't blame the URL. */}
+                {getErrorCode(researchMutation.error) === "UPSTREAM_UNAVAILABLE"
+                  ? "AI research isn’t available right now. Please try again later."
+                  : "We couldn’t research this website. Check the URL, provider settings, and available usage credits, then try again."}
               </AlertDescription>
             </Alert>
           )}

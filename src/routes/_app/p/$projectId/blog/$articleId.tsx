@@ -7,20 +7,13 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Trash2, XCircle } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/client/components/ConfirmDialog";
-import { Markdown } from "@/client/components/Markdown";
 import { BackLink, PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { SafeExternalLink } from "@/client/components/SafeExternalLink";
 import { SkeletonPage } from "@/client/components/SkeletonPresets";
 import { Button } from "@/client/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/client/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -28,15 +21,16 @@ import {
 } from "@/client/components/ui/field";
 import { Input } from "@/client/components/ui/input";
 import { Textarea } from "@/client/components/ui/textarea";
+import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
-import { blogKeys } from "@/client/features/blog/blogQueries";
-import { getStandardErrorMessage } from "@/client/lib/error-messages";
+import { blogKeys, toastBlogError } from "@/client/features/blog/blogQueries";
 import {
   deleteBlogArticle,
   getBlogArticle,
   getBlogSettings,
   sendBlogArticle,
   updateBlogArticle,
+  writeBlogArticleWithAi,
 } from "@/serverFunctions/blog";
 import { checkArticle } from "@/shared/blog-quality";
 import { BRAND_NAME } from "@/shared/brand";
@@ -83,7 +77,10 @@ function BlogArticleRoute() {
   );
 }
 
-const onError = (error: unknown) => toast.error(getStandardErrorMessage(error));
+const SEND_FAILED =
+  "Couldn't send to WordPress. The reason is shown under the title.";
+const onError = (error: unknown) =>
+  toastBlogError(error, { NOT_FOUND: "This article no longer exists." });
 
 function ArticleEditor({
   projectId,
@@ -96,7 +93,9 @@ function ArticleEditor({
   const navigate = useNavigate();
   const [title, setTitle] = useState(article.title);
   const [content, setContent] = useState(article.content ?? "");
-  const [confirm, setConfirm] = useState<"publish" | "delete" | null>(null);
+  const [confirm, setConfirm] = useState<"publish" | "delete" | "write" | null>(
+    null,
+  );
   const settingsQuery = useQuery({
     queryKey: blogKeys.settings(projectId),
     queryFn: () => getBlogSettings({ data: { projectId } }),
@@ -151,11 +150,46 @@ function ArticleEditor({
     },
     onError: (error) => {
       setConfirm(null);
-      onError(error);
+      // The server records WordPress's reason on the article, shown under the title.
+      toastBlogError(error, {
+        VALIDATION_ERROR: SEND_FAILED,
+        UPSTREAM_UNAVAILABLE: SEND_FAILED,
+      });
     },
     // Refresh either way: a failed send records its error on the article.
     onSettled: refresh,
   });
+  const write = useMutation({
+    mutationFn: (replace: boolean) =>
+      writeBlogArticleWithAi({
+        data: { projectId, articleId: article.id, replace },
+      }),
+    onSuccess: async (result) => {
+      setConfirm(null);
+      await refresh();
+      setTitle(result.title);
+      setContent(result.content);
+      toast.success(
+        "Article written and saved. Read it through before sending.",
+      );
+    },
+    onError: (error) => {
+      setConfirm(null);
+      toastBlogError(error, {
+        UPSTREAM_UNAVAILABLE:
+          "AI writing isn't available right now. Please try again later.",
+        VALIDATION_ERROR: "Add your website to this project first.",
+        CONFLICT:
+          "This article already has text. Reload the page and try again.",
+        NOT_FOUND: "This article was deleted.",
+      });
+    },
+  });
+  const startWriting = () => {
+    // Replacing text, on screen or saved, needs a yes first.
+    if (content.trim() || article.content?.trim()) setConfirm("write");
+    else write.mutate(false);
+  };
   const remove = useMutation({
     mutationFn: () =>
       deleteBlogArticle({ data: { projectId, articleId: article.id } }),
@@ -184,7 +218,8 @@ function ArticleEditor({
   const hasContent = content.trim().length > 0;
   const allPassed = quality.passed === quality.total;
   const isLive = article.status === "published";
-  const busy = save.isPending || send.isPending || remove.isPending;
+  const busy =
+    save.isPending || send.isPending || remove.isPending || write.isPending;
   const wordpressConnected = Boolean(settingsQuery.data?.wordpress);
 
   return (
@@ -230,16 +265,34 @@ function ArticleEditor({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={200}
+              disabled={write.isPending}
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="article-content">Article</FieldLabel>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <FieldLabel htmlFor="article-content">Article</FieldLabel>
+              <Button
+                variant="outline"
+                size="sm"
+                pending={write.isPending}
+                disabled={busy}
+                onClick={startWriting}
+              >
+                <Sparkles />
+                {write.isPending
+                  ? "Writing, about a minute"
+                  : hasContent
+                    ? "Rewrite with AI"
+                    : "Write with AI"}
+              </Button>
+            </div>
             <Textarea
               id="article-content"
               value={content}
               onChange={(event) => setContent(event.target.value)}
+              disabled={write.isPending}
               placeholder={
-                "Write in Markdown. Use ## for section headings and [text](https://...) for links.\n\nAI writing will fill this in once it's switched on for your account."
+                "Write in Markdown. Use ## for section headings and [text](https://...) for links.\n\nOr press Write with AI to draft it from the research brief."
               }
               className="min-h-[28rem] font-mono text-sm"
             />
@@ -311,48 +364,11 @@ function ArticleEditor({
         </div>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Quality check
-                <span className="text-2xl tabular-nums">
-                  {hasContent ? quality.score : "-"}
-                  <span className="text-sm text-muted-foreground">/10</span>
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                {quality.checks.map((check) => (
-                  <li key={check.id} className="flex gap-2">
-                    {check.passed ? (
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
-                    ) : (
-                      <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-                    )}
-                    <span>
-                      {check.label}
-                      {check.detail ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {check.detail}
-                        </span>
-                      ) : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Research brief</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Markdown className="space-y-2 text-sm break-words">
-                {article.brief}
-              </Markdown>
-            </CardContent>
-          </Card>
+          <ArticleSidePanel
+            quality={quality}
+            hasContent={hasContent}
+            brief={article.brief}
+          />
         </div>
       </div>
 
@@ -367,6 +383,19 @@ function ArticleEditor({
           {isLive
             ? "The post on your WordPress site will be replaced with this version."
             : "It goes live on your WordPress site straight away, where visitors and Google can see it."}
+        </ConfirmDialog>
+      ) : null}
+      {confirm === "write" ? (
+        <ConfirmDialog
+          title="Replace this article?"
+          confirmLabel="Rewrite with AI"
+          pending={write.isPending}
+          onConfirm={() => write.mutate(true)}
+          onClose={() => setConfirm(null)}
+        >
+          AI writes a new version from the research brief and replaces the title
+          and text in the editor, including unsaved changes. It uses your usage
+          credits.
         </ConfirmDialog>
       ) : null}
       {confirm === "delete" ? (

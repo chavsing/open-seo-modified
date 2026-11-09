@@ -58,3 +58,7 @@ export const updateBlogArticleSchema = blogArticleSchema.extend({
 export const sendBlogArticleSchema = blogArticleSchema.extend({
   publish: z.boolean(),
 });
+
+export const writeBlogArticleSchema = blogArticleSchema.extend({
+  replace: z.boolean(),
+});

@@ -21,16 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/client/components/ui/table";
-import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import {
   createBrief,
   findTopics,
   listBlogTopics,
   skipBlogTopic,
 } from "@/serverFunctions/blog";
-import { blogKeys } from "./blogQueries";
-
-const onError = (error: unknown) => toast.error(getStandardErrorMessage(error));
+import { blogKeys, toastBlogError } from "./blogQueries";
 
 export function BlogTopicsCard({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -52,13 +49,17 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
           : "No new topic ideas this time. Try again after adding more competitors.",
       );
     },
-    onError,
+    onError: (error) =>
+      toastBlogError(error, {
+        VALIDATION_ERROR:
+          "Add your website and at least one competitor on the Context page first. Topic ideas come from what competitors rank for.",
+      }),
   });
   const skip = useMutation({
     mutationFn: (input: { topicId: string; skipped: boolean }) =>
       skipBlogTopic({ data: { projectId, ...input } }),
     onSuccess: refresh,
-    onError,
+    onError: (error) => toastBlogError(error),
   });
   const brief = useMutation({
     mutationFn: (topicId: string) =>
@@ -75,7 +76,11 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
         params: { projectId, articleId },
       });
     },
-    onError,
+    onError: (error) =>
+      toastBlogError(error, {
+        VALIDATION_ERROR: "Add your website to this project first.",
+        NOT_FOUND: "That topic no longer exists. Refresh the list.",
+      }),
   });
 
   const findButton = (

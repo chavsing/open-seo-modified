@@ -198,17 +198,23 @@ function WordpressCard({
   const connect = useMutation({
     mutationFn: () =>
       connectWordpress({ data: { projectId, url, username, password } }),
-    onSuccess: async (user) => {
+    onSuccess: async (result) => {
+      // WordPress refusing the login is an answer, not a crash: show why.
+      if (!result.ok) return void toast.error(result.message);
       setPassword("");
       await refresh();
-      toast.success(`Connected to WordPress as ${user.name}`);
+      toast.success(`Connected to WordPress as ${result.name}`);
     },
     onError,
   });
   const test = useMutation({
     mutationFn: () => testWordpress({ data: { projectId } }),
-    onSuccess: (user) =>
-      toast.success(`WordPress connection works (signed in as ${user.name})`),
+    onSuccess: (result) =>
+      result.ok
+        ? toast.success(
+            `WordPress connection works (signed in as ${result.name})`,
+          )
+        : toast.error(result.message),
     onError,
   });
   const disconnect = useMutation({
