@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Link2,
   MessageSquare,
+  PenLine,
   Search,
   TrendingUp,
 } from "lucide-react";
@@ -79,6 +80,11 @@ const projectNavItems = [
     to: "/p/$projectId/reports" as const,
     label: "Reports",
     icon: FileText,
+  },
+  {
+    to: "/p/$projectId/blog" as const,
+    label: "Blog Generator",
+    icon: PenLine,
   },
   {
     to: "/p/$projectId/context" as const,
@@ -152,6 +158,7 @@ export function getProjectNavGroups(projectId: string) {
     {
       label: "AI Tools",
       items: [
+        byPath("/p/$projectId/blog"),
         byPath("/p/$projectId/reports"),
         byPath("/p/$projectId/context"),
         aiNavItem,
