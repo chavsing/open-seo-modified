@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-09. Tick a box when a task is done and move it to the
+Last updated: 2026-11-10. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -14,9 +14,6 @@ done list at the bottom with the date.
 
 - [ ] Sign in to the live app and check the Blog Generator and the "AI agent
   coming soon" page.
-- [ ] Say "commit and push" and "deploy" for the 2026-11-09 work (AI writer
-  button and clearer error messages). Built and checked locally, not yet
-  committed or live.
 - [ ] Get the OpenRouter AI key. It unlocks the AI agent, AI writing in the
   Blog Generator and automatic setup for new websites.
 - [ ] Provide a test WordPress site on https with an application password.
@@ -59,6 +56,8 @@ done list at the bottom with the date.
 - 2026-11-09: Checked the 404s in the local app's browser console. They come
   from a developer tool that only runs locally, so customers never see them.
   Nothing to fix.
+- 2026-11-10: AI writer button and clearer error messages committed,
+  pushed and deployed. Confirmed the live site serves the new editor.
 - 2026-11-09: Checked automatic first audit: it already runs when a website
   is added to a project.
 
