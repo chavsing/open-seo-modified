@@ -6,14 +6,37 @@ import { Button } from "@/client/components/ui/button";
 import { BRAND_NAME } from "@/shared/brand";
 
 export function SamSetupGate({
+  hosted,
   errorMessage,
   isRefetching,
   onRetry,
 }: {
+  hosted: boolean;
   errorMessage: string | null;
   isRefetching: boolean;
   onRetry: () => void;
 }) {
+  if (hosted) {
+    return (
+      <GateCard
+        icon={Wrench}
+        tone="warning"
+        title="AI agent coming soon"
+        description={
+          <p>
+            SAM, {BRAND_NAME}&apos;s AI agent, is still being set up for your
+            account. Everything else in {BRAND_NAME} works as usual. Check back
+            soon.
+          </p>
+        }
+        actions={
+          <Button size="lg" pending={isRefetching} onClick={onRetry}>
+            Check again
+          </Button>
+        }
+      />
+    );
+  }
   return (
     <GateCard
       icon={Wrench}

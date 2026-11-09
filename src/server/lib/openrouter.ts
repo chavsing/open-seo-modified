@@ -4,6 +4,8 @@ import {
   type OpenRouterProvider,
 } from "@openrouter/ai-sdk-provider";
 import { wrapLanguageModel } from "ai";
+import { AppError } from "@/server/lib/errors";
+import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
 // OpenRouter model slug used for the SAM in-app chat agent. Override with
 // OPENROUTER_MODEL to swap models without a code change.
@@ -80,6 +82,20 @@ export function buildChatAgentModel(
       wrapStream: async ({ params }) => (await pick()).doStream(params),
     },
   });
+}
+
+/**
+ * The OpenRouter key for one-shot AI features. Without it they fail with a
+ * message customers can act on, rather than a generic internal error.
+ */
+export async function requireOpenRouterApiKey(): Promise<string> {
+  const apiKey = await getOptionalEnvValue("OPENROUTER_API_KEY");
+  if (!apiKey)
+    throw new AppError(
+      "UPSTREAM_UNAVAILABLE",
+      "AI features are not available yet. Please try again later.",
+    );
+  return apiKey;
 }
 
 function openRouterModel(

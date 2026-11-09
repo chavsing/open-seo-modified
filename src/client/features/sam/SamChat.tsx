@@ -118,11 +118,13 @@ export function SamChat({
   }
 
   // SAM cannot answer a turn without OPENROUTER_API_KEY, so surface setup
-  // instructions instead of letting a chat fail mid-stream (self-hosted only).
+  // instructions instead of letting a chat fail mid-stream. Hosted customers
+  // can't set the key, so they get a "being set up" notice instead.
   if (access.status === "setup") {
     return (
       <StatusScreen size="lg">
         <SamSetupGate
+          hosted={access.hosted}
           errorMessage={access.errorMessage}
           isRefetching={access.isRefetching}
           onRetry={access.onRetry}
