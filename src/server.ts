@@ -236,6 +236,11 @@ export default {
           await import("@/server/features/ai-visibility/services/scheduledAiVisibility");
         await runScheduledAiVisibility();
       }),
+      withPgClient(async () => {
+        const { runScheduledBlogPosts } =
+          await import("@/server/features/blog/services/blogAutopilot");
+        await runScheduledBlogPosts();
+      }),
       // Returns the credits of holds whose call died before settling, and
       // refills Pro yearly credits each month.
       isHostedAuthMode(env.AUTH_MODE)

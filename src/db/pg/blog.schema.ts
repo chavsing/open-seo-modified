@@ -29,6 +29,11 @@ export const blogSettings = pgTable("blog_settings", {
   wordpressUrl: text("wordpress_url"),
   wordpressUsername: text("wordpress_username"),
   wordpressPassword: text("wordpress_password"),
+  // When the next automatic article is due. Null while postsPerWeek is 0.
+  nextPostAt: text("next_post_at"),
+  // The last automatic run and what came of it, shown in the settings.
+  lastRunAt: text("last_run_at"),
+  lastRunMessage: text("last_run_message"),
   updatedAt: text("updated_at").notNull(),
 });
 
@@ -85,6 +90,10 @@ export const blogArticles = pgTable(
     wordpressPostId: integer("wordpress_post_id"),
     wordpressLink: text("wordpress_link"),
     error: text("error"),
+    // The AI reviewer's score out of 10 and what it would fix, one point per
+    // line. Cleared when the text changes, since it no longer applies.
+    aiScore: integer("ai_score"),
+    aiFeedback: text("ai_feedback"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     publishedAt: text("published_at"),

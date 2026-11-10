@@ -5,7 +5,10 @@ import {
   createBlogBrief,
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
-import { writeBlogArticle } from "@/server/features/blog/services/blogWriter";
+import {
+  reviewBlogArticle,
+  writeBlogArticle,
+} from "@/server/features/blog/services/blogWriter";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
@@ -133,3 +136,10 @@ export const writeBlogArticleWithAi = createServerFn({ method: "POST" })
     waitUntil(work.catch(() => undefined));
     return work;
   });
+
+export const reviewBlogArticleWithAi = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(blogArticleSchema)
+  .handler(({ data, context }) =>
+    reviewBlogArticle(context.project, data.articleId, context),
+  );

@@ -1,6 +1,16 @@
-import { and, asc, desc, eq, ne } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+} from "drizzle-orm";
 import { db } from "@/db";
-import { blogArticles, blogSettings, blogTopics } from "@/db/schema";
+import { blogArticles, blogSettings, blogTopics, projects } from "@/db/schema";
 
 // Every query is scoped by projectId. The server functions resolve the project
 // through requireProjectContext, which already checked it belongs to the
@@ -25,6 +35,9 @@ async function upsertSettings(
       | "wordpressUrl"
       | "wordpressUsername"
       | "wordpressPassword"
+      | "nextPostAt"
+      | "lastRunAt"
+      | "lastRunMessage"
     >
   >,
 ) {
@@ -169,6 +182,8 @@ async function updateArticle(
       | "wordpressLink"
       | "error"
       | "publishedAt"
+      | "aiScore"
+      | "aiFeedback"
     >
   >,
 ) {
@@ -194,6 +209,63 @@ async function deleteArticle(projectId: string, articleId: string) {
     );
 }
 
+/** Unused topic ideas, most searched first. */
+async function listTopicIdeas(projectId: string, limit: number) {
+  return db
+    .select()
+    .from(blogTopics)
+    .where(
+      and(eq(blogTopics.projectId, projectId), eq(blogTopics.status, "idea")),
+    )
+    .orderBy(desc(blogTopics.searchVolume))
+    .limit(limit);
+}
+
+/** Sites whose next automatic article is due, oldest first. */
+async function listDueAutoPosts(now: string, limit: number) {
+  return db
+    .select({
+      projectId: blogSettings.projectId,
+      nextPostAt: blogSettings.nextPostAt,
+      postsPerWeek: blogSettings.postsPerWeek,
+      organizationId: projects.organizationId,
+    })
+    .from(blogSettings)
+    .innerJoin(projects, eq(projects.id, blogSettings.projectId))
+    .where(
+      and(
+        gt(blogSettings.postsPerWeek, 0),
+        isNotNull(blogSettings.nextPostAt),
+        lte(blogSettings.nextPostAt, now),
+        isNull(projects.archivedAt),
+      ),
+    )
+    .orderBy(asc(blogSettings.nextPostAt))
+    .limit(limit);
+}
+
+/**
+ * Moves a due site's next post on, but only if no other run did first, so
+ * overlapping cron ticks write one article, not two.
+ */
+async function claimDueAutoPost(input: {
+  projectId: string;
+  observedNextPostAt: string;
+  nextPostAt: string;
+}) {
+  const claimed = await db
+    .update(blogSettings)
+    .set({ nextPostAt: input.nextPostAt, lastRunAt: new Date().toISOString() })
+    .where(
+      and(
+        eq(blogSettings.projectId, input.projectId),
+        eq(blogSettings.nextPostAt, input.observedNextPostAt),
+      ),
+    )
+    .returning({ projectId: blogSettings.projectId });
+  return claimed.length > 0;
+}
+
 export const BlogRepository = {
   getSettings,
   upsertSettings,
@@ -208,4 +280,7 @@ export const BlogRepository = {
   insertArticle,
   updateArticle,
   deleteArticle,
+  listTopicIdeas,
+  listDueAutoPosts,
+  claimDueAutoPost,
 } as const;

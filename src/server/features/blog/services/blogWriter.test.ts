@@ -39,7 +39,6 @@ vi.mock("@/server/billing/subscription", () => ({
 
 import { writeBlogArticle } from "./blogWriter";
 import { customer } from "@/server/features/ai-visibility/services/aiVisibilityTestFixtures";
-import { checkArticle } from "@/shared/blog-quality";
 
 const project = { id: "p1", domain: "acme.com", languageCode: "en" };
 const article = {
@@ -66,18 +65,24 @@ const reply = (title: string, content: string) => ({
   output: { title, content },
   providerMetadata: {},
 });
+const review = (score: number, problems: string[] = []) => ({
+  output: { score, problems },
+  providerMetadata: {},
+});
 
 beforeEach(() => {
   getArticle.mockResolvedValue(article);
 });
 
 describe("writeBlogArticle", () => {
-  it("revises a draft that fails checks, and saves no body H1", async () => {
+  it("revises until every check passes and the AI gives 10/10", async () => {
     generateText
       .mockResolvedValueOnce(reply("Coffee", "# Coffee roasters\n\nToo short."))
+      .mockResolvedValueOnce(review(4, ["Far too short"]))
       .mockResolvedValueOnce(
         reply(goodTitle, `# Coffee roasters intro\n\n${goodBody}`),
-      );
+      )
+      .mockResolvedValueOnce(review(10));
 
     const saved = await writeBlogArticle(
       project,
@@ -85,25 +90,42 @@ describe("writeBlogArticle", () => {
       customer,
     );
 
-    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(generateText).toHaveBeenCalledTimes(4);
     expect(saved.content).not.toMatch(/^#\s/m);
-    expect(
-      checkArticle({
-        ...saved,
-        keyword: article.keyword,
-        domain: "acme.com",
-        otherTitles: [],
-      }).passed,
-    ).toBe(11);
-    expect(updateArticle).toHaveBeenCalledWith("p1", "a1", {
-      ...saved,
-      status: "ready",
-    });
+    expect(saved).toMatchObject({ aiScore: 10, passedAllChecks: true });
+    expect(updateArticle).toHaveBeenCalledWith(
+      "p1",
+      "a1",
+      expect.objectContaining({
+        aiScore: 10,
+        aiFeedback: null,
+        status: "ready",
+      }),
+    );
+  });
+
+  it("never counts a 10 that still lists fixes as a 10", async () => {
+    // Three drafts, each reviewed: the "10" never ends the loop early.
+    for (let draft = 0; draft < 3; draft++)
+      generateText
+        .mockResolvedValueOnce(reply(goodTitle, goodBody))
+        .mockResolvedValueOnce(review(10, ["Cut the off-topic section"]));
+
+    const saved = await writeBlogArticle(
+      project,
+      { articleId: "a1", replace: false },
+      customer,
+    );
+
+    expect(saved.aiScore).toBe(9);
+    expect(saved.aiFeedback).toBe("Cut the off-topic section");
   });
 
   it("doesn't save over an article deleted while writing", async () => {
     getArticle.mockResolvedValueOnce(article).mockResolvedValueOnce(undefined);
-    generateText.mockResolvedValue(reply(goodTitle, goodBody));
+    generateText
+      .mockResolvedValueOnce(reply(goodTitle, goodBody))
+      .mockResolvedValueOnce(review(10));
 
     await expect(
       writeBlogArticle(project, { articleId: "a1", replace: false }, customer),

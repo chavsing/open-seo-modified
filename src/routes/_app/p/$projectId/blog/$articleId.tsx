@@ -1,6 +1,5 @@
 import {
   createFileRoute,
-  Link,
   useBlocker,
   useNavigate,
 } from "@tanstack/react-router";
@@ -21,6 +20,8 @@ import {
 } from "@/client/components/ui/field";
 import { Input } from "@/client/components/ui/input";
 import { Textarea } from "@/client/components/ui/textarea";
+import { AiReviewCard } from "@/client/features/blog/AiReviewCard";
+import { SendHint } from "@/client/features/blog/SendHint";
 import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
 import { blogKeys, toastBlogError } from "@/client/features/blog/blogQueries";
@@ -170,7 +171,7 @@ function ArticleEditor({
       setTitle(result.title);
       setContent(result.content);
       toast.success(
-        "Article written and saved. Read it through before sending.",
+        `Article written and saved, AI score ${result.aiScore}/10. Read it through before sending.`,
       );
     },
     onError: (error) => {
@@ -216,7 +217,9 @@ function ArticleEditor({
     otherTitles: article.otherTitles,
   });
   const hasContent = content.trim().length > 0;
-  const allPassed = quality.passed === quality.total;
+  // Publishing also needs the AI editor's 10 for the saved text.
+  const allPassed =
+    quality.passed === quality.total && article.aiScore === 10 && !dirty;
   const isLive = article.status === "published";
   const busy =
     save.isPending || send.isPending || remove.isPending || write.isPending;
@@ -280,7 +283,7 @@ function ArticleEditor({
               >
                 <Sparkles />
                 {write.isPending
-                  ? "Writing, about a minute"
+                  ? "Writing and reviewing, 1 to 2 minutes"
                   : hasContent
                     ? "Rewrite with AI"
                     : "Write with AI"}
@@ -342,28 +345,24 @@ function ArticleEditor({
               </>
             )}
           </div>
-          {!wordpressConnected && settingsQuery.isSuccess ? (
-            <p className="text-sm text-muted-foreground">
-              Connect your WordPress site in the{" "}
-              <Link
-                to="/p/$projectId/blog"
-                params={{ projectId }}
-                search={{ tab: "settings" }}
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                blog settings
-              </Link>{" "}
-              to send articles.
-            </p>
-          ) : hasContent && !allPassed ? (
-            <p className="text-sm text-muted-foreground">
-              Publishing unlocks when every quality check passes. You can still
-              send it as a draft.
-            </p>
-          ) : null}
+          <SendHint
+            projectId={projectId}
+            showConnect={!wordpressConnected && settingsQuery.isSuccess}
+            showLocked={hasContent && !allPassed}
+          />
         </div>
 
         <div className="space-y-4">
+          <AiReviewCard
+            projectId={projectId}
+            articleId={article.id}
+            aiScore={article.aiScore}
+            aiFeedback={article.aiFeedback}
+            hasContent={hasContent}
+            dirty={dirty}
+            busy={busy}
+            onReviewed={refresh}
+          />
           <ArticleSidePanel
             quality={quality}
             hasContent={hasContent}

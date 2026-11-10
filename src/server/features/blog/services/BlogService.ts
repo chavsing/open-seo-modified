@@ -87,6 +87,9 @@ async function getSettings(projectId: string) {
   return {
     publishMode: settings?.publishMode ?? "draft",
     postsPerWeek: settings?.postsPerWeek ?? 0,
+    nextPostAt: settings?.nextPostAt ?? null,
+    lastRunAt: settings?.lastRunAt ?? null,
+    lastRunMessage: settings?.lastRunMessage ?? null,
     wordpress:
       settings?.wordpressUrl && settings.wordpressUsername
         ? { url: settings.wordpressUrl, username: settings.wordpressUsername }
@@ -95,7 +98,18 @@ async function getSettings(projectId: string) {
 }
 
 async function updateSettings(projectId: string, input: UpdateBlogSettings) {
-  await BlogRepository.upsertSettings(projectId, input);
+  let nextPostAt: string | null | undefined;
+  if (input.postsPerWeek === 0) nextPostAt = null;
+  else if (input.postsPerWeek !== undefined) {
+    // Switching on starts the first article at the next run; changing the
+    // pace keeps the date already set.
+    const current = await BlogRepository.getSettings(projectId);
+    if (!current?.nextPostAt) nextPostAt = new Date().toISOString();
+  }
+  await BlogRepository.upsertSettings(projectId, {
+    ...input,
+    ...(nextPostAt !== undefined ? { nextPostAt } : {}),
+  });
   return getSettings(projectId);
 }
 
@@ -205,9 +219,14 @@ async function updateArticle(
 ) {
   const article = await requireArticle(projectId, input.articleId);
   const hasContent = input.content.trim().length > 0;
+  const title = input.title.trim();
+  const content = hasContent ? input.content : null;
+  const changed = title !== article.title || content !== article.content;
   await BlogRepository.updateArticle(projectId, article.id, {
-    title: input.title.trim(),
-    content: hasContent ? input.content : null,
+    title,
+    content,
+    // The AI score was for the old text; it needs reviewing again.
+    ...(changed ? { aiScore: null, aiFeedback: null } : {}),
     // Editing doesn't change what's on WordPress until it's sent again.
     status:
       article.status === "brief" || article.status === "ready"
@@ -250,6 +269,11 @@ async function sendToWordpress(
       throw new AppError(
         "VALIDATION_ERROR",
         `Fix the ${quality.total - quality.passed} failing quality checks before publishing, or send it as a draft.`,
+      );
+    if (article.aiScore !== 10)
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Publishing needs a 10/10 AI review of the current text. Review it with AI, or send it as a draft.",
       );
   }
   try {

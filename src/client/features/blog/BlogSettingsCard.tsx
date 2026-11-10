@@ -135,8 +135,9 @@ export function BlogSettingsCard({ projectId }: { projectId: string }) {
               <FieldContent>
                 <FieldLabel htmlFor={`${id}-auto`}>Auto-publish</FieldLabel>
                 <FieldDescription>
-                  Articles that pass every quality check go live on their own.
-                  Any article that fails is kept as a draft for you to review.
+                  Articles that pass every quality check and score 10/10 with
+                  the AI editor go live on their own. Any other article goes to
+                  WordPress as a draft for you to review.
                 </FieldDescription>
               </FieldContent>
             </Field>
@@ -167,15 +168,60 @@ export function BlogSettingsCard({ projectId }: { projectId: string }) {
               </SelectContent>
             </Select>
             <FieldDescription>
-              Automatic writing starts once AI writing is switched on for your
-              account. Until then you can create briefs and write articles
-              yourself.
+              Each article picks your best unused topic idea, researches it,
+              writes it and has it reviewed by AI. It uses your usage credits,
+              about 2 to 3 cents per article. Needs WordPress connected below.
             </FieldDescription>
           </Field>
+          <AutoPostStatus settings={settings} />
         </CardContent>
       </Card>
 
       <WordpressCard projectId={projectId} connection={settings.wordpress} />
+    </div>
+  );
+}
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+/** When the next automatic article is due, and what the last run did. */
+function AutoPostStatus({
+  settings,
+}: {
+  settings: {
+    postsPerWeek: number;
+    nextPostAt: string | null;
+    lastRunAt: string | null;
+    lastRunMessage: string | null;
+  };
+}) {
+  if (settings.postsPerWeek === 0 && !settings.lastRunMessage) return null;
+  const nextIsDue =
+    settings.nextPostAt !== null &&
+    new Date(settings.nextPostAt).getTime() <= Date.now();
+  return (
+    <div className="space-y-1 rounded-md border border-border bg-muted/40 p-3 text-sm">
+      {settings.postsPerWeek > 0 && settings.nextPostAt ? (
+        <p>
+          <span className="font-medium">Next article:</span>{" "}
+          {nextIsDue
+            ? "within the next few minutes"
+            : when(settings.nextPostAt)}
+        </p>
+      ) : (
+        <p className="text-muted-foreground">Automatic writing is off.</p>
+      )}
+      {settings.lastRunMessage ? (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Last run</span>
+          {settings.lastRunAt ? ` (${when(settings.lastRunAt)})` : ""}:{" "}
+          {settings.lastRunMessage}
+        </p>
+      ) : null}
     </div>
   );
 }
