@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Archive, Plus, X } from "lucide-react";
+import { Archive, ArrowLeft, Plus, X } from "lucide-react";
 import { archiveSamSession } from "@/serverFunctions/sam";
 import {
   invalidateSamSessions,
@@ -76,6 +76,27 @@ function ageLabel(timestamp: string): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
+// The chat list takes the menu's place, so this is the way back to it.
+function BackToMenu({
+  projectId,
+  onNavigate,
+}: {
+  projectId: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      to="/p/$projectId"
+      params={{ projectId }}
+      onClick={onNavigate}
+      className="mx-2 mb-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+    >
+      <ArrowLeft className="size-4" />
+      Back to menu
+    </Link>
+  );
+}
+
 /** The chat list's rows while the chats load. */
 export function SamChatListSkeleton() {
   return (
@@ -127,14 +148,18 @@ export function SamSidebarPanel({
   // chat list that can be used yet.
   if (!optedIn) {
     return (
-      <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-        Your chats will show here once you opt in to the beta.
-      </p>
+      <>
+        <BackToMenu projectId={projectId} onNavigate={onNavigate} />
+        <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+          Your chats will show here once you opt in to the beta.
+        </p>
+      </>
     );
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <BackToMenu projectId={projectId} onNavigate={onNavigate} />
       <div className="px-2 pb-1">
         {/* Ghost row styled like a list item so the sidebar header doesn't
             stack three heavy full-width controls. */}

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   PenLine,
   Search,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { linkOptions } from "@tanstack/react-router";
@@ -91,6 +92,11 @@ const projectNavItems = [
     label: "Context",
     icon: Brain,
   },
+  {
+    to: "/p/$projectId/sam" as const,
+    label: "AI Assistant (beta)",
+    icon: Sparkles,
+  },
 ] as const;
 
 // Project-independent. Rendered inside the project "AI Tools" group when a project
@@ -158,6 +164,7 @@ export function getProjectNavGroups(projectId: string) {
     {
       label: "AI Tools",
       items: [
+        byPath("/p/$projectId/sam"),
         byPath("/p/$projectId/blog"),
         byPath("/p/$projectId/reports"),
         byPath("/p/$projectId/context"),

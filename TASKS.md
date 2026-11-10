@@ -5,28 +5,38 @@ done list at the bottom with the date.
 
 ## In progress
 
-- [ ] **Microsoft sign-in.** The client creates his free Azure account
-  (needs a card for identity only). Then register the AGS MASTER app, save the
-  client ID and secret to `.env.saas`, redeploy, and test "Continue with
-  Microsoft" live with a personal Outlook account and a work account.
+- None.
+
+## Later, if the client wants company customers
+
+- [ ] Microsoft publisher verification, to remove the "unverified" label.
+  Needs the client's Microsoft AI Cloud Partner Program sign-up, a business
+  email on agsmaster.com and a domain proof file on the site. Without it,
+  some companies block their staff from signing in with Microsoft.
 
 ## Jamil
 
-- [ ] Sign in to the live app and check the Blog Generator and the "AI agent
-  coming soon" page.
-- [ ] Get the OpenRouter AI key. It unlocks the AI agent, AI writing in the
-  Blog Generator and automatic setup for new websites.
-- [ ] Provide a test WordPress site on https with an application password.
-- [ ] Decide whether to build automatic setup for new websites (see below).
+- [ ] Renew the Microsoft sign-in secret before 2028-11-10, or Microsoft
+  sign-in stops working.
 
-## Claude, waiting on the OpenRouter key
+- [ ] Provide a test WordPress site on https with an application password
+  (the client's own site, or a free InstaWP sandbox).
+- [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
+  consider auto top-up.
 
-- [ ] Test "Write with AI" for real: write two or three articles, check
-  quality and the cost per article, and tune the instructions if needed.
-- [ ] AI quality reviewer on top of the 11 rule checks.
+## Claude, next (OpenRouter key is in)
+
+- [ ] Deploy the "AI Assistant (beta)" menu link (built and checked locally).
+- [ ] AI quality reviewer on top of the 11 rule checks: scores the writing
+  out of 10, rewrites until 10/10, otherwise keeps the article as a draft
+  and never auto-publishes it. Also tell the writer to skip questions that
+  don't fit the business (the first test article answered "Who supplies
+  Dunkin' coffee?" for a coffee roaster).
+- [ ] "New article" button: type a keyword, get a brief, no topic search
+  needed.
 - [ ] Automatic schedule: write and send posts at the per-site "posts per
   week" setting (saved but not acting yet).
-- [ ] Automatic setup for new websites, if approved: find competitors, find
+- [ ] Automatic setup for new websites (approved 2026-11-11): find competitors, find
   blog topics and start tracking keywords when a site is added, and show the
   results on the dashboard instead of the manual "Get started" checklist.
   The first site audit already starts by itself. About 10 to 20 cents per
@@ -39,8 +49,9 @@ done list at the bottom with the date.
 
 ## Waiting on the client
 
-- [ ] Legal page details: business name, country and refund policy. Then fill
-  in and publish the Privacy and Terms pages.
+- Nothing outstanding. If the client later registers a business name, swap
+  it into both legal pages in place of "Bryan Dave Sumait, doing business as
+  AGS MASTER" and redeploy the landing site.
 
 ## Done
 
@@ -58,6 +69,20 @@ done list at the bottom with the date.
   Nothing to fix.
 - 2026-11-10: AI writer button and clearer error messages committed,
   pushed and deployed. Confirmed the live site serves the new editor.
+- 2026-11-11: "Write with AI" tested with the real AI key: two articles,
+  about 25 seconds and about 1,200 words each, 10/10 on the rule checks,
+  3 credits ($0.003) each. One read well, one was generic in places.
+- 2026-11-11: AI key added to the live app; the built-in AI chat answers.
+- 2026-11-10: Privacy Policy and Terms of Service written and live at
+  agsmaster.com/privacy and agsmaster.com/terms. Philippines law, the
+  30-day money-back guarantee the app already shows, and the Blog
+  Generator and AI features covered. Run by Bryan Dave Sumait, doing
+  business as AGS MASTER.
+- 2026-11-10: Azure sign-in screen branded: logo, home page, Terms and
+  Privacy links.
+- 2026-11-10: Microsoft sign-in live. App registered in the client's Azure,
+  deployed, and tested with a personal Microsoft account: permission screen
+  on first sign-in, straight in after that. Work account not tested.
 - 2026-11-09: Checked automatic first audit: it already runs when a website
   is added to a project.
 
