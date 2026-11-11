@@ -94,9 +94,7 @@ export function PlanPaymentAction({ offer }: { offer: PlanOffer }) {
           />
         }
       >
-        {offer.billing === "yearly"
-          ? "Pay for a year with PayPal"
-          : "Pay once with PayPal"}
+        {offer.billing === "yearly" ? "Pay for a year here" : "Pay once here"}
       </Button>
     );
   }
