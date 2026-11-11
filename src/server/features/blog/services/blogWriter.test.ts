@@ -68,8 +68,12 @@ const reply = (title: string, content: string) => ({
   output: { title, content, metaDescription },
   providerMetadata: {},
 });
-const review = (score: number, problems: string[] = []) => ({
-  output: { score, problems },
+const review = (
+  score: number,
+  mustFix: string[] = [],
+  suggestions: string[] = [],
+) => ({
+  output: { score, mustFix, suggestions },
   providerMetadata: {},
 });
 
@@ -78,7 +82,7 @@ beforeEach(() => {
 });
 
 describe("writeBlogArticle", () => {
-  it("revises until every check passes and the AI gives 10/10", async () => {
+  it("revises until every check passes with nothing must-fix", async () => {
     generateText
       .mockResolvedValueOnce(reply("Coffee", "# Coffee roasters\n\nToo short."))
       .mockResolvedValueOnce(review(4, ["Far too short"]))
@@ -107,7 +111,7 @@ describe("writeBlogArticle", () => {
     );
   });
 
-  it("never counts a 10 that still lists fixes as a 10", async () => {
+  it("keeps a draft with anything must-fix below the publishing bar", async () => {
     // Three drafts, each reviewed: the "10" never ends the loop early.
     for (let draft = 0; draft < 3; draft++)
       generateText
@@ -120,8 +124,28 @@ describe("writeBlogArticle", () => {
       customer,
     );
 
-    expect(saved.aiScore).toBe(9);
+    expect(saved.aiScore).toBe(8);
     expect(saved.aiFeedback).toBe("Cut the off-topic section");
+  });
+
+  it("stops at a 9 with only suggestions, which can be published", async () => {
+    generateText
+      .mockResolvedValueOnce(reply(goodTitle, goodBody))
+      .mockResolvedValueOnce(review(9, [], ["Add a brewing example"]));
+
+    const saved = await writeBlogArticle(
+      project,
+      { articleId: "a1", replace: false },
+      customer,
+    );
+
+    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(saved).toMatchObject({
+      aiScore: 9,
+      aiFeedback: null,
+      aiSuggestions: "Add a brewing example",
+      passedAllChecks: true,
+    });
   });
 
   it("doesn't save over an article deleted while writing", async () => {

@@ -75,7 +75,7 @@ describe("checkArticle", () => {
     expect(failed(article({ content: stuffed }))).toContain("keyword_density");
   });
 
-  it("holds the article to the brief's length and related searches", () => {
+  it("holds the article to the brief's target length", () => {
     const brief = [
       "- **Target length:** about 2,000 words",
       "",
@@ -83,16 +83,7 @@ describe("checkArticle", () => {
       "- grinder for espresso",
       "- quiet grinder",
     ].join("\n");
-    expect(failed(article({ brief }))).toEqual([
-      "word_count",
-      "related_searches",
-    ]);
-  });
-
-  it("doesn't count map searches such as near me toward related searches", () => {
-    const brief = "## Related searches\n- grinder near me\n- burr grinder";
-    // Only "burr grinder" is eligible, and the article uses it.
-    expect(failed(article({ brief }))).toEqual([]);
+    expect(failed(article({ brief }))).toEqual(["word_count"]);
   });
 
   it("requires a link to the project's own site", () => {

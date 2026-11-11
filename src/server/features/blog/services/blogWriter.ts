@@ -26,15 +26,18 @@ import {
   isHostedServerAuthMode,
 } from "@/server/lib/runtime-env";
 import {
+  draftSchema,
   REVIEW_RUBRIC,
+  reviewSchema,
   RULES,
+  toReview,
+  type Review,
 } from "@/server/features/blog/services/blogWriterRules";
 import {
+  PUBLISH_MIN_SCORE,
   briefFacts,
   checkArticle,
   lengthRange,
-  META_MAX_CHARS,
-  META_MIN_CHARS,
 } from "@/shared/blog-quality";
 
 type WriterProject = Pick<EnsuredProject, "id" | "domain" | "languageCode">;
@@ -44,25 +47,7 @@ type Draft = { title: string; content: string; metaDescription: string };
 // an article costs at most six AI calls.
 const MAX_DRAFTS = 3;
 
-const draftSchema = z.object({
-  title: z.string().describe("30 to 65 characters, contains the keyword"),
-  content: z
-    .string()
-    .describe("The article body in Markdown, starting at ## headings"),
-  metaDescription: z
-    .string()
-    .describe(
-      `${META_MIN_CHARS} to ${META_MAX_CHARS} characters, contains the keyword`,
-    ),
-});
-
-const reviewSchema = z.object({
-  score: z.number().int().min(1).max(10),
-  problems: z
-    .array(z.string())
-    .max(5)
-    .describe("Each a concrete fix. Empty only for a 10."),
-});
+const lines = (items: string[]) => (items.length ? items.join("\n") : null);
 
 function requireDomain(project: WriterProject): string {
   if (!project.domain)
@@ -116,7 +101,7 @@ async function openAi(customer: BillingCustomerContext) {
     keyword: string,
     draft: Draft,
     business: BusinessContext,
-  ): Promise<{ score: number; problems: string[] }> => {
+  ): Promise<Review> => {
     const result = await generateText({
       model,
       output: Output.object({ schema: reviewSchema }),
@@ -131,11 +116,7 @@ async function openAi(customer: BillingCustomerContext) {
       }),
       onStepFinish: onStepFinish("blog_article_review"),
     });
-    const parsed = reviewSchema.parse(result.output);
-    const problems = parsed.problems.map((p) => p.trim()).filter(Boolean);
-    // A 10 means nothing left to fix; a model that lists fixes didn't mean it.
-    const score = problems.length ? Math.min(parsed.score, 9) : parsed.score;
-    return { score, problems };
+    return toReview(reviewSchema.parse(result.output));
   };
 
   return { model, spend, onStepFinish, review };
@@ -143,8 +124,8 @@ async function openAi(customer: BillingCustomerContext) {
 
 /**
  * Writes the article from its research brief and saves it. Each draft is
- * checked against the 11 rules in code and scored by an AI reviewer; a draft
- * short of all 11 and a 10/10 is revised with both lists of problems, up to
+ * checked against the rules in code and scored by an AI reviewer; a draft that
+ * fails a rule or has anything must-fix is revised with both lists, up to
  * MAX_DRAFTS. The best draft is kept, with its score, so the editor shows what
  * is still missing. A prompt alone can't guarantee the rules, hence the checks.
  */
@@ -156,6 +137,7 @@ export async function writeBlogArticle(
   Draft & {
     aiScore: number;
     aiFeedback: string | null;
+    aiSuggestions: string | null;
     passedAllChecks: boolean;
   }
 > {
@@ -245,15 +227,17 @@ export async function writeBlogArticle(
     );
     for (
       let attempt = 1;
-      attempt < MAX_DRAFTS && !(best.passedAllChecks && best.score === 10);
+      attempt < MAX_DRAFTS &&
+      !(best.passedAllChecks && best.score >= PUBLISH_MIN_SCORE);
       attempt++
     ) {
       const revised = await assess(
         await generate(
           JSON.stringify({
-            task: "Revise this draft so it passes the failed checks and fixes the editor's problems. Keep everything else.",
+            task: "Revise this draft so it passes the failed checks and fixes every editorMustFix item. Apply editorSuggestions where they don't make it worse. Keep everything else.",
             failedChecks: best.failedChecks,
-            editorProblems: best.problems,
+            editorMustFix: best.problems,
+            editorSuggestions: best.suggestions,
             keyword: article.keyword,
             brief: article.brief,
             relatedSearches: facts.relatedSearches,
@@ -279,11 +263,13 @@ export async function writeBlogArticle(
         "NOT_FOUND",
         "That article was deleted while writing.",
       );
-    const aiFeedback = best.problems.length ? best.problems.join("\n") : null;
+    const aiFeedback = lines(best.problems);
+    const aiSuggestions = lines(best.suggestions);
     await BlogRepository.updateArticle(project.id, article.id, {
       ...best.draft,
       aiScore: best.score,
       aiFeedback,
+      aiSuggestions,
       // Writing doesn't change what's on WordPress until it's sent again.
       status:
         current.status === "brief" || current.status === "ready"
@@ -294,6 +280,7 @@ export async function writeBlogArticle(
       ...best.draft,
       aiScore: best.score,
       aiFeedback,
+      aiSuggestions,
       passedAllChecks: best.passedAllChecks,
     };
   } finally {
@@ -306,7 +293,11 @@ export async function reviewBlogArticle(
   project: WriterProject,
   articleId: string,
   customer: BillingCustomerContext,
-): Promise<{ aiScore: number; aiFeedback: string | null }> {
+): Promise<{
+  aiScore: number;
+  aiFeedback: string | null;
+  aiSuggestions: string | null;
+}> {
   const domain = requireDomain(project);
   const article = await requireArticle(project.id, articleId);
   if (!article.content?.trim())
@@ -326,9 +317,8 @@ export async function reviewBlogArticle(
       },
       await businessContext(project.id),
     );
-    const aiFeedback = review.problems.length
-      ? review.problems.join("\n")
-      : null;
+    const aiFeedback = lines(review.problems);
+    const aiSuggestions = lines(review.suggestions);
     // Only store the score if the text is still the one reviewed.
     const current = await BlogRepository.getArticle(project.id, article.id);
     if (
@@ -340,8 +330,9 @@ export async function reviewBlogArticle(
       await BlogRepository.updateArticle(project.id, article.id, {
         aiScore: review.score,
         aiFeedback,
+        aiSuggestions,
       });
-    return { aiScore: review.score, aiFeedback };
+    return { aiScore: review.score, aiFeedback, aiSuggestions };
   } finally {
     await billResearchSpend(customer, ai.spend);
   }

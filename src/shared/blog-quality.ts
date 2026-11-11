@@ -7,11 +7,12 @@ const MIN_ARTICLE_WORDS = 800;
 const MAX_PARAGRAPH_WORDS = 150;
 const TITLE_MIN_CHARS = 30;
 const TITLE_MAX_CHARS = 65;
+/** The AI editor score an article needs to go live, with nothing must-fix. */
+export const PUBLISH_MIN_SCORE = 9;
 export const META_MIN_CHARS = 120;
 export const META_MAX_CHARS = 160;
 // More than this share of the words being the keyword reads as stuffing.
 const MAX_KEYWORD_DENSITY = 0.03;
-const MIN_RELATED_SEARCHES = 2;
 
 // Leftover template text or model chatter that must never be published.
 const PLACEHOLDER_PATTERNS = [
@@ -180,7 +181,7 @@ export function checkArticle(input: {
   /** The search-result summary sent to WordPress as the post excerpt. */
   metaDescription: string;
   keyword: string;
-  /** The research brief, for the target length and related searches. */
+  /** The research brief, for the target length. */
   brief: string;
   /** The project's own domain, for the internal link rule. */
   domain: string | null;
@@ -216,13 +217,6 @@ ${content}`),
   const density = bodyWords.length
     ? (phraseCount(plain, keyword) * keywordWords) / bodyWords.length
     : 0;
-  const relatedUsed = facts.relatedSearches.filter(
-    (search) => phraseCount(plain, search) > 0,
-  );
-  const relatedNeeded = Math.min(
-    MIN_RELATED_SEARCHES,
-    facts.relatedSearches.length,
-  );
   const meta = input.metaDescription.trim();
 
   const checks: ArticleCheck[] = [
@@ -291,14 +285,6 @@ ${content}`),
       label: `No paragraph longer than ${MAX_PARAGRAPH_WORDS} words`,
       passed: longestParagraph <= MAX_PARAGRAPH_WORDS,
       detail: `Longest is ${longestParagraph} words`,
-    },
-    {
-      id: "related_searches",
-      label: `Uses at least ${relatedNeeded} of the related searches from the brief`,
-      passed: relatedUsed.length >= relatedNeeded,
-      detail: facts.relatedSearches.length
-        ? `${relatedUsed.length} used`
-        : "None in the brief",
     },
     {
       id: "keyword_density",

@@ -10,16 +10,21 @@ import {
 } from "@/client/components/ui/card";
 import { toastBlogError } from "@/client/features/blog/blogQueries";
 import { reviewBlogArticleWithAi } from "@/serverFunctions/blog";
+import { PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
 /**
- * The AI editor's score for the saved text and what it would fix. Publishing
- * needs a 10, and an edit clears the score, so this is where it is renewed.
+ * The AI editor's score for the saved text, what must be fixed and what could
+ * be better. Publishing needs nothing must-fix and at least PUBLISH_MIN_SCORE,
+ * and an edit clears the score, so this is where it is renewed.
  */
+const toList = (text: string | null) => text?.split("\n").filter(Boolean) ?? [];
+
 export function AiReviewCard({
   projectId,
   articleId,
   aiScore,
   aiFeedback,
+  aiSuggestions,
   hasContent,
   dirty,
   busy,
@@ -29,6 +34,7 @@ export function AiReviewCard({
   articleId: string;
   aiScore: number | null;
   aiFeedback: string | null;
+  aiSuggestions: string | null;
   hasContent: boolean;
   /** Unsaved edits: the review reads the saved text, so save first. */
   dirty: boolean;
@@ -50,8 +56,10 @@ export function AiReviewCard({
         NOT_FOUND: "This article no longer exists.",
       }),
   });
-  const problems = aiFeedback?.split("\n").filter(Boolean) ?? [];
+  const mustFix = toList(aiFeedback);
+  const suggestions = toList(aiSuggestions);
   const scored = aiScore !== null && !dirty;
+  const bar = `Publishing needs nothing must-fix and at least ${PUBLISH_MIN_SCORE}/10.`;
 
   return (
     <Card>
@@ -67,8 +75,7 @@ export function AiReviewCard({
       <CardContent className="space-y-3 text-sm">
         {!hasContent ? (
           <p className="text-muted-foreground">
-            An AI editor scores the article once it is written. Publishing needs
-            a 10.
+            An AI editor scores the article once it is written. {bar}
           </p>
         ) : dirty ? (
           <p className="text-muted-foreground">
@@ -76,16 +83,18 @@ export function AiReviewCard({
           </p>
         ) : aiScore === null ? (
           <p className="text-muted-foreground">
-            Not reviewed since the last change. Publishing needs a 10.
+            Not reviewed since the last change. {bar}
           </p>
-        ) : problems.length ? (
-          <ul className="list-disc space-y-1.5 pl-4">
-            {problems.map((problem) => (
-              <li key={problem}>{problem}</li>
-            ))}
-          </ul>
         ) : (
-          <p className="text-muted-foreground">Ready to publish.</p>
+          <>
+            {aiScore >= PUBLISH_MIN_SCORE && mustFix.length === 0 ? (
+              <p className="font-medium text-success">
+                Nothing must be fixed. Ready to publish.
+              </p>
+            ) : null}
+            <FeedbackList title="Must fix before publishing" items={mustFix} />
+            <FeedbackList title="Could be better" items={suggestions} />
+          </>
         )}
         {hasContent ? (
           <Button
@@ -101,5 +110,19 @@ export function AiReviewCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+function FeedbackList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="font-medium">{title}</p>
+      <ul className="list-disc space-y-1.5 pl-4">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

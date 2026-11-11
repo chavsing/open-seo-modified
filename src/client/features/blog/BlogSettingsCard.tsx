@@ -36,6 +36,7 @@ import {
   testWordpress,
   updateBlogSettings,
 } from "@/serverFunctions/blog";
+import { PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 import { POSTS_PER_WEEK_OPTIONS } from "@/types/schemas/blog";
 import { blogKeys } from "./blogQueries";
 
@@ -135,9 +136,10 @@ export function BlogSettingsCard({ projectId }: { projectId: string }) {
               <FieldContent>
                 <FieldLabel htmlFor={`${id}-auto`}>Auto-publish</FieldLabel>
                 <FieldDescription>
-                  Articles that pass every quality check and score 10/10 with
-                  the AI editor go live on their own. Any other article goes to
-                  WordPress as a draft for you to review.
+                  Articles that pass every quality check, have nothing the AI
+                  editor marks as must-fix and score at least{" "}
+                  {PUBLISH_MIN_SCORE}/10 go live on their own. Any other article
+                  goes to WordPress as a draft for you to review.
                 </FieldDescription>
               </FieldContent>
             </Field>

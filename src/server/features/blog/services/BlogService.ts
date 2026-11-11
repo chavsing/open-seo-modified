@@ -9,7 +9,7 @@ import { markdownToHtml } from "@/server/features/blog/services/markdownToHtml";
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { AppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
-import { checkArticle } from "@/shared/blog-quality";
+import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 import type { EnsuredProject } from "@/middleware/ensure-user/types";
 import type {
   ConnectWordpress,
@@ -245,7 +245,9 @@ async function updateArticle(
     content,
     metaDescription,
     // The AI score was for the old text; it needs reviewing again.
-    ...(changed ? { aiScore: null, aiFeedback: null } : {}),
+    ...(changed
+      ? { aiScore: null, aiFeedback: null, aiSuggestions: null }
+      : {}),
     // Editing doesn't change what's on WordPress until it's sent again.
     status:
       article.status === "brief" || article.status === "ready"
@@ -289,10 +291,10 @@ async function sendToWordpress(
         "VALIDATION_ERROR",
         `Fix the ${quality.total - quality.passed} failing quality checks before publishing, or send it as a draft.`,
       );
-    if (article.aiScore !== 10)
+    if ((article.aiScore ?? 0) < PUBLISH_MIN_SCORE)
       throw new AppError(
         "VALIDATION_ERROR",
-        "Publishing needs a 10/10 AI review of the current text. Review it with AI, or send it as a draft.",
+        `Publishing needs an AI review of the current text with nothing must-fix and a score of at least ${PUBLISH_MIN_SCORE}/10. Review it with AI, or send it as a draft.`,
       );
   }
   try {

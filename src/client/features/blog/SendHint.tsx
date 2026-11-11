@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
 /** Under the editor's send buttons: why sending or publishing is off. */
 export function SendHint({
@@ -28,8 +29,9 @@ export function SendHint({
   if (showLocked)
     return (
       <p className="text-sm text-muted-foreground">
-        Publishing unlocks when every quality check passes and the AI review
-        gives the saved text 10/10. You can still send it as a draft.
+        Publishing unlocks when every quality check passes and the AI review of
+        the saved text finds nothing must-fix and scores at least{" "}
+        {PUBLISH_MIN_SCORE}/10. You can still send it as a draft.
       </p>
     );
   return null;

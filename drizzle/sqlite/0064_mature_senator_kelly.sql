@@ -1,0 +1,1 @@
+ALTER TABLE `blog_articles` ADD `ai_suggestions` text;

@@ -1,4 +1,5 @@
 import { BlogRepository } from "@/server/features/blog/repositories/BlogRepository";
+import { PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 import {
   createBlogBrief,
   findBlogTopics,
@@ -81,7 +82,8 @@ async function pickTopic(
  * One automatic article for one site: the best unused topic (researching new
  * ones when none are left), its brief, the article, then WordPress. It goes
  * live only when the site is on Auto-publish and the article passed all 11
- * checks and a 10/10 AI review; anything else is sent as a draft.
+ * checks and an AI review with nothing must-fix (at least PUBLISH_MIN_SCORE);
+ * anything else is sent as a draft.
  */
 async function postForSite(projectId: string, organizationId: string) {
   const project = await ProjectRepository.getProjectForOrganization(
@@ -112,7 +114,7 @@ async function postForSite(projectId: string, organizationId: string) {
   const publish =
     settings.publishMode === "auto" &&
     article.passedAllChecks &&
-    article.aiScore === 10;
+    article.aiScore >= PUBLISH_MIN_SCORE;
   const written = `Wrote "${article.title}" (AI score ${article.aiScore}/10)`;
   try {
     await BlogService.sendToWordpress(project, { articleId, publish });
@@ -121,7 +123,7 @@ async function postForSite(projectId: string, organizationId: string) {
   }
   if (publish) return `${written} and published it.`;
   if (settings.publishMode === "auto")
-    return `${written} and sent it as a draft, because it didn't reach 10/10 on every check.`;
+    return `${written} and sent it as a draft, because it didn't pass every check with nothing must-fix and at least ${PUBLISH_MIN_SCORE}/10.`;
   return `${written} and sent it to WordPress as a draft.`;
 }
 

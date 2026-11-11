@@ -59,6 +59,13 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-12: New publishing rule (approved by Jamil for the client): an
+  article goes live only when every code check passes, the AI editor marks
+  nothing as must-fix, and it scores at least 9/10. The editor now lists
+  "must fix" and "could be better" separately. Google's related searches
+  became a suggestion instead of a hard check (14 code checks), because
+  forcing them in read as filler. Two real AI test articles scored 9/10
+  with nothing must-fix on the first draft.
 - 2026-11-12: Live automatic posting test passed. On the Default project
   (bluebottlecoffee.com, competitor stumptowncoffee.com) the schedule picked
   "coffee roasters", wrote it, the AI editor gave 7/10, and it arrived in a

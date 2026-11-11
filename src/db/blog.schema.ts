@@ -93,6 +93,9 @@ export const blogArticles = sqliteTable(
     // line. Cleared when the text changes, since it no longer applies.
     aiScore: integer("ai_score"),
     aiFeedback: text("ai_feedback"),
+    // The editor's nice-to-have improvements, one per line. Unlike
+    // aiFeedback (must-fix), they don't block publishing.
+    aiSuggestions: text("ai_suggestions"),
     // The search-result summary, sent to WordPress as the post excerpt.
     metaDescription: text("meta_description"),
     createdAt: text("created_at").notNull(),

@@ -34,7 +34,7 @@ import {
   updateBlogArticle,
   writeBlogArticleWithAi,
 } from "@/serverFunctions/blog";
-import { checkArticle } from "@/shared/blog-quality";
+import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
 export const Route = createFileRoute("/_app/p/$projectId/blog/$articleId")({
   component: BlogArticleRoute,
@@ -223,9 +223,11 @@ function ArticleEditor({
     otherTitles: article.otherTitles,
   });
   const hasContent = content.trim().length > 0;
-  // Publishing also needs the AI editor's 10 for the saved text.
+  // Publishing also needs the AI editor's pass for the saved text.
   const allPassed =
-    quality.passed === quality.total && article.aiScore === 10 && !dirty;
+    quality.passed === quality.total &&
+    (article.aiScore ?? 0) >= PUBLISH_MIN_SCORE &&
+    !dirty;
   const isLive = article.status === "published";
   const busy =
     save.isPending || send.isPending || remove.isPending || write.isPending;
@@ -369,6 +371,7 @@ function ArticleEditor({
             articleId={article.id}
             aiScore={article.aiScore}
             aiFeedback={article.aiFeedback}
+            aiSuggestions={article.aiSuggestions}
             hasContent={hasContent}
             dirty={dirty}
             busy={busy}

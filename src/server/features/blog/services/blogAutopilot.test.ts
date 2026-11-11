@@ -76,10 +76,10 @@ beforeEach(() => {
 });
 
 describe("runScheduledBlogPosts", () => {
-  it("sends an Auto-publish article below 10/10 as a draft, never live", async () => {
+  it("sends an Auto-publish article below the publishing bar as a draft", async () => {
     writeBlogArticle.mockResolvedValueOnce({
       title: "Coffee roasters",
-      aiScore: 9,
+      aiScore: 8,
       passedAllChecks: true,
     });
 
