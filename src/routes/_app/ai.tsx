@@ -9,6 +9,8 @@ import {
   CardTitle,
 } from "@/client/components/ui/card";
 import { PageHeader } from "@/client/components/PageHeader";
+import { Button } from "@/client/components/ui/button";
+import { GrokIcon } from "@/client/features/ai-mcp/AgentIcons";
 import { ShieldAlert } from "lucide-react";
 import { getAuthMode } from "@/lib/auth-mode";
 import { captureClientEvent } from "@/client/lib/posthog";
@@ -21,6 +23,9 @@ import { BRAND_NAME } from "@/shared/brand";
 // deployments behind Cloudflare Access ever show it.
 const CLOUDFLARE_ACCESS_GUIDE_URL =
   "https://openseo.so/docs/self-hosting/cloudflare#connect-the-mcp-server-through-cloudflare-access";
+
+// The client's own Grok bot on x.ai, already set up to use this service.
+const GROK_BOT_URL = "https://x.ai/bot/rXDkBT6jP6Mqgvkq8txnk";
 
 export const Route = createFileRoute("/_app/ai")({
   component: AiPage,
@@ -100,6 +105,24 @@ function AiPage() {
             successMessage="MCP URL copied"
             onCopy={() => captureClientEvent("mcp:setup_url_copy")}
           />
+        </div>
+
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            size="lg"
+            nativeButton={false}
+            render={
+              <a
+                href={GROK_BOT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            <GrokIcon />
+            Set up your Grok bot here
+          </Button>
         </div>
       </div>
     </div>
