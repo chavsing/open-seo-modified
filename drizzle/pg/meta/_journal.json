@@ -288,6 +288,13 @@
       "when": 1794339078613,
       "tag": "0040_complex_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794406529307,
+      "tag": "0041_amused_blink",
+      "breakpoints": true
     }
   ]
 }

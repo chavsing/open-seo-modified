@@ -102,6 +102,7 @@ export const updateBlogArticle = createServerFn({ method: "POST" })
       articleId: data.articleId,
       title: data.title,
       content: data.content,
+      metaDescription: data.metaDescription,
     }),
   );
 

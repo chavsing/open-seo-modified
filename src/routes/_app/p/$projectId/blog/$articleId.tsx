@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sparkles, Trash2 } from "lucide-react";
-import { ConfirmDialog } from "@/client/components/ConfirmDialog";
 import { BackLink, PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { SafeExternalLink } from "@/client/components/SafeExternalLink";
@@ -21,6 +20,8 @@ import {
 import { Input } from "@/client/components/ui/input";
 import { Textarea } from "@/client/components/ui/textarea";
 import { AiReviewCard } from "@/client/features/blog/AiReviewCard";
+import { ArticleConfirmDialogs } from "@/client/features/blog/ArticleConfirmDialogs";
+import { MetaDescriptionField } from "@/client/features/blog/MetaDescriptionField";
 import { SendHint } from "@/client/features/blog/SendHint";
 import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
@@ -34,7 +35,6 @@ import {
   writeBlogArticleWithAi,
 } from "@/serverFunctions/blog";
 import { checkArticle } from "@/shared/blog-quality";
-import { BRAND_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_app/p/$projectId/blog/$articleId")({
   component: BlogArticleRoute,
@@ -94,6 +94,7 @@ function ArticleEditor({
   const navigate = useNavigate();
   const [title, setTitle] = useState(article.title);
   const [content, setContent] = useState(article.content ?? "");
+  const [meta, setMeta] = useState(article.metaDescription ?? "");
   const [confirm, setConfirm] = useState<"publish" | "delete" | "write" | null>(
     null,
   );
@@ -103,7 +104,11 @@ function ArticleEditor({
   });
 
   // Compared with what the server holds, so undoing an edit clears it.
-  const dirty = title !== article.title || content !== (article.content ?? "");
+  const dirty =
+    title !== article.title ||
+    content !== (article.content ?? "") ||
+    meta.trim() !== (article.metaDescription ?? "");
+  const edits = { title, content, metaDescription: meta };
   useBlocker({
     shouldBlockFn: () =>
       !window.confirm("You have unsaved changes. Leave without saving?"),
@@ -122,7 +127,7 @@ function ArticleEditor({
   const save = useMutation({
     mutationFn: () =>
       updateBlogArticle({
-        data: { projectId, articleId: article.id, title, content },
+        data: { projectId, articleId: article.id, ...edits },
       }),
     onSuccess: async () => {
       await refresh();
@@ -135,7 +140,7 @@ function ArticleEditor({
       // Send what's on screen, not an older saved copy.
       if (dirty)
         await updateBlogArticle({
-          data: { projectId, articleId: article.id, title, content },
+          data: { projectId, articleId: article.id, ...edits },
         });
       return sendBlogArticle({
         data: { projectId, articleId: article.id, publish },
@@ -170,6 +175,7 @@ function ArticleEditor({
       await refresh();
       setTitle(result.title);
       setContent(result.content);
+      setMeta(result.metaDescription);
       toast.success(
         `Article written and saved, AI score ${result.aiScore}/10. Read it through before sending.`,
       );
@@ -210,9 +216,9 @@ function ArticleEditor({
   });
 
   const quality = checkArticle({
-    title,
-    content,
+    ...edits,
     keyword: article.keyword,
+    brief: article.brief,
     domain: article.projectDomain,
     otherTitles: article.otherTitles,
   });
@@ -304,6 +310,11 @@ function ArticleEditor({
               sections at ##.
             </FieldDescription>
           </Field>
+          <MetaDescriptionField
+            value={meta}
+            onChange={setMeta}
+            disabled={write.isPending}
+          />
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -371,45 +382,19 @@ function ArticleEditor({
         </div>
       </div>
 
-      {confirm === "publish" ? (
-        <ConfirmDialog
-          title={isLive ? "Update the live post?" : "Publish this article?"}
-          confirmLabel={isLive ? "Update live post" : "Publish now"}
-          pending={send.isPending}
-          onConfirm={() => send.mutate(true)}
-          onClose={() => setConfirm(null)}
-        >
-          {isLive
-            ? "The post on your WordPress site will be replaced with this version."
-            : "It goes live on your WordPress site straight away, where visitors and Google can see it."}
-        </ConfirmDialog>
-      ) : null}
-      {confirm === "write" ? (
-        <ConfirmDialog
-          title="Replace this article?"
-          confirmLabel="Rewrite with AI"
-          pending={write.isPending}
-          onConfirm={() => write.mutate(true)}
-          onClose={() => setConfirm(null)}
-        >
-          AI writes a new version from the research brief and replaces the title
-          and text in the editor, including unsaved changes. It uses your usage
-          credits.
-        </ConfirmDialog>
-      ) : null}
-      {confirm === "delete" ? (
-        <ConfirmDialog
-          title="Delete this article?"
-          confirmLabel="Delete"
-          destructive
-          pending={remove.isPending}
-          onConfirm={() => remove.mutate()}
-          onClose={() => setConfirm(null)}
-        >
-          It is removed from {BRAND_NAME}. Anything already sent to WordPress
-          stays there. Its topic goes back to your topic ideas.
-        </ConfirmDialog>
-      ) : null}
+      <ArticleConfirmDialogs
+        confirm={confirm}
+        isLive={isLive}
+        pending={{
+          send: send.isPending,
+          write: write.isPending,
+          remove: remove.isPending,
+        }}
+        onPublish={() => send.mutate(true)}
+        onWrite={() => write.mutate(true)}
+        onDelete={() => remove.mutate()}
+        onClose={() => setConfirm(null)}
+      />
     </>
   );
 }

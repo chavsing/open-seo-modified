@@ -53,6 +53,7 @@ export const blogArticleSchema = projectScoped.extend({
 export const updateBlogArticleSchema = blogArticleSchema.extend({
   title: z.string().trim().min(1, "Add a title").max(200),
   content: z.string().max(100_000),
+  metaDescription: z.string().trim().max(400),
 });
 
 export const sendBlogArticleSchema = blogArticleSchema.extend({

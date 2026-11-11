@@ -61,8 +61,10 @@ const goodBody = [
   "See [our shop](https://acme.com/).\n",
 ].join("");
 const goodTitle = "How to Choose Coffee Roasters Near You";
+const metaDescription =
+  "How to pick coffee roasters near you: what roast dates mean, which roast level suits you, and where to buy fresh beans each week.";
 const reply = (title: string, content: string) => ({
-  output: { title, content },
+  output: { title, content, metaDescription },
   providerMetadata: {},
 });
 const review = (score: number, problems: string[] = []) => ({

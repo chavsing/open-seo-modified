@@ -10,7 +10,7 @@ function article(overrides: Partial<Parameters<typeof checkArticle>[0]> = {}) {
     "## How a coffee grinder works",
     paragraph(140),
     "## Burr or blade",
-    `${paragraph(140)} See [our guide](https://www.example.com/guide).`,
+    `${paragraph(140)} A burr grinder beats a cheap grinder. See [our guide](https://www.example.com/guide).`,
     "## Cleaning",
     paragraph(140),
     "## Buying advice",
@@ -21,7 +21,19 @@ function article(overrides: Partial<Parameters<typeof checkArticle>[0]> = {}) {
   return checkArticle({
     title: "How to Choose a Coffee Grinder for Home",
     content,
+    metaDescription:
+      "How to choose a coffee grinder for home: burr or blade, what to spend, and how to keep it clean so every cup tastes right.",
     keyword: "Coffee  grinder",
+    brief: [
+      "- **Target length:** about 1,000 words",
+      "",
+      "## Related searches",
+      "- burr grinder",
+      "- cheap grinder",
+      "- grinder settings",
+      "",
+      "## Must include",
+    ].join("\n"),
     domain: "example.com",
     otherTitles: [],
     ...overrides,
@@ -45,6 +57,36 @@ describe("checkArticle", () => {
     expect(
       failed(article({ content: "As an AI language model, I can't." })),
     ).toContain("no_placeholders");
+  });
+
+  it("rejects typical AI phrases, so articles read as human-written", () => {
+    expect(
+      failed(article({ title: "Let's Dive Into the Coffee Grinder Basics" })),
+    ).toEqual(["human_voice"]);
+    expect(
+      failed(
+        article({ metaDescription: "", content: "Grind fresh — always." }),
+      ),
+    ).toContain("human_voice");
+  });
+
+  it("rejects keyword stuffing", () => {
+    const stuffed = `Coffee grinder ${paragraph(20)} coffee grinder coffee grinder.`;
+    expect(failed(article({ content: stuffed }))).toContain("keyword_density");
+  });
+
+  it("holds the article to the brief's length and related searches", () => {
+    const brief = [
+      "- **Target length:** about 2,000 words",
+      "",
+      "## Related searches",
+      "- grinder for espresso",
+      "- quiet grinder",
+    ].join("\n");
+    expect(failed(article({ brief }))).toEqual([
+      "word_count",
+      "related_searches",
+    ]);
   });
 
   it("requires a link to the project's own site", () => {

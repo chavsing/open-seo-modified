@@ -184,6 +184,7 @@ async function updateArticle(
       | "publishedAt"
       | "aiScore"
       | "aiFeedback"
+      | "metaDescription"
     >
   >,
 ) {

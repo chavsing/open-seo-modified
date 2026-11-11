@@ -1,0 +1,1 @@
+ALTER TABLE "blog_articles" ADD COLUMN "meta_description" text;

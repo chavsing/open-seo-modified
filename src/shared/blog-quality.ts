@@ -7,6 +7,11 @@ const MIN_ARTICLE_WORDS = 800;
 const MAX_PARAGRAPH_WORDS = 150;
 const TITLE_MIN_CHARS = 30;
 const TITLE_MAX_CHARS = 65;
+export const META_MIN_CHARS = 120;
+export const META_MAX_CHARS = 160;
+// More than this share of the words being the keyword reads as stuffing.
+const MAX_KEYWORD_DENSITY = 0.03;
+const MIN_RELATED_SEARCHES = 2;
 
 // Leftover template text or model chatter that must never be published.
 const PLACEHOLDER_PATTERNS = [
@@ -18,6 +23,101 @@ const PLACEHOLDER_PATTERNS = [
   /i hope this helps/i,
   /i cannot (?:browse|access)/i,
 ];
+
+// Phrases and marks that make text read as AI-written. Each entry's example
+// is what the writer is told to avoid; the pattern is what the check catches.
+const AI_TELLS: { example: string; pattern: RegExp }[] = [
+  { example: "em dashes (—)", pattern: /—/ },
+  { example: "delve", pattern: /\bdelv(?:e|es|ed|ing)\b/i },
+  {
+    example: "in today's fast-paced world",
+    pattern:
+      /\bin today['’]s (?:fast-paced|digital|modern|busy|ever-changing) world\b/i,
+  },
+  {
+    example: "it's not just X, it's Y",
+    pattern:
+      /\b(?:it|this)(?:['’]s| is) not just\b[^.!?]{1,60}\b(?:it|this)(?:['’]s| is)\b/i,
+  },
+  { example: "in conclusion", pattern: /\bin conclusion\b/i },
+  {
+    example: "unlock the power/potential",
+    pattern:
+      /\bunlock(?:s|ing)? (?:the|your) (?:full )?(?:power|potential|secrets?)\b/i,
+  },
+  {
+    example: "harness the power",
+    pattern: /\bharness(?:es|ing)? the power\b/i,
+  },
+  { example: "game-changer", pattern: /\bgame[- ]changers?\b/i },
+  { example: "ever-evolving", pattern: /\bever[- ]evolving\b/i },
+  {
+    example: "navigate the landscape",
+    pattern: /\bnavigat(?:e|es|ing) the (?:complex|ever|world|landscape)/i,
+  },
+  { example: "a testament to", pattern: /\ba testament to\b/i },
+  { example: "embark on", pattern: /\bembark(?:s|ing)? on\b/i },
+  { example: "tapestry", pattern: /\btapestry\b/i },
+  { example: "look no further", pattern: /\blook no further\b/i },
+  {
+    example: "dive into / let's dive in",
+    pattern: /\b(?:dive|diving) (?:deep |deeper )?in(?:to)?\b/i,
+  },
+  { example: "in the realm of", pattern: /\bin the realm of\b/i },
+  {
+    example: "it's important to note",
+    pattern: /\bit(?:['’]s| is) (?:important|worth) (?:to note|noting)\b/i,
+  },
+  { example: "seamless", pattern: /\bseamless(?:ly)?\b/i },
+  { example: "elevate your", pattern: /\belevat(?:e|es|ing) your\b/i },
+  { example: "leverage", pattern: /\bleverag(?:e|es|ed|ing)\b/i },
+];
+
+/** What the writer is told never to use, from the same list the check uses. */
+export const AI_TELL_EXAMPLES = AI_TELLS.map((tell) => tell.example);
+
+/**
+ * Facts the research brief records for the writer: the target length
+ * measured from what ranks now, and Google's related searches. The brief is
+ * text this app generates, so the lines are read back by their labels.
+ */
+export function briefFacts(brief: string): {
+  targetWords: number | null;
+  relatedSearches: string[];
+} {
+  const target = /\*\*Target length:\*\* about ([\d,]+) words/.exec(brief);
+  const section = /(?:^|\n)## Related searches\n([\s\S]*?)(?=\n## |$)/.exec(
+    brief,
+  );
+  const relatedSearches = (section?.[1] ?? "")
+    .split("\n")
+    .map((line) => /^- (.+)$/.exec(line.trim())?.[1]?.trim())
+    .filter((line): line is string => Boolean(line) && line !== "None shown");
+  return {
+    targetWords: target ? Number(target[1].replace(/,/g, "")) : null,
+    relatedSearches,
+  };
+}
+
+/** The word range an article should land in, around what ranks now. */
+export function lengthRange(targetWords: number | null) {
+  if (!targetWords) return { min: MIN_ARTICLE_WORDS, max: null };
+  return {
+    min: Math.max(MIN_ARTICLE_WORDS, Math.round(targetWords * 0.8)),
+    max: Math.round(targetWords * 1.5),
+  };
+}
+
+/** How often the exact keyword phrase appears in the text. */
+function phraseCount(text: string, phrase: string): number {
+  // Hyphens become spaces on both sides, as plainText does to the article.
+  const tokens = (value: string) =>
+    words(value.toLowerCase().replace(/-/g, " ")).join(" ");
+  const haystack = ` ${tokens(text)} `;
+  const needle = tokens(normalizeKeyword(phrase));
+  if (!needle) return 0;
+  return haystack.split(` ${needle} `).length - 1;
+}
 
 type ArticleCheck = {
   id: string;
@@ -74,7 +174,11 @@ function linkHosts(markdown: string): string[] {
 export function checkArticle(input: {
   title: string;
   content: string;
+  /** The search-result summary sent to WordPress as the post excerpt. */
+  metaDescription: string;
   keyword: string;
+  /** The research brief, for the target length and related searches. */
+  brief: string;
   /** The project's own domain, for the internal link rule. */
   domain: string | null;
   /** Titles of the project's other articles, for the duplicate rule. */
@@ -98,6 +202,25 @@ export function checkArticle(input: {
     pattern.exec(`${title}\n${content}`),
   ).find(Boolean);
   const normalizedTitle = normalizeKeyword(title);
+  const facts = briefFacts(input.brief);
+  const range = lengthRange(facts.targetWords);
+  const plain = plainText(content);
+  const aiTell = AI_TELLS.find((tell) =>
+    tell.pattern.test(`${title}
+${content}`),
+  );
+  const keywordWords = words(normalizeKeyword(keyword)).length;
+  const density = bodyWords.length
+    ? (phraseCount(plain, keyword) * keywordWords) / bodyWords.length
+    : 0;
+  const relatedUsed = facts.relatedSearches.filter(
+    (search) => phraseCount(plain, search) > 0,
+  );
+  const relatedNeeded = Math.min(
+    MIN_RELATED_SEARCHES,
+    facts.relatedSearches.length,
+  );
+  const meta = input.metaDescription.trim();
 
   const checks: ArticleCheck[] = [
     {
@@ -114,9 +237,22 @@ export function checkArticle(input: {
       passed: containsKeyword(title, keyword),
     },
     {
+      id: "meta_description",
+      label: `Meta description is ${META_MIN_CHARS} to ${META_MAX_CHARS} characters and contains the keyword`,
+      passed:
+        meta.length >= META_MIN_CHARS &&
+        meta.length <= META_MAX_CHARS &&
+        containsKeyword(meta, keyword),
+      detail: `${meta.length} characters`,
+    },
+    {
       id: "word_count",
-      label: `At least ${MIN_ARTICLE_WORDS} words`,
-      passed: bodyWords.length >= MIN_ARTICLE_WORDS,
+      label: range.max
+        ? `${range.min} to ${range.max} words, in line with what ranks now`
+        : `At least ${range.min} words`,
+      passed:
+        bodyWords.length >= range.min &&
+        (range.max === null || bodyWords.length <= range.max),
       detail: `${bodyWords.length} words`,
     },
     {
@@ -152,6 +288,26 @@ export function checkArticle(input: {
       label: `No paragraph longer than ${MAX_PARAGRAPH_WORDS} words`,
       passed: longestParagraph <= MAX_PARAGRAPH_WORDS,
       detail: `Longest is ${longestParagraph} words`,
+    },
+    {
+      id: "related_searches",
+      label: `Uses at least ${relatedNeeded} of the related searches from the brief`,
+      passed: relatedUsed.length >= relatedNeeded,
+      detail: facts.relatedSearches.length
+        ? `${relatedUsed.length} used`
+        : "None in the brief",
+    },
+    {
+      id: "keyword_density",
+      label: `Keyword isn't overused (at most ${MAX_KEYWORD_DENSITY * 100}% of the words)`,
+      passed: density <= MAX_KEYWORD_DENSITY,
+      detail: `${(density * 100).toFixed(1)}%`,
+    },
+    {
+      id: "human_voice",
+      label: "Reads like a person wrote it, with no typical AI phrases",
+      passed: !aiTell,
+      detail: aiTell ? `Found ${aiTell.example}` : undefined,
     },
     {
       id: "no_placeholders",

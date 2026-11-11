@@ -94,6 +94,8 @@ export const blogArticles = pgTable(
     // line. Cleared when the text changes, since it no longer applies.
     aiScore: integer("ai_score"),
     aiFeedback: text("ai_feedback"),
+    // The search-result summary, sent to WordPress as the post excerpt.
+    metaDescription: text("meta_description"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     publishedAt: text("published_at"),

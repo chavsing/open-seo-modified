@@ -193,12 +193,21 @@ async function requireArticle(projectId: string, articleId: string) {
 
 async function qualityFor(
   project: EnsuredProject,
-  article: { id: string; title: string; content: string; keyword: string },
+  article: {
+    id: string;
+    title: string;
+    content: string;
+    metaDescription: string | null;
+    keyword: string;
+    brief: string;
+  },
 ) {
   return checkArticle({
     title: article.title,
     content: article.content,
+    metaDescription: article.metaDescription ?? "",
     keyword: article.keyword,
+    brief: article.brief,
     domain: project.domain,
     otherTitles: await BlogRepository.listOtherTitles(project.id, article.id),
   });
@@ -215,16 +224,26 @@ async function getArticle(project: EnsuredProject, articleId: string) {
 
 async function updateArticle(
   projectId: string,
-  input: { articleId: string; title: string; content: string },
+  input: {
+    articleId: string;
+    title: string;
+    content: string;
+    metaDescription: string;
+  },
 ) {
   const article = await requireArticle(projectId, input.articleId);
   const hasContent = input.content.trim().length > 0;
   const title = input.title.trim();
   const content = hasContent ? input.content : null;
-  const changed = title !== article.title || content !== article.content;
+  const metaDescription = input.metaDescription.trim() || null;
+  const changed =
+    title !== article.title ||
+    content !== article.content ||
+    metaDescription !== article.metaDescription;
   await BlogRepository.updateArticle(projectId, article.id, {
     title,
     content,
+    metaDescription,
     // The AI score was for the old text; it needs reviewing again.
     ...(changed ? { aiScore: null, aiFeedback: null } : {}),
     // Editing doesn't change what's on WordPress until it's sent again.
@@ -283,6 +302,7 @@ async function sendToWordpress(
       postId: article.wordpressPostId,
       title: article.title,
       html: markdownToHtml(article.content),
+      excerpt: article.metaDescription,
       status: input.publish ? "publish" : "draft",
     });
     const live = post.status === "publish";

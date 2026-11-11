@@ -151,10 +151,17 @@ export async function saveWordpressPost(
     postId: number | null;
     title: string;
     html: string;
+    /** The meta description; many SEO plugins fall back to the excerpt. */
+    excerpt: string | null;
     status: "draft" | "publish";
   },
 ): Promise<WordpressPost> {
-  const body = { title: post.title, content: post.html, status: post.status };
+  const body = {
+    title: post.title,
+    content: post.html,
+    status: post.status,
+    ...(post.excerpt ? { excerpt: post.excerpt } : {}),
+  };
   let result: unknown;
   try {
     result = await request(
