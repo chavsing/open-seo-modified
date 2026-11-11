@@ -1,11 +1,48 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-10. Tick a box when a task is done and move it to the
+Last updated: 2026-11-12. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
 
 - None.
+
+## Jamil
+
+- [ ] Google verification for Google Analytics access (started 2026-11-11,
+      the reason text is already entered). Still to do: record the demo
+      video, upload it to YouTube as unlisted, paste the link in Google Cloud
+      console under Data Access, and submit. Needs a Google account with a
+      Google Analytics property that has data. Until it is approved, people
+      connecting Google Analytics see Google's "unverified app" warning and
+      the app is capped at 100 users for that permission. Search Console does
+      not need it.
+- [ ] Renew the Microsoft sign-in secret before 2028-11-10, or Microsoft
+      sign-in stops working.
+- [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
+      consider auto top-up.
+- [ ] After the live tests: disconnect the test WordPress (the Cloudflare
+      tunnel address) in the Default project's Blog Generator Settings, or set
+      "How often to write" to Off, so the run due 2026-11-19 doesn't fail.
+
+## Claude, next
+
+- [ ] "New article" button: type a keyword, get a brief, no topic search
+      needed.
+- [ ] Automatic setup for new websites (approved 2026-11-11): find
+      competitors, find blog topics, start tracking keywords and fill in the
+      Context page (business overview, positioning) from the site scan when a
+      site is added. Show the results on the dashboard instead of the manual
+      "Get started" checklist. About 10 to 20 cents per new site. Filling in
+      Context matters because the blog writer now uses it to make articles
+      specific to the business.
+
+## Claude, waiting on a decision
+
+- [ ] Blog Generator tools for customers' own AI apps (Claude, ChatGPT, Grok
+      through Agent setup). Today the 76 MCP tools cover everything except
+      the Blog Generator. Adding them is a new MCP tool, so it needs a plugin
+      version bump.
 
 ## Later, if the client wants company customers
 
@@ -13,35 +50,6 @@ done list at the bottom with the date.
       Needs the client's Microsoft AI Cloud Partner Program sign-up, a business
       email on agsmaster.com and a domain proof file on the site. Without it,
       some companies block their staff from signing in with Microsoft.
-
-## Jamil
-
-- [ ] Renew the Microsoft sign-in secret before 2028-11-10, or Microsoft
-      sign-in stops working.
-
-- [ ] Provide a test WordPress site on https with an application password
-      (the client's own site, or a free InstaWP sandbox).
-- [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
-      consider auto top-up.
-
-## Claude, next (OpenRouter key is in)
-
-- [ ] Deploy the AI reviewer and automatic posting (built and tested on
-      this computer on 2026-11-11, not live yet).
-- [ ] After deploy and a test WordPress site: turn on automatic posting for
-      one site and confirm a real post arrives in WordPress.
-- [ ] "New article" button: type a keyword, get a brief, no topic search
-      needed.
-- [ ] Automatic setup for new websites (approved 2026-11-11): find competitors, find
-      blog topics and start tracking keywords when a site is added, and show the
-      results on the dashboard instead of the manual "Get started" checklist.
-      The first site audit already starts by itself. About 10 to 20 cents per
-      new site.
-
-## Claude, waiting on a decision
-
-- [ ] Final WordPress publishing check against a real hosted site, after the
-      test site is provided.
 
 ## Waiting on the client
 
@@ -51,6 +59,24 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-12: Live automatic posting test passed. On the Default project
+  (bluebottlecoffee.com, competitor stumptowncoffee.com) the schedule picked
+  "coffee roasters", wrote it, the AI editor gave 7/10, and it arrived in a
+  local WordPress (through a Cloudflare tunnel) as a draft, as designed.
+- 2026-11-12: Blog writer stricter: 15 checks instead of 11. New: no typical
+  AI phrases or em dashes, at least two of the brief's related searches
+  (ignoring "near me" style searches), the keyword at most 3% of the words,
+  length in line with what ranks now, and a 120 to 160 character meta
+  description sent to WordPress as the excerpt (confirmed in WordPress).
+- 2026-11-12: Blog writer uses the project's Context page (business overview,
+  positioning, writing preferences, key pages) so articles are specific to
+  the business.
+- 2026-11-12: Agent setup page: "Set up your Grok bot here" button linking to
+  the client's Grok bot.
+- 2026-11-12: Plan buttons read "Pay for a year here" and "Pay once here".
+  The Pro plan keeps PayPal's own button so payments match accounts.
+- 2026-11-12: Live AI app connection (MCP) tested: sign-in, 76 tools, account
+  and project list read.
 - 2026-11-08: Blog Generator (topics, briefs, quality check, WordPress
   publishing, Drafts only / Auto-publish setting) deployed and live.
 - 2026-11-08: "AI agent coming soon" notice deployed and live.

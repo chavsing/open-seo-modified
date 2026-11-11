@@ -92,7 +92,10 @@ export function briefFacts(brief: string): {
   const relatedSearches = (section?.[1] ?? "")
     .split("\n")
     .map((line) => /^- (.+)$/.exec(line.trim())?.[1]?.trim())
-    .filter((line): line is string => Boolean(line) && line !== "None shown");
+    .filter((line): line is string => Boolean(line) && line !== "None shown")
+    // "near me" and "near [place]" are map searches: forcing them into an
+    // article reads as filler, so they don't count.
+    .filter((line) => !/\bnear\b/i.test(line));
   return {
     targetWords: target ? Number(target[1].replace(/,/g, "")) : null,
     relatedSearches,

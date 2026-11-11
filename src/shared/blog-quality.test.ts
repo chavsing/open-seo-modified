@@ -89,6 +89,12 @@ describe("checkArticle", () => {
     ]);
   });
 
+  it("doesn't count map searches such as near me toward related searches", () => {
+    const brief = "## Related searches\n- grinder near me\n- burr grinder";
+    // Only "burr grinder" is eligible, and the article uses it.
+    expect(failed(article({ brief }))).toEqual([]);
+  });
+
   it("requires a link to the project's own site", () => {
     expect(failed(article({ domain: "other.com" }))).toEqual(["internal_link"]);
     expect(failed(article({ domain: null }))).toEqual(["internal_link"]);

@@ -16,8 +16,9 @@ vi.mock("@/server/features/blog/repositories/BlogRepository", () => ({
     listOtherTitles: vi.fn().mockResolvedValue([]),
   },
 }));
-vi.mock("@/server/lib/scrape", () => ({
-  discoverSiteUrls: vi.fn().mockResolvedValue({ urls: [] }),
+vi.mock("@/server/features/blog/services/blogBusiness", () => ({
+  businessContext: vi.fn().mockResolvedValue(null),
+  sitePages: vi.fn().mockResolvedValue(["https://acme.com/"]),
 }));
 vi.mock("@/server/lib/runtime-env", () => ({
   getOptionalEnvValue: vi.fn(),
