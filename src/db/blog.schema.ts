@@ -112,3 +112,34 @@ export const blogArticles = sqliteTable(
     uniqueIndex("blog_articles_topic_idx").on(table.topicId),
   ],
 );
+
+// AI-generated pictures for an article, and the style reference a person
+// uploaded for them. The file lives in R2 under `r2Key`; articles link body
+// pictures as /api/blog-image?... in their Markdown. A picture is uploaded to
+// WordPress once per site: `wordpressSite` says which site the media id
+// belongs to, so a changed connection uploads it again.
+export const blogImages = sqliteTable(
+  "blog_images",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    articleId: text("article_id")
+      .notNull()
+      .references(() => blogArticles.id, { onDelete: "cascade" }),
+    // featured: the post's header image, at most one per article.
+    // section: a picture in the body. reference: a style example.
+    kind: text("kind", {
+      enum: ["featured", "section", "reference"],
+    }).notNull(),
+    r2Key: text("r2_key").notNull(),
+    mediaType: text("media_type").notNull(),
+    alt: text("alt").notNull(),
+    wordpressSite: text("wordpress_site"),
+    wordpressMediaId: integer("wordpress_media_id"),
+    wordpressUrl: text("wordpress_url"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("blog_images_article_idx").on(table.articleId)],
+);

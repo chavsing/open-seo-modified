@@ -11,6 +11,7 @@ const post = {
   title: "Chemex brewing",
   html: "<p>Hi</p>",
   excerpt: null,
+  featuredMedia: null,
   status: "draft" as const,
 };
 const saved = {

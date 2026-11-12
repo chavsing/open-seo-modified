@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { AppError } from "@/server/lib/errors";
 
-// Minimal WordPress REST client: verify a login and create or update posts.
+// Minimal WordPress REST client: verify a login, upload pictures, and create
+// or update posts.
 // Auth is an application password (WordPress 5.6+) over Basic auth.
 //
 // Callers pass a site URL that already went through the SSRF guard (see
@@ -35,6 +36,8 @@ const wpPostSchema = z.object({
   status: z.string(),
 });
 
+const wpMediaSchema = z.object({ id: z.number(), source_url: z.string() });
+
 const wpPostListSchema = z.array(
   wpPostSchema.extend({
     title: z.object({ raw: z.string().optional() }),
@@ -64,6 +67,12 @@ async function request(
   init: {
     method: "GET" | "POST";
     body?: unknown;
+    /** A file upload instead of a JSON body. */
+    file?: {
+      bytes: Uint8Array<ArrayBuffer>;
+      mediaType: string;
+      filename: string;
+    };
     query?: string;
     timeoutMs?: number;
   },
@@ -79,9 +88,20 @@ async function request(
       headers: {
         authorization: basicAuth(connection.username, connection.password),
         accept: "application/json",
-        ...(init.body ? { "content-type": "application/json" } : {}),
+        ...(init.file
+          ? {
+              "content-type": init.file.mediaType,
+              "content-disposition": `attachment; filename="${init.file.filename}"`,
+            }
+          : init.body
+            ? { "content-type": "application/json" }
+            : {}),
       },
-      body: init.body ? JSON.stringify(init.body) : undefined,
+      body: init.file
+        ? init.file.bytes
+        : init.body
+          ? JSON.stringify(init.body)
+          : undefined,
     });
   } catch {
     throw new AppError(
@@ -161,6 +181,40 @@ export async function verifyWordpressLogin(
 }
 
 /**
+ * Uploads a picture to the site's media library. The alt text is set in a
+ * second call, as an upload carries only the file; a failure there leaves the
+ * picture without alt text rather than failing the send.
+ */
+export async function uploadWordpressMedia(
+  connection: WordpressConnection,
+  file: {
+    bytes: Uint8Array<ArrayBuffer>;
+    mediaType: string;
+    filename: string;
+    alt: string;
+  },
+): Promise<{ id: number; url: string }> {
+  const parsed = wpMediaSchema.safeParse(
+    await request(connection, "/wp/v2/media", {
+      method: "POST",
+      file,
+      timeoutMs: CREATE_TIMEOUT_MS,
+    }),
+  );
+  if (!parsed.success)
+    throw new AppError(
+      "UPSTREAM_UNAVAILABLE",
+      "WordPress accepted the picture but sent back an unexpected answer.",
+    );
+  if (file.alt)
+    await request(connection, `/wp/v2/media/${parsed.data.id}`, {
+      method: "POST",
+      body: { alt_text: file.alt },
+    }).catch(() => undefined);
+  return { id: parsed.data.id, url: parsed.data.source_url };
+}
+
+/**
  * A post with this exact title that WordPress saved since `since`, if any.
  * A slow site can save a post and answer after the timeout, so the app
  * reports a failure; looking first keeps a retry from making a duplicate.
@@ -235,6 +289,8 @@ export async function saveWordpressPost(
     html: string;
     /** The meta description; many SEO plugins fall back to the excerpt. */
     excerpt: string | null;
+    /** The header picture's media id; null leaves the post's own as is. */
+    featuredMedia: number | null;
     status: "draft" | "publish";
   },
 ): Promise<WordpressPost> {
@@ -243,6 +299,7 @@ export async function saveWordpressPost(
     content: post.html,
     status: post.status,
     ...(post.excerpt ? { excerpt: post.excerpt } : {}),
+    ...(post.featuredMedia ? { featured_media: post.featuredMedia } : {}),
   };
   let result: unknown;
   if (!post.postId) result = await createPost(connection, body);

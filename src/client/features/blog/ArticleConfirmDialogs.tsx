@@ -43,8 +43,9 @@ export function ArticleConfirmDialogs({
         onClose={onClose}
       >
         AI writes a new version from the research brief and replaces the title,
-        meta description and text in the editor, including unsaved changes. It
-        uses your usage credits.
+        meta description and text in the editor, including unsaved changes and
+        the pictures in the text. The featured image stays. It uses your usage
+        credits.
       </ConfirmDialog>
     );
   if (confirm === "delete")

@@ -38,6 +38,9 @@ vi.mock("@/server/features/blog/repositories/BlogRepository", () => ({
 vi.mock("@/server/features/blog/services/BlogService", () => ({
   BlogService: { getSettings, testWordpress, sendToWordpress },
 }));
+vi.mock("@/server/features/blog/services/blogImagePublishing", () => ({
+  addAutopilotImages: vi.fn().mockResolvedValue(3),
+}));
 vi.mock("@/server/features/blog/services/blogWriter", () => ({
   writeBlogArticle,
   chooseBlogTopic,

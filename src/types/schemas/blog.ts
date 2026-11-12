@@ -63,3 +63,25 @@ export const sendBlogArticleSchema = blogArticleSchema.extend({
 export const writeBlogArticleSchema = blogArticleSchema.extend({
   replace: z.boolean(),
 });
+
+export const createBlogImageSchema = z.discriminatedUnion("kind", [
+  blogArticleSchema.extend({
+    kind: z.literal("featured"),
+    customPrompt: z.string().trim().max(1_000).optional(),
+  }),
+  blogArticleSchema.extend({
+    kind: z.literal("section"),
+    heading: z.string().trim().min(1).max(300),
+    context: z.string().max(2_000),
+  }),
+]);
+
+// Base64 of a picture up to 4 MB, checked again after decoding.
+export const setBlogReferenceImageSchema = blogArticleSchema.extend({
+  mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  base64: z.string().min(1).max(5_600_000),
+});
+
+export const removeBlogImageSchema = blogArticleSchema.extend({
+  imageId: z.string().uuid(),
+});

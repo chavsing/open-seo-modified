@@ -6,7 +6,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Trash2 } from "lucide-react";
+import { ImagePlus, Sparkles, Trash2 } from "lucide-react";
 import { BackLink, PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { SafeExternalLink } from "@/client/components/SafeExternalLink";
@@ -18,11 +18,16 @@ import {
   FieldLabel,
 } from "@/client/components/ui/field";
 import { Input } from "@/client/components/ui/input";
-import { Textarea } from "@/client/components/ui/textarea";
 import { AiReviewCard } from "@/client/features/blog/AiReviewCard";
+import {
+  ArticleBodyEditor,
+  type MarkdownNormalizer,
+} from "@/client/features/blog/ArticleBodyEditor";
 import { ArticleConfirmDialogs } from "@/client/features/blog/ArticleConfirmDialogs";
+import { FeaturedImageCard } from "@/client/features/blog/FeaturedImageCard";
+import { SectionImagesDialog } from "@/client/features/blog/SectionImagesDialog";
 import { MetaDescriptionField } from "@/client/features/blog/MetaDescriptionField";
-import { SendHint } from "@/client/features/blog/SendHint";
+import { ArticleSendBar } from "@/client/features/blog/ArticleSendBar";
 import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
 import { blogKeys, toastBlogError } from "@/client/features/blog/blogQueries";
@@ -34,6 +39,7 @@ import {
   updateBlogArticle,
   writeBlogArticleWithAi,
 } from "@/serverFunctions/blog";
+import { insertSectionImage, markdownSections } from "@/shared/blog-images";
 import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
 export const Route = createFileRoute("/_app/p/$projectId/blog/$articleId")({
@@ -98,15 +104,23 @@ function ArticleEditor({
   const [confirm, setConfirm] = useState<"publish" | "delete" | "write" | null>(
     null,
   );
+  const [pictures, setPictures] = useState(false);
+  // The editor's own Markdown formatting, once it has loaded.
+  const [normalize, setNormalize] = useState<MarkdownNormalizer | null>(null);
   const settingsQuery = useQuery({
     queryKey: blogKeys.settings(projectId),
     queryFn: () => getBlogSettings({ data: { projectId } }),
   });
 
-  // Compared with what the server holds, so undoing an edit clears it.
+  // Compared with what the server holds, so undoing an edit clears it. The
+  // editor may format the saved Markdown differently without any change.
+  const saved = article.content ?? "";
+  const contentChanged =
+    content !== saved &&
+    (!normalize || normalize(content) !== normalize(saved));
   const dirty =
     title.trim() !== article.title ||
-    content !== (article.content ?? "") ||
+    contentChanged ||
     meta.trim() !== (article.metaDescription ?? "");
   const edits = { title, content, metaDescription: meta };
   useBlocker({
@@ -255,15 +269,26 @@ function ArticleEditor({
           </span>
         }
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => setConfirm("delete")}
-          >
-            <Trash2 />
-            Delete
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasContent || busy}
+              onClick={() => setPictures(true)}
+            >
+              <ImagePlus />
+              Add section pictures
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => setConfirm("delete")}
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          </>
         }
       />
 
@@ -281,7 +306,7 @@ function ArticleEditor({
           </Field>
           <Field>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <FieldLabel htmlFor="article-content">Article</FieldLabel>
+              <FieldLabel>Article</FieldLabel>
               <Button
                 variant="outline"
                 size="sm"
@@ -297,19 +322,16 @@ function ArticleEditor({
                     : "Write with AI"}
               </Button>
             </div>
-            <Textarea
-              id="article-content"
+            <ArticleBodyEditor
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={setContent}
               disabled={write.isPending}
-              placeholder={
-                "Write in Markdown. Use ## for section headings and [text](https://...) for links.\n\nOr press Write with AI to draft it from the research brief."
-              }
-              className="min-h-[28rem] font-mono text-sm"
+              onReady={(fn) => setNormalize(() => fn)}
             />
             <FieldDescription>
-              Markdown. The title becomes the post&apos;s heading, so start
-              sections at ##.
+              The title becomes the post&apos;s heading, so start each section
+              with a section heading. Or press Write with AI to draft it from
+              the research brief.
             </FieldDescription>
           </Field>
           <MetaDescriptionField
@@ -317,55 +339,34 @@ function ArticleEditor({
             onChange={setMeta}
             disabled={write.isPending}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              pending={save.isPending}
-              disabled={!dirty || !title.trim() || busy}
-              onClick={() => save.mutate()}
-            >
-              {dirty ? "Save changes" : "Saved"}
-            </Button>
-            {isLive ? (
-              <Button
-                pending={send.isPending}
-                disabled={
-                  !hasContent || !allPassed || !wordpressConnected || busy
-                }
-                onClick={() => setConfirm("publish")}
-              >
-                Update live post
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  pending={send.isPending && !send.variables}
-                  disabled={!hasContent || !wordpressConnected || busy}
-                  onClick={() => send.mutate(false)}
-                >
-                  Send to WordPress as draft
-                </Button>
-                <Button
-                  pending={send.isPending && Boolean(send.variables)}
-                  disabled={
-                    !hasContent || !allPassed || !wordpressConnected || busy
-                  }
-                  onClick={() => setConfirm("publish")}
-                >
-                  Publish
-                </Button>
-              </>
-            )}
-          </div>
-          <SendHint
+          <ArticleSendBar
             projectId={projectId}
+            dirty={dirty}
+            canSave={dirty && Boolean(title.trim()) && !busy}
+            saving={save.isPending}
+            isLive={isLive}
+            sending={
+              send.isPending ? (send.variables ? "publish" : "draft") : null
+            }
+            canSend={hasContent && wordpressConnected && !busy}
+            canPublish={hasContent && allPassed && wordpressConnected && !busy}
             showConnect={!wordpressConnected && settingsQuery.isSuccess}
             showLocked={hasContent && !allPassed}
+            onSave={() => save.mutate()}
+            onDraft={() => send.mutate(false)}
+            onPublish={() => setConfirm("publish")}
           />
         </div>
 
         <div className="space-y-4">
+          <FeaturedImageCard
+            projectId={projectId}
+            articleId={article.id}
+            featuredImage={article.featuredImage}
+            referenceImage={article.referenceImage}
+            busy={busy}
+            onChanged={refresh}
+          />
           <AiReviewCard
             projectId={projectId}
             articleId={article.id}
@@ -385,6 +386,17 @@ function ArticleEditor({
         </div>
       </div>
 
+      {pictures ? (
+        <SectionImagesDialog
+          projectId={projectId}
+          articleId={article.id}
+          sections={markdownSections(content)}
+          onInsert={(index, image) =>
+            setContent((current) => insertSectionImage(current, index, image))
+          }
+          onClose={() => setPictures(false)}
+        />
+      ) : null}
       <ArticleConfirmDialogs
         confirm={confirm}
         isLive={isLive}

@@ -2,6 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { waitUntil } from "cloudflare:workers";
 import { BlogService } from "@/server/features/blog/services/BlogService";
 import {
+  createArticleImage,
+  removeArticleImage,
+  setReferenceImage,
+} from "@/server/features/blog/services/blogImages";
+import {
   createBlogBrief,
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
@@ -15,6 +20,9 @@ import {
   blogProjectSchema,
   blogTopicSchema,
   connectWordpressSchema,
+  createBlogImageSchema,
+  removeBlogImageSchema,
+  setBlogReferenceImageSchema,
   sendBlogArticleSchema,
   skipBlogTopicSchema,
   updateBlogArticleSchema,
@@ -143,4 +151,47 @@ export const reviewBlogArticleWithAi = createServerFn({ method: "POST" })
   .validator(blogArticleSchema)
   .handler(({ data, context }) =>
     reviewBlogArticle(context.project, data.articleId, context),
+  );
+
+export const createBlogImage = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(createBlogImageSchema)
+  .handler(({ data, context }) =>
+    createArticleImage(
+      context.projectId,
+      data.kind === "featured"
+        ? {
+            articleId: data.articleId,
+            kind: "featured",
+            customPrompt: data.customPrompt,
+          }
+        : {
+            articleId: data.articleId,
+            kind: "section",
+            heading: data.heading,
+            context: data.context,
+          },
+      context,
+    ),
+  );
+
+export const setBlogReferenceImage = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(setBlogReferenceImageSchema)
+  .handler(({ data, context }) =>
+    setReferenceImage(context.projectId, {
+      articleId: data.articleId,
+      mediaType: data.mediaType,
+      base64: data.base64,
+    }),
+  );
+
+export const removeBlogImage = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(removeBlogImageSchema)
+  .handler(({ data, context }) =>
+    removeArticleImage(context.projectId, {
+      articleId: data.articleId,
+      imageId: data.imageId,
+    }),
   );

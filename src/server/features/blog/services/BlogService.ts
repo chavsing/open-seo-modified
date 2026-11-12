@@ -5,10 +5,16 @@ import {
   verifyWordpressLogin,
   type WordpressConnection,
 } from "@/server/features/blog/services/wordpressClient";
+import {
+  articleImageViews,
+  deleteArticleImageFiles,
+} from "@/server/features/blog/services/blogImages";
+import { prepareWordpressImages } from "@/server/features/blog/services/blogImagePublishing";
 import { markdownToHtml } from "@/server/features/blog/services/markdownToHtml";
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { AppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
+import { withoutImages } from "@/shared/blog-images";
 import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 import type { EnsuredProject } from "@/middleware/ensure-user/types";
 import type {
@@ -219,6 +225,7 @@ async function getArticle(project: EnsuredProject, articleId: string) {
     ...article,
     projectDomain: project.domain,
     otherTitles: await BlogRepository.listOtherTitles(project.id, article.id),
+    ...(await articleImageViews(project.id, article.id)),
   };
 }
 
@@ -236,9 +243,10 @@ async function updateArticle(
   const title = input.title.trim();
   const content = hasContent ? input.content : null;
   const metaDescription = input.metaDescription.trim() || null;
+  // Adding or removing pictures leaves the text the AI reviewed as it was.
   const changed =
     title !== article.title ||
-    content !== article.content ||
+    withoutImages(content ?? "") !== withoutImages(article.content ?? "") ||
     metaDescription !== article.metaDescription;
   await BlogRepository.updateArticle(projectId, article.id, {
     title,
@@ -261,6 +269,10 @@ async function updateArticle(
 async function deleteArticle(projectId: string, articleId: string) {
   const article = await requireArticle(projectId, articleId);
   await BlogRepository.deleteArticle(projectId, article.id);
+  // The rows went with the article; the files are best-effort cleanup.
+  await deleteArticleImageFiles(projectId, article.id).catch((error: unknown) =>
+    console.error("[blog] deleting article pictures failed", { error }),
+  );
   // Its topic becomes an idea again, so it can be briefed afresh.
   if (article.topicId)
     await BlogRepository.setTopicStatus(projectId, article.topicId, "idea");
@@ -300,11 +312,18 @@ async function sendToWordpress(
   try {
     // Inside the try, so a missing or broken connection is recorded too.
     const connection = await openConnection(project.id);
+    const images = await prepareWordpressImages(
+      connection,
+      project.id,
+      article.id,
+      article.content,
+    );
     const post = await saveWordpressPost(connection, {
       postId: article.wordpressPostId,
       title: article.title,
-      html: markdownToHtml(article.content),
+      html: markdownToHtml(images.markdown),
       excerpt: article.metaDescription,
+      featuredMedia: images.featuredMedia,
       status: input.publish ? "publish" : "draft",
     });
     const live = post.status === "publish";

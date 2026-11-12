@@ -33,6 +33,7 @@ import {
   toReview,
   type Review,
 } from "@/server/features/blog/services/blogWriterRules";
+import { withoutImages } from "@/shared/blog-images";
 import {
   PUBLISH_MIN_SCORE,
   briefFacts,
@@ -312,7 +313,8 @@ export async function reviewBlogArticle(
       article.keyword,
       {
         title: article.title,
-        content: article.content,
+        // Pictures say nothing about the writing.
+        content: withoutImages(article.content),
         metaDescription: article.metaDescription ?? "",
       },
       await businessContext(project.id),

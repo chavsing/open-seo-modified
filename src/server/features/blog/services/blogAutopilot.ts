@@ -5,6 +5,7 @@ import {
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
 import { BlogService } from "@/server/features/blog/services/BlogService";
+import { addAutopilotImages } from "@/server/features/blog/services/blogImagePublishing";
 import {
   chooseBlogTopic,
   writeBlogArticle,
@@ -116,11 +117,12 @@ async function postForSite(projectId: string, organizationId: string) {
     { articleId, replace: true },
     customer,
   );
+  const pictures = await addAutopilotImages(projectId, articleId, customer);
   const publish =
     settings.publishMode === "auto" &&
     article.passedAllChecks &&
     article.aiScore >= PUBLISH_MIN_SCORE;
-  const written = `Wrote "${article.title}" (AI score ${article.aiScore}/10)`;
+  const written = `Wrote "${article.title}" (AI score ${article.aiScore}/10, ${pictures} ${pictures === 1 ? "picture" : "pictures"})`;
   try {
     await BlogService.sendToWordpress(project, { articleId, publish });
   } catch (error) {

@@ -302,6 +302,13 @@
       "when": 1794426557888,
       "tag": "0042_normal_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794500032964,
+      "tag": "0043_whole_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

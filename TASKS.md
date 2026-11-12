@@ -9,9 +9,6 @@ done list at the bottom with the date.
 
 ## Jamil
 
-- [ ] Turn on HSTS for agsmaster.com in Cloudflare (SSL/TLS, Edge
-  Certificates). Check: `curl -sI https://app.agsmaster.com` shows a
-  strict-transport-security line.
 - [ ] Google verification for Google Analytics access (started 2026-11-11,
       the reason text is already entered). Still to do: record the demo
       video, upload it to YouTube as unlisted, paste the link in Google Cloud
@@ -68,6 +65,19 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-13: Blog images (client request, like the MadeEA editor). The
+  article editor is now a visual editor (headings, bold, lists, links,
+  pictures) that still saves Markdown. Featured image card: create from the
+  title or a description, optional style example. "Add section pictures"
+  picks sections (3 longest ticked) and adds pictures one at a time with a
+  Stop button. Sending uploads pictures to the WordPress media library and
+  sets the featured image. Automatic articles get a featured image plus 2
+  section pictures. Model: GPT Image 2.6 Flare via OpenRouter, Nano Banana
+  2.1 as fallback, about $0.04 of credits per picture. Tested locally with
+  real pictures; the WordPress upload is not tested yet.
+- 2026-11-12: Cloudflare: "Always Use HTTPS" on (http now redirects to
+  https on agsmaster.com, www and app) and HSTS on (6 months, subdomains,
+  no preload) plus the no-sniff header. Checked live on all three.
 - 2026-11-12: Audit fixes. Invite-only sign-up now only accepts team
   invitations from paying accounts. Autopilot checks the WordPress login
   before any paid work. /admin can't put Pro over Lifetime, or a Pro month

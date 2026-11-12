@@ -145,6 +145,11 @@ function handleFetch(
   const pathname = new URL(publicRequest.url).pathname;
   ctx.waitUntil(maybeSendSelfHostHeartbeat(pathname));
 
+  if (pathname === "/api/blog-image") {
+    return import("@/server/features/blog/services/blogImages").then(
+      ({ handleBlogImageRequest }) => handleBlogImageRequest(publicRequest),
+    );
+  }
   if (pathname === "/api/ai-visibility/download") {
     return import("@/server/features/ai-visibility/services/aiVisibilityExport").then(
       ({ handleAiVisibilityDownload }) =>
