@@ -81,10 +81,11 @@ async function pickTopic(
 
 /**
  * One automatic article for one site: the best unused topic (researching new
- * ones when none are left), its brief, the article, then WordPress. It goes
- * live only when the site is on Auto-publish and the article passed all 11
- * checks and an AI review with nothing must-fix (at least PUBLISH_MIN_SCORE);
- * anything else is sent as a draft.
+ * ones when none are left), its brief, the article, then WordPress. On Drafts
+ * only it goes as a draft. On Auto-publish it goes live only when it passed
+ * all 11 checks and an AI review with nothing must-fix (at least
+ * PUBLISH_MIN_SCORE) and got all its pictures; otherwise it stays unsent in
+ * the Blog Generator, so WordPress only ever gets finished posts.
  */
 async function postForSite(projectId: string, organizationId: string) {
   const project = await ProjectRepository.getProjectForOrganization(
@@ -118,19 +119,21 @@ async function postForSite(projectId: string, organizationId: string) {
     customer,
   );
   const pictures = await addAutopilotImages(projectId, articleId, customer);
-  const publish =
-    settings.publishMode === "auto" &&
-    article.passedAllChecks &&
-    article.aiScore >= PUBLISH_MIN_SCORE;
-  const written = `Wrote "${article.title}" (AI score ${article.aiScore}/10, ${pictures} ${pictures === 1 ? "picture" : "pictures"})`;
+  const passed =
+    article.passedAllChecks && article.aiScore >= PUBLISH_MIN_SCORE;
+  const publish = settings.publishMode === "auto";
+  const written = `Wrote "${article.title}" (AI score ${article.aiScore}/10, ${pictures.added} ${pictures.added === 1 ? "picture" : "pictures"})`;
+  const kept = `${written} and kept it in the Blog Generator for you to finish and publish, because`;
+  if (publish && !passed)
+    return `${kept} it didn't pass every check with nothing must-fix and at least ${PUBLISH_MIN_SCORE}/10.`;
+  if (publish && pictures.missing > 0)
+    return `${kept} ${pictures.missing === 1 ? "a picture" : `${pictures.missing} pictures`} couldn't be created.`;
   try {
     await BlogService.sendToWordpress(project, { articleId, publish });
   } catch (error) {
     return `${written}, but sending it to WordPress failed: ${reason(error)} It's saved in the Blog Generator.`;
   }
   if (publish) return `${written} and published it.`;
-  if (settings.publishMode === "auto")
-    return `${written} and sent it as a draft, because it didn't pass every check with nothing must-fix and at least ${PUBLISH_MIN_SCORE}/10.`;
   return `${written} and sent it to WordPress as a draft.`;
 }
 

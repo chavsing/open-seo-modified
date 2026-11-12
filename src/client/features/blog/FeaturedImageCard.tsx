@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ImagePlus, Trash2, Upload } from "lucide-react";
-import { useState } from "react";
+import { ImagePlus, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/client/components/ui/button";
 import {
@@ -12,20 +11,11 @@ import {
 import { Label } from "@/client/components/ui/label";
 import { Textarea } from "@/client/components/ui/textarea";
 import { toastBlogError } from "@/client/features/blog/blogQueries";
-import {
-  createBlogImage,
-  removeBlogImage,
-  setBlogReferenceImage,
-} from "@/serverFunctions/blog";
+import { IMAGE_ERRORS } from "@/client/features/blog/useArticleImages";
+import { removeBlogImage, setBlogReferenceImage } from "@/serverFunctions/blog";
 import { MAX_REFERENCE_IMAGE_BYTES } from "@/shared/blog-images";
 
 type ImageView = { id: string; url: string; alt: string };
-
-export const IMAGE_ERRORS = {
-  UPSTREAM_UNAVAILABLE:
-    "Couldn't create the picture right now. Please try again in a minute.",
-  NOT_FOUND: "This article no longer exists.",
-} as const;
 
 const REFERENCE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type ReferenceType = (typeof REFERENCE_TYPES)[number];
@@ -41,41 +31,33 @@ async function readBase64(file: File): Promise<string> {
 }
 
 /**
- * The post's header picture, made by AI from the title or a description, and
- * an optional style example that every picture of the article follows.
+ * How the post's header picture is made: from the title or a description,
+ * and an optional style example that every picture of the article follows.
+ * The picture itself shows at the top of the article text.
  */
 export function FeaturedImageCard({
   projectId,
   articleId,
-  featuredImage,
+  hasFeaturedImage,
   referenceImage,
+  description,
+  onDescriptionChange,
+  generating,
+  onGenerate,
   busy,
   onChanged,
 }: {
   projectId: string;
   articleId: string;
-  featuredImage: ImageView | null;
+  hasFeaturedImage: boolean;
   referenceImage: ImageView | null;
+  description: string;
+  onDescriptionChange: (description: string) => void;
+  generating: boolean;
+  onGenerate: () => void;
   busy: boolean;
   onChanged: () => Promise<unknown>;
 }) {
-  const [description, setDescription] = useState("");
-  const generate = useMutation({
-    mutationFn: () =>
-      createBlogImage({
-        data: {
-          projectId,
-          articleId,
-          kind: "featured",
-          customPrompt: description.trim() || undefined,
-        },
-      }),
-    onSuccess: async () => {
-      await onChanged();
-      toast.success("Featured image created");
-    },
-    onError: (error) => toastBlogError(error, IMAGE_ERRORS),
-  });
   const remove = useMutation({
     mutationFn: (imageId: string) =>
       removeBlogImage({ data: { projectId, articleId, imageId } }),
@@ -103,8 +85,7 @@ export function FeaturedImageCard({
         ? toast.error(error.message)
         : toastBlogError(error, IMAGE_ERRORS),
   });
-  const working =
-    busy || generate.isPending || remove.isPending || upload.isPending;
+  const working = busy || generating || remove.isPending || upload.isPending;
 
   return (
     <Card>
@@ -112,35 +93,16 @@ export function FeaturedImageCard({
         <CardTitle>Featured image</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {featuredImage ? (
-          <div className="space-y-2">
-            <img
-              src={featuredImage.url}
-              alt={featuredImage.alt}
-              className="aspect-video w-full rounded-md border object-cover"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={working}
-              onClick={() => remove.mutate(featuredImage.id)}
-            >
-              <Trash2 />
-              Remove
-            </Button>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">
-            The picture at the top of the post and in link previews. Sent to
-            WordPress as the post&apos;s featured image.
-          </p>
-        )}
+        <p className="text-muted-foreground">
+          The picture at the top of the post and in link previews. Sent to
+          WordPress as the post&apos;s featured image.
+        </p>
         <div className="space-y-1.5">
           <Label htmlFor="featured-description">Describe it (optional)</Label>
           <Textarea
             id="featured-description"
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => onDescriptionChange(event.target.value)}
             maxLength={1000}
             disabled={working}
             placeholder="Leave empty to create one from the title."
@@ -189,14 +151,14 @@ export function FeaturedImageCard({
         <Button
           className="w-full"
           variant="outline"
-          pending={generate.isPending}
+          pending={generating}
           disabled={working}
-          onClick={() => generate.mutate()}
+          onClick={onGenerate}
         >
           <ImagePlus />
-          {generate.isPending
+          {generating
             ? "Creating, about 15 seconds"
-            : featuredImage
+            : hasFeaturedImage
               ? "Create a new featured image"
               : "Create featured image"}
         </Button>

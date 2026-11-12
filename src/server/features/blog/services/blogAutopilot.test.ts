@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  addAutopilotImages,
   listDueAutoPosts,
   claimDueAutoPost,
   listTopicIdeas,
@@ -12,6 +13,7 @@ const {
   chooseBlogTopic,
   setTopicStatus,
 } = vi.hoisted(() => ({
+  addAutopilotImages: vi.fn(),
   listDueAutoPosts: vi.fn(),
   claimDueAutoPost: vi.fn(),
   listTopicIdeas: vi.fn(),
@@ -39,7 +41,7 @@ vi.mock("@/server/features/blog/services/BlogService", () => ({
   BlogService: { getSettings, testWordpress, sendToWordpress },
 }));
 vi.mock("@/server/features/blog/services/blogImagePublishing", () => ({
-  addAutopilotImages: vi.fn().mockResolvedValue(3),
+  addAutopilotImages,
 }));
 vi.mock("@/server/features/blog/services/blogWriter", () => ({
   writeBlogArticle,
@@ -67,6 +69,7 @@ beforeEach(() => {
     },
   ]);
   claimDueAutoPost.mockResolvedValue(true);
+  addAutopilotImages.mockResolvedValue({ added: 3, missing: 0 });
   listTopicIdeas.mockResolvedValue([
     { id: "t1", keyword: "chemex brewing", searchVolume: 1600 },
     { id: "t2", keyword: "hungry ghost coffee", searchVolume: 27100 },
@@ -85,7 +88,7 @@ beforeEach(() => {
 });
 
 describe("runScheduledBlogPosts", () => {
-  it("sends an Auto-publish article below the publishing bar as a draft", async () => {
+  it("keeps an Auto-publish article below the publishing bar out of WordPress", async () => {
     writeBlogArticle.mockResolvedValueOnce({
       title: "Coffee roasters",
       aiScore: 8,
@@ -94,9 +97,25 @@ describe("runScheduledBlogPosts", () => {
 
     await runScheduledBlogPosts();
 
-    expect(sendToWordpress).toHaveBeenCalledWith(
-      { id: "p1" },
-      { articleId: "a1", publish: false },
+    expect(sendToWordpress).not.toHaveBeenCalled();
+    expect(upsertSettings.mock.calls[0]?.[1].lastRunMessage).toContain(
+      "kept it in the Blog Generator",
+    );
+  });
+
+  it("keeps an Auto-publish article out of WordPress when a picture failed", async () => {
+    writeBlogArticle.mockResolvedValueOnce({
+      title: "Coffee roasters",
+      aiScore: 9,
+      passedAllChecks: true,
+    });
+    addAutopilotImages.mockResolvedValueOnce({ added: 2, missing: 1 });
+
+    await runScheduledBlogPosts();
+
+    expect(sendToWordpress).not.toHaveBeenCalled();
+    expect(upsertSettings.mock.calls[0]?.[1].lastRunMessage).toContain(
+      "kept it in the Blog Generator",
     );
   });
 

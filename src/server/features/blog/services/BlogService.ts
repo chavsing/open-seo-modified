@@ -14,7 +14,7 @@ import { markdownToHtml } from "@/server/features/blog/services/markdownToHtml";
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { AppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
-import { withoutImages } from "@/shared/blog-images";
+import { articleWords } from "@/shared/blog-images";
 import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 import type { EnsuredProject } from "@/middleware/ensure-user/types";
 import type {
@@ -243,10 +243,10 @@ async function updateArticle(
   const title = input.title.trim();
   const content = hasContent ? input.content : null;
   const metaDescription = input.metaDescription.trim() || null;
-  // Adding or removing pictures leaves the text the AI reviewed as it was.
+  // Pictures and formatting leave the words the AI reviewed as they were.
   const changed =
     title !== article.title ||
-    withoutImages(content ?? "") !== withoutImages(article.content ?? "") ||
+    articleWords(content ?? "") !== articleWords(article.content ?? "") ||
     metaDescription !== article.metaDescription;
   await BlogRepository.updateArticle(projectId, article.id, {
     title,
@@ -321,7 +321,7 @@ async function sendToWordpress(
     const post = await saveWordpressPost(connection, {
       postId: article.wordpressPostId,
       title: article.title,
-      html: markdownToHtml(images.markdown),
+      html: markdownToHtml(images.markdown, images.mediaIds),
       excerpt: article.metaDescription,
       featuredMedia: images.featuredMedia,
       status: input.publish ? "publish" : "draft",

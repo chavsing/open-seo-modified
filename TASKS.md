@@ -65,6 +65,20 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-13: Blog editor follow-ups (client feedback). Autosave about 1.5
+  seconds after an edit, with "All changes saved" top right instead of a
+  Save button, and a leave warning while a picture is being made. The
+  featured image shows above the article text. Every picture has Regenerate
+  and Remove on hover. Section pictures are made side by side, with a
+  loading placeholder under each heading. Formatting (bold, links, headings,
+  lists) no longer clears the AI review score; changed words still do.
+  Picture prompts now ask for plain, unbranded packaging (a test picture
+  had painted the brand's logo on a coffee bag). Auto-publish now keeps any
+  article that isn't finished (a failed check, a score under 9 or a missing
+  picture) in the Blog Generator instead of sending a WordPress draft.
+  Pictures go to WordPress as image figures that fit the theme's column
+  (they overflowed on Twenty Twenty-Five) and carry their media id, so
+  WordPress serves smaller sizes to phones. Tested locally; not deployed yet.
 - 2026-11-13: Blog images (client request, like the MadeEA editor). The
   article editor is now a visual editor (headings, bold, lists, links,
   pictures) that still saves Markdown. Featured image card: create from the

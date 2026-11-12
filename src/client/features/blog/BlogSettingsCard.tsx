@@ -138,8 +138,9 @@ export function BlogSettingsCard({ projectId }: { projectId: string }) {
                 <FieldDescription>
                   Articles that pass every quality check, have nothing the AI
                   editor marks as must-fix and score at least{" "}
-                  {PUBLISH_MIN_SCORE}/10 go live on their own. Any other article
-                  goes to WordPress as a draft for you to review.
+                  {PUBLISH_MIN_SCORE}/10, with all their pictures, go live on
+                  their own. Any other article stays in the Blog Generator for
+                  you to finish and publish; WordPress never gets it half done.
                 </FieldDescription>
               </FieldContent>
             </Field>

@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 import { ImagePlus, Sparkles, Trash2 } from "lucide-react";
 import { BackLink, PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
@@ -21,25 +20,32 @@ import { Input } from "@/client/components/ui/input";
 import { AiReviewCard } from "@/client/features/blog/AiReviewCard";
 import {
   ArticleBodyEditor,
-  type MarkdownNormalizer,
+  type ArticleEditorApi,
 } from "@/client/features/blog/ArticleBodyEditor";
 import { ArticleConfirmDialogs } from "@/client/features/blog/ArticleConfirmDialogs";
+import { FeaturedImageBlock } from "@/client/features/blog/FeaturedImageBlock";
 import { FeaturedImageCard } from "@/client/features/blog/FeaturedImageCard";
 import { SectionImagesDialog } from "@/client/features/blog/SectionImagesDialog";
 import { MetaDescriptionField } from "@/client/features/blog/MetaDescriptionField";
-import { ArticleSendBar } from "@/client/features/blog/ArticleSendBar";
+import {
+  ArticleSendBar,
+  useSendArticle,
+} from "@/client/features/blog/ArticleSendBar";
 import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
 import { blogKeys, toastBlogError } from "@/client/features/blog/blogQueries";
 import {
+  SaveStatusIndicator,
+  useArticleAutosave,
+} from "@/client/features/blog/useArticleAutosave";
+import { useArticleImages } from "@/client/features/blog/useArticleImages";
+import { useWriteArticle } from "@/client/features/blog/useWriteArticle";
+import {
   deleteBlogArticle,
   getBlogArticle,
   getBlogSettings,
-  sendBlogArticle,
-  updateBlogArticle,
-  writeBlogArticleWithAi,
 } from "@/serverFunctions/blog";
-import { insertSectionImage, markdownSections } from "@/shared/blog-images";
+import { markdownSections } from "@/shared/blog-images";
 import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
 export const Route = createFileRoute("/_app/p/$projectId/blog/$articleId")({
@@ -84,8 +90,6 @@ function BlogArticleRoute() {
   );
 }
 
-const SEND_FAILED =
-  "Couldn't send to WordPress. The reason is shown under the title.";
 const onError = (error: unknown) =>
   toastBlogError(error, { NOT_FOUND: "This article no longer exists." });
 
@@ -105,8 +109,8 @@ function ArticleEditor({
     null,
   );
   const [pictures, setPictures] = useState(false);
-  // The editor's own Markdown formatting, once it has loaded.
-  const [normalize, setNormalize] = useState<MarkdownNormalizer | null>(null);
+  // The editor's Markdown formatting and picture placeholders, once loaded.
+  const [editorApi, setEditorApi] = useState<ArticleEditorApi | null>(null);
   const settingsQuery = useQuery({
     queryKey: blogKeys.settings(projectId),
     queryFn: () => getBlogSettings({ data: { projectId } }),
@@ -117,18 +121,12 @@ function ArticleEditor({
   const saved = article.content ?? "";
   const contentChanged =
     content !== saved &&
-    (!normalize || normalize(content) !== normalize(saved));
+    (!editorApi || editorApi.normalize(content) !== editorApi.normalize(saved));
   const dirty =
     title.trim() !== article.title ||
     contentChanged ||
     meta.trim() !== (article.metaDescription ?? "");
   const edits = { title, content, metaDescription: meta };
-  useBlocker({
-    shouldBlockFn: () =>
-      !window.confirm("You have unsaved changes. Leave without saving?"),
-    disabled: !dirty,
-    enableBeforeUnload: dirty,
-  });
 
   const refresh = () =>
     Promise.all([
@@ -138,72 +136,23 @@ function ArticleEditor({
       queryClient.invalidateQueries({ queryKey: blogKeys.articles(projectId) }),
     ]);
 
-  const save = useMutation({
-    mutationFn: () =>
-      updateBlogArticle({
-        data: { projectId, articleId: article.id, ...edits },
-      }),
-    onSuccess: async () => {
-      await refresh();
-      toast.success("Article saved");
-    },
-    onError,
-  });
-  const send = useMutation({
-    mutationFn: async (publish: boolean) => {
-      // Send what's on screen, not an older saved copy.
-      if (dirty)
-        await updateBlogArticle({
-          data: { projectId, articleId: article.id, ...edits },
-        });
-      return sendBlogArticle({
-        data: { projectId, articleId: article.id, publish },
-      });
-    },
-    onSuccess: (result) => {
-      setConfirm(null);
-      toast.success(
-        result.status === "publish"
-          ? "Published on WordPress"
-          : "Saved as a draft in WordPress",
-      );
-    },
-    onError: (error) => {
-      setConfirm(null);
-      // The server records WordPress's reason on the article, shown under the title.
-      toastBlogError(error, {
-        VALIDATION_ERROR: SEND_FAILED,
-        UPSTREAM_UNAVAILABLE: SEND_FAILED,
-      });
-    },
-    // Refresh either way: a failed send records its error on the article.
+  const send = useSendArticle({
+    projectId,
+    articleId: article.id,
+    // Send what's on screen, not an older saved copy.
+    unsaved: dirty ? edits : null,
+    onDone: () => setConfirm(null),
     onSettled: refresh,
   });
-  const write = useMutation({
-    mutationFn: (replace: boolean) =>
-      writeBlogArticleWithAi({
-        data: { projectId, articleId: article.id, replace },
-      }),
-    onSuccess: async (result) => {
-      setConfirm(null);
+  const write = useWriteArticle({
+    projectId,
+    articleId: article.id,
+    onDone: () => setConfirm(null),
+    onWritten: async (result) => {
       await refresh();
       setTitle(result.title);
       setContent(result.content);
       setMeta(result.metaDescription);
-      toast.success(
-        `Article written and saved, AI score ${result.aiScore}/10. Read it through before sending.`,
-      );
-    },
-    onError: (error) => {
-      setConfirm(null);
-      toastBlogError(error, {
-        UPSTREAM_UNAVAILABLE:
-          "AI writing isn't available right now. Please try again later.",
-        VALIDATION_ERROR: "Add your website to this project first.",
-        CONFLICT:
-          "This article already has text. Reload the page and try again.",
-        NOT_FOUND: "This article was deleted.",
-      });
     },
   });
   const startWriting = () => {
@@ -243,9 +192,42 @@ function ArticleEditor({
     (article.aiScore ?? 0) >= PUBLISH_MIN_SCORE &&
     !dirty;
   const isLive = article.status === "published";
-  const busy =
-    save.isPending || send.isPending || remove.isPending || write.isPending;
+  const busy = send.isPending || remove.isPending || write.isPending;
   const wordpressConnected = Boolean(settingsQuery.data?.wordpress);
+  const autosave = useArticleAutosave({
+    projectId,
+    articleId: article.id,
+    edits,
+    dirty,
+    paused: busy,
+    onSaved: refresh,
+  });
+  const images = useArticleImages({
+    projectId,
+    articleId: article.id,
+    editor: editorApi,
+    disabled: busy,
+    onChanged: refresh,
+  });
+  // Leaving loses unsaved words and any picture still being made.
+  const atRisk = dirty || images.working;
+  useBlocker({
+    shouldBlockFn: () =>
+      !window.confirm(
+        images.working
+          ? "A picture is still being made and will be lost. Leave anyway?"
+          : "Your latest changes aren't saved yet. Leave anyway?",
+      ),
+    disabled: !atRisk,
+    enableBeforeUnload: atRisk,
+  });
+  const sectionsPending = images.sectionsPending;
+  const canSend =
+    hasContent &&
+    Boolean(title.trim()) &&
+    wordpressConnected &&
+    !busy &&
+    !images.working;
 
   return (
     <>
@@ -270,23 +252,31 @@ function ArticleEditor({
         }
         actions={
           <>
+            <SaveStatusIndicator
+              status={autosave.status}
+              onRetry={autosave.retry}
+            />
             <Button
               variant="outline"
               size="sm"
-              disabled={!hasContent || busy}
+              pending={sectionsPending > 0}
+              disabled={!hasContent || busy || !editorApi}
               onClick={() => setPictures(true)}
             >
               <ImagePlus />
-              Add section pictures
+              {sectionsPending > 0
+                ? `Creating ${sectionsPending} ${sectionsPending === 1 ? "picture" : "pictures"}`
+                : "Add section pictures"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              disabled={busy}
+              disabled={busy || images.working}
               onClick={() => setConfirm("delete")}
+              aria-label="Delete"
             >
               <Trash2 />
-              Delete
+              <span className="hidden sm:inline">Delete</span>
             </Button>
           </>
         }
@@ -311,7 +301,7 @@ function ArticleEditor({
                 variant="outline"
                 size="sm"
                 pending={write.isPending}
-                disabled={busy}
+                disabled={busy || images.working}
                 onClick={startWriting}
               >
                 <Sparkles />
@@ -326,7 +316,19 @@ function ArticleEditor({
               value={content}
               onChange={setContent}
               disabled={write.isPending}
-              onReady={(fn) => setNormalize(() => fn)}
+              onReady={setEditorApi}
+              imageActions={images.imageActions}
+              header={
+                <FeaturedImageBlock
+                  image={article.featuredImage}
+                  generating={images.featured.isPending}
+                  disabled={
+                    busy || images.featured.isPending || images.remove.isPending
+                  }
+                  onGenerate={() => images.featured.mutate()}
+                  onRemove={(id) => images.remove.mutate(id)}
+                />
+              }
             />
             <FieldDescription>
               The title becomes the post&apos;s heading, so start each section
@@ -341,18 +343,14 @@ function ArticleEditor({
           />
           <ArticleSendBar
             projectId={projectId}
-            dirty={dirty}
-            canSave={dirty && Boolean(title.trim()) && !busy}
-            saving={save.isPending}
             isLive={isLive}
             sending={
               send.isPending ? (send.variables ? "publish" : "draft") : null
             }
-            canSend={hasContent && wordpressConnected && !busy}
-            canPublish={hasContent && allPassed && wordpressConnected && !busy}
+            canSend={canSend}
+            canPublish={canSend && allPassed}
             showConnect={!wordpressConnected && settingsQuery.isSuccess}
             showLocked={hasContent && !allPassed}
-            onSave={() => save.mutate()}
             onDraft={() => send.mutate(false)}
             onPublish={() => setConfirm("publish")}
           />
@@ -362,8 +360,12 @@ function ArticleEditor({
           <FeaturedImageCard
             projectId={projectId}
             articleId={article.id}
-            featuredImage={article.featuredImage}
+            hasFeaturedImage={Boolean(article.featuredImage)}
             referenceImage={article.referenceImage}
+            description={images.description}
+            onDescriptionChange={images.setDescription}
+            generating={images.featured.isPending}
+            onGenerate={() => images.featured.mutate()}
             busy={busy}
             onChanged={refresh}
           />
@@ -388,12 +390,8 @@ function ArticleEditor({
 
       {pictures ? (
         <SectionImagesDialog
-          projectId={projectId}
-          articleId={article.id}
           sections={markdownSections(content)}
-          onInsert={(index, image) =>
-            setContent((current) => insertSectionImage(current, index, image))
-          }
+          onCreate={(chosen) => void images.addSectionPictures(chosen)}
           onClose={() => setPictures(false)}
         />
       ) : null}

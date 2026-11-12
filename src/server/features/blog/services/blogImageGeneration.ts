@@ -11,8 +11,10 @@ const DEFAULT_MODEL = "openai/gpt-image-2.6-flare";
 const FALLBACK_MODEL = "google/gemini-nano-banana-2.1";
 const TIMEOUT_MS = 120_000;
 
+// Articles name the site's brand, and models then paint its logo on bags and
+// cups, so packaging is spelled out as plain.
 const NO_TEXT =
-  "Absolutely no text, words, letters, numbers, logos or watermarks, and never render letters or words as objects.";
+  "Absolutely no text, words, letters, numbers, logos, brand marks or watermarks, and never render letters or words as objects. Any bags, cups, boxes, labels or signs are plain and unbranded, with no symbols.";
 
 const imageResponseSchema = z.object({
   data: z

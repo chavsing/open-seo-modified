@@ -1,4 +1,3 @@
-import { Image } from "@tiptap/extension-image";
 import { Markdown } from "@tiptap/markdown";
 import {
   EditorContent,
@@ -24,12 +23,28 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/client/components/ui/button";
+import {
+  addPicturePlaceholder,
+  ArticleImage,
+  fillPicturePlaceholder,
+  ImageActionsContext,
+  type ImageActions,
+} from "@/client/features/blog/articleEditorImages";
 
 // The article body as a visual editor. The article is still stored as
 // Markdown, which the quality checks, the AI and WordPress all work from: the
 // editor reads and writes Markdown at its edges.
 
-export type MarkdownNormalizer = (markdown: string) => string;
+export type ArticleEditorApi = {
+  /** The editor's own Markdown formatting of `markdown`. */
+  normalize: (markdown: string) => string;
+  /** A placeholder under the section's heading, until its picture is ready. */
+  addPlaceholder: (sectionIndex: number) => string | null;
+  fillPlaceholder: (
+    id: string,
+    image: { url: string; alt: string } | null,
+  ) => void;
+};
 
 function ToolbarButton({
   label,
@@ -202,20 +217,25 @@ function Toolbar({ editor, disabled }: { editor: Editor; disabled: boolean }) {
 
 /**
  * `value` is Markdown. Typing reports the editor's Markdown through
- * `onChange`; a new `value` from outside (AI writing, added pictures) replaces
- * the text. `onReady` hands over the editor's own Markdown formatting, so the
- * page can tell a real change from a formatting difference.
+ * `onChange`; a new `value` from outside (AI writing) replaces the text.
+ * `onReady` hands over the editor's own Markdown formatting, so the page can
+ * tell a real change from a formatting difference, and its picture
+ * placeholders. `header` shows above the text, as the post's featured image.
  */
 export function ArticleBodyEditor({
   value,
   onChange,
   disabled,
   onReady,
+  header,
+  imageActions,
 }: {
   value: string;
   onChange: (markdown: string) => void;
   disabled: boolean;
-  onReady: (normalize: MarkdownNormalizer) => void;
+  onReady: (api: ArticleEditorApi) => void;
+  header?: ReactNode;
+  imageActions: ImageActions;
 }) {
   const lastValue = useRef(value);
   const editor = useEditor({
@@ -227,7 +247,7 @@ export function ArticleBodyEditor({
         underline: false,
         link: { openOnClick: false, autolink: true },
       }),
-      Image,
+      ArticleImage,
       Markdown,
     ],
     content: value,
@@ -242,7 +262,12 @@ export function ArticleBodyEditor({
     onCreate: ({ editor: created }) => {
       const manager = created.markdown;
       if (manager)
-        onReady((markdown) => manager.serialize(manager.parse(markdown)));
+        onReady({
+          normalize: (markdown) => manager.serialize(manager.parse(markdown)),
+          addPlaceholder: (index) => addPicturePlaceholder(created, index),
+          fillPlaceholder: (id, image) =>
+            fillPicturePlaceholder(created, id, image),
+        });
     },
     onUpdate: ({ editor: updated }) => {
       const markdown = updated.getMarkdown();
@@ -267,7 +292,10 @@ export function ArticleBodyEditor({
   return (
     <div className="article-editor rounded-md border bg-background">
       {editor ? <Toolbar editor={editor} disabled={disabled} /> : null}
-      <EditorContent editor={editor} />
+      {header}
+      <ImageActionsContext.Provider value={imageActions}>
+        <EditorContent editor={editor} />
+      </ImageActionsContext.Provider>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export function AiReviewCard({
           </p>
         ) : dirty ? (
           <p className="text-muted-foreground">
-            Save your changes, then review the new text.
+            Saving your changes. Review the new text once it is saved.
           </p>
         ) : aiScore === null ? (
           <p className="text-muted-foreground">

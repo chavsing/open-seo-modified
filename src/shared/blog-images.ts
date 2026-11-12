@@ -38,6 +38,19 @@ export function withoutImages(markdown: string): string {
     .trim();
 }
 
+/**
+ * The article's words alone: no pictures, links, bold, headings or list
+ * marks. Formatting an article doesn't change what the AI reviewed.
+ */
+export function articleWords(markdown: string): string {
+  return withoutImages(markdown)
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^\s*(?:#{1,6}|>|[-+*]|\d+[.)])\s+/gm, "")
+    .replace(/[*_~`\\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const wordCount = (text: string) =>
   text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu)?.length ?? 0;
 

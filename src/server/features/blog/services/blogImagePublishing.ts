@@ -63,28 +63,35 @@ async function wordpressUrlFor(
 
 /**
  * Uploads the article's pictures to WordPress (once per site) and returns the
- * Markdown with each picture pointing at its WordPress copy, plus the header
- * picture's media id for the post.
+ * Markdown with each picture pointing at its WordPress copy, each copy's
+ * media id by URL, and the header picture's media id for the post.
  */
 export async function prepareWordpressImages(
   connection: WordpressConnection,
   projectId: string,
   articleId: string,
   markdown: string,
-): Promise<{ markdown: string; featuredMedia: number | null }> {
+): Promise<{
+  markdown: string;
+  mediaIds: Map<string, number>;
+  featuredMedia: number | null;
+}> {
   const rows = await BlogImageRepository.listArticleImages(
     projectId,
     articleId,
   );
   const byId = new Map(rows.map((row) => [row.id, row]));
   const urls = new Map<string, string>();
+  const mediaIds = new Map<string, number>();
   for (const id of new Set(blogImageIdsIn(markdown))) {
     // A picture copied from another article of the same project still works.
     const image =
       byId.get(id) ?? (await BlogImageRepository.getImage(projectId, id));
     if (!image) continue;
     const media = await wordpressUrlFor(connection, image);
-    if (media) urls.set(id, media.url);
+    if (!media) continue;
+    urls.set(id, media.url);
+    mediaIds.set(media.url, media.id);
   }
   const featured = rows.find((row) => row.kind === "featured");
   const featuredMedia = featured
@@ -92,22 +99,23 @@ export async function prepareWordpressImages(
     : null;
   return {
     markdown: replaceBlogImageLinks(markdown, (id) => urls.get(id)),
+    mediaIds,
     featuredMedia,
   };
 }
 
 /**
  * Adds a header picture and pictures for the longest sections to a freshly
- * written automatic article. A picture that fails is skipped: the article is
- * still worth posting. Returns how many pictures were added.
+ * written automatic article. A picture that fails is skipped and counted as
+ * missing; the caller decides whether the article can still go live.
  */
 export async function addAutopilotImages(
   projectId: string,
   articleId: string,
   customer: BillingCustomerContext,
-): Promise<number> {
+): Promise<{ added: number; missing: number }> {
   const article = await BlogRepository.getArticle(projectId, articleId);
-  if (!article?.content) return 0;
+  if (!article?.content) return { added: 0, missing: 1 };
   const candidates = markdownSections(article.content).filter(
     (section) => !section.hasImage && section.words >= MIN_SECTION_WORDS,
   );
@@ -139,5 +147,5 @@ export async function addAutopilotImages(
   });
   if (content && content !== current?.content)
     await BlogRepository.updateArticle(projectId, articleId, { content });
-  return added;
+  return { added, missing: 1 + sections.length - added };
 }

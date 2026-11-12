@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  articleWords,
   blogImageIdsIn,
   blogImageUrl,
   insertSectionImage,
@@ -38,5 +39,15 @@ describe("article pictures in Markdown", () => {
         id === IMAGE ? "https://acme.com/kettle.jpg" : undefined,
       ),
     ).toBe(`![Kettle](https://acme.com/kettle.jpg)\n${other}`);
+  });
+
+  it("treats formatting and pictures as no change to the words", () => {
+    const formatted =
+      "## Grind **size**\n\n![Burr](/x.jpg)\n\n- *Medium* [coarse](https://acme.com).";
+
+    expect(articleWords(formatted)).toBe(
+      articleWords("Grind size\n\nMedium coarse."),
+    );
+    expect(articleWords(formatted)).not.toBe(articleWords("Grind size. Fine."));
   });
 });
