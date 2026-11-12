@@ -9,6 +9,9 @@ done list at the bottom with the date.
 
 ## Jamil
 
+- [ ] Turn on HSTS for agsmaster.com in Cloudflare (SSL/TLS, Edge
+  Certificates). Check: `curl -sI https://app.agsmaster.com` shows a
+  strict-transport-security line.
 - [ ] Google verification for Google Analytics access (started 2026-11-11,
       the reason text is already entered). Still to do: record the demo
       video, upload it to YouTube as unlisted, paste the link in Google Cloud
@@ -27,6 +30,12 @@ done list at the bottom with the date.
 
 ## Claude, next
 
+- [ ] Audit leftovers (found 2026-11-12, not fixed yet): closing the tab
+  during "Write with AI" stops the run after about 30 seconds, unbilled and
+  unsaved, and an automatic run that hits Cloudflare's time limit is unbilled.
+  Both need AI writing moved into a background job; propose a plan first.
+  Also: a renewal recorded in the 3 grace days restarts the month from
+  today, and two "Write with AI" clicks on a small balance can go below zero.
 - [ ] "New article" button: type a keyword, get a brief, no topic search
       needed.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
@@ -59,6 +68,15 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-12: Audit fixes. Invite-only sign-up now only accepts team
+  invitations from paying accounts. Autopilot checks the WordPress login
+  before any paid work. /admin can't put Pro over Lifetime, or a Pro month
+  over a running year. A slow WordPress site no longer gets a duplicate post
+  on retry. The crawler name is one word (AGSMASTER-Audit). A trailing space
+  in a title no longer locks Publish. Lapsed Pro plans lose their unused
+  monthly credits after the grace days (bought extras stay). Scheduled rank
+  tracking stays paused (upstream marked it unreliable); the in-app notice
+  and Sam now say so plainly instead of promising it.
 - 2026-11-12: New publishing rule (approved by Jamil for the client): an
   article goes live only when every code check passes, the AI editor marks
   nothing as must-fix, and it scores at least 9/10. The editor now lists

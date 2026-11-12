@@ -41,6 +41,11 @@ export function paidAccessEndsAt(row: PlanRow | null) {
   ).toISOString();
 }
 
+/** Paid periods that ended before this time have run out of grace too. */
+export function lapsedPeriodCutoff(now: Date) {
+  return new Date(now.getTime() - RENEWAL_GRACE_MS).toISOString();
+}
+
 export function hasPaidAccess(row: PlanRow | null, now = new Date()) {
   if (!row || row.planId === FREE_PLAN_ID) return false;
   if (row.currentPeriodEnd === null) return row.planStatus !== "canceled";

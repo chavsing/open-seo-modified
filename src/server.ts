@@ -8,6 +8,7 @@ import { ProjectRepository } from "@/server/features/projects/repositories/Proje
 import { SamSessionRepository } from "@/server/features/sam/SamSessionRepository";
 import { runScheduledRankChecks } from "@/server/features/rank-tracking/services/scheduledRankChecks";
 import {
+  expireLapsedPlanCredits,
   refillYearlyPlanCredits,
   releaseExpiredCreditHolds,
 } from "@/server/billing/creditLedger";
@@ -252,6 +253,10 @@ export default {
             const refilled = await refillYearlyPlanCredits();
             if (refilled > 0) {
               console.log("[cron] refilled yearly plan credits", refilled);
+            }
+            const expired = await expireLapsedPlanCredits();
+            if (expired > 0) {
+              console.log("[cron] emptied lapsed plan credits", expired);
             }
           })
         : Promise.resolve(),

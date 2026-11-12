@@ -1,11 +1,15 @@
 import { isPlatformAdmin, requireAdmin } from "@/server/billing/admin-billing";
+import { getBillingAccountRow } from "@/server/billing/creditLedger";
+import { hasPaidAccess } from "@/server/billing/plan-access";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { SignupAccessRepository } from "@/server/auth/repositories/SignupAccessRepository";
 
 // Invite-only sign-up (hosted): while it is on, a new account can only be
 // created for an email the admin listed, an admin email, or an email with a
-// pending team invitation (so customers can still invite teammates). It only
-// gates creating accounts; existing accounts sign in as before.
+// pending team invitation from a paying account (so customers can still invite
+// teammates). Any account can create invitations, so an invitation from a free
+// account would let anyone in. It only gates creating accounts; existing
+// accounts sign in as before.
 
 const normalize = (email: string) => email.trim().toLowerCase();
 
@@ -19,7 +23,16 @@ export async function canEmailSignUp(email: string) {
   if (!(await isInviteOnly())) return true;
   if (await SignupAccessRepository.isEmailListed(normalized)) return true;
   if (await isPlatformAdmin(normalized)) return true;
-  return AuthRepository.hasPendingInvitationForEmail(normalized);
+  return hasInvitationFromPayingAccount(normalized);
+}
+
+async function hasInvitationFromPayingAccount(email: string) {
+  const organizationIds =
+    await AuthRepository.listPendingInvitationOrganizationIds(email);
+  for (const organizationId of organizationIds) {
+    if (hasPaidAccess(await getBillingAccountRow(organizationId))) return true;
+  }
+  return false;
 }
 
 export async function getSignupAccessAsAdmin(adminEmail: string) {

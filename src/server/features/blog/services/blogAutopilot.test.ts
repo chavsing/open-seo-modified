@@ -6,6 +6,7 @@ const {
   listTopicIdeas,
   upsertSettings,
   getSettings,
+  testWordpress,
   sendToWordpress,
   writeBlogArticle,
   chooseBlogTopic,
@@ -14,8 +15,12 @@ const {
   listDueAutoPosts: vi.fn(),
   claimDueAutoPost: vi.fn(),
   listTopicIdeas: vi.fn(),
-  upsertSettings: vi.fn(),
+  upsertSettings:
+    vi.fn<
+      (projectId: string, settings: { lastRunMessage: string }) => Promise<void>
+    >(),
   getSettings: vi.fn(),
+  testWordpress: vi.fn(),
   sendToWordpress: vi.fn(),
   writeBlogArticle: vi.fn(),
   chooseBlogTopic: vi.fn(),
@@ -31,7 +36,7 @@ vi.mock("@/server/features/blog/repositories/BlogRepository", () => ({
   },
 }));
 vi.mock("@/server/features/blog/services/BlogService", () => ({
-  BlogService: { getSettings, sendToWordpress },
+  BlogService: { getSettings, testWordpress, sendToWordpress },
 }));
 vi.mock("@/server/features/blog/services/blogWriter", () => ({
   writeBlogArticle,
@@ -72,6 +77,7 @@ beforeEach(() => {
     publishMode: "auto",
     wordpress: { url: "https://acme.com/", username: "editor" },
   });
+  testWordpress.mockResolvedValue({ ok: true, name: "Editor" });
   sendToWordpress.mockResolvedValue({ status: "draft", link: null });
 });
 
@@ -102,6 +108,19 @@ describe("runScheduledBlogPosts", () => {
 
     expect(setTopicStatus).toHaveBeenCalledWith("p1", "t2", "skipped");
     expect(setTopicStatus).not.toHaveBeenCalledWith("p1", "t1", "skipped");
+  });
+
+  it("writes nothing when WordPress refuses the saved login", async () => {
+    testWordpress.mockResolvedValueOnce({
+      ok: false,
+      message: "WordPress refused the login.",
+    });
+
+    await runScheduledBlogPosts();
+
+    expect(writeBlogArticle).not.toHaveBeenCalled();
+    const saved = upsertSettings.mock.calls[0]?.[1];
+    expect(saved?.lastRunMessage).toContain("Nothing was written or charged");
   });
 
   it("writes nothing when another run already claimed the site", async () => {

@@ -9,7 +9,7 @@
 export const BRAND_NAME = "AGS MASTER";
 
 // The brand as one word, for identifiers that cannot contain spaces.
-export const BRAND_TOKEN = BRAND_NAME.replace(/s+/g, "");
+export const BRAND_TOKEN = BRAND_NAME.replace(/\s+/g, "");
 
 export const SUPPORT_EMAIL = "bryansumait.contact@gmail.com";
 

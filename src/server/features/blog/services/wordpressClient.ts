@@ -10,6 +10,10 @@ import { AppError } from "@/server/lib/errors";
 // one would replay the credentials to a host nobody validated.
 
 const TIMEOUT_MS = 20_000;
+// Creating a post runs the site's plugins, which can be slow on shared hosts.
+const CREATE_TIMEOUT_MS = 60_000;
+// How far back a post that WordPress saved during a failed create can be.
+const RECOVERY_WINDOW_MS = 10 * 60_000;
 
 export type WordpressConnection = {
   /** Validated site URL, e.g. "https://example.com/" or ".../blog/". */
@@ -31,6 +35,13 @@ const wpPostSchema = z.object({
   status: z.string(),
 });
 
+const wpPostListSchema = z.array(
+  wpPostSchema.extend({
+    title: z.object({ raw: z.string().optional() }),
+    modified_gmt: z.string(),
+  }),
+);
+
 type WordpressPost = z.infer<typeof wpPostSchema>;
 
 function endpoint(siteUrl: string, route: string): string {
@@ -50,7 +61,12 @@ function basicAuth(username: string, password: string): string {
 async function request(
   connection: WordpressConnection,
   route: string,
-  init: { method: "GET" | "POST"; body?: unknown; query?: string },
+  init: {
+    method: "GET" | "POST";
+    body?: unknown;
+    query?: string;
+    timeoutMs?: number;
+  },
 ): Promise<unknown> {
   let url = endpoint(connection.siteUrl, route);
   if (init.query) url += `&${init.query}`;
@@ -59,7 +75,7 @@ async function request(
     response = await fetch(url, {
       method: init.method,
       redirect: "manual",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(init.timeoutMs ?? TIMEOUT_MS),
       headers: {
         authorization: basicAuth(connection.username, connection.password),
         accept: "application/json",
@@ -144,6 +160,72 @@ export async function verifyWordpressLogin(
   return { name: parsed.data.name };
 }
 
+/**
+ * A post with this exact title that WordPress saved since `since`, if any.
+ * A slow site can save a post and answer after the timeout, so the app
+ * reports a failure; looking first keeps a retry from making a duplicate.
+ */
+async function findRecentPost(
+  connection: WordpressConnection,
+  title: string,
+  since: number,
+): Promise<WordpressPost | null> {
+  const query = new URLSearchParams({
+    search: title,
+    status: "draft,pending,future,private,publish",
+    context: "edit",
+    orderby: "modified",
+    order: "desc",
+    per_page: "10",
+  });
+  const parsed = wpPostListSchema.safeParse(
+    await request(connection, "/wp/v2/posts", {
+      method: "GET",
+      query: query.toString(),
+    }),
+  );
+  if (!parsed.success) return null;
+  return (
+    parsed.data.find(
+      (candidate) =>
+        candidate.title.raw === title &&
+        Date.parse(`${candidate.modified_gmt}Z`) >= since,
+    ) ?? null
+  );
+}
+
+async function createPost(
+  connection: WordpressConnection,
+  body: { title: string },
+): Promise<unknown> {
+  const since = Date.now() - RECOVERY_WINDOW_MS;
+  // An earlier attempt that was reported as failed may have been saved after
+  // all; update that post instead of adding a second one.
+  const earlier = await findRecentPost(connection, body.title, since).catch(
+    () => null,
+  );
+  if (earlier)
+    return request(connection, `/wp/v2/posts/${earlier.id}`, {
+      method: "POST",
+      body,
+    });
+  try {
+    return await request(connection, "/wp/v2/posts", {
+      method: "POST",
+      body,
+      timeoutMs: CREATE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    if (!(error instanceof AppError && error.code === "UPSTREAM_UNAVAILABLE"))
+      throw error;
+    const saved = await findRecentPost(connection, body.title, since).catch(
+      () => null,
+    );
+    if (saved) return saved;
+    throw error;
+  }
+}
+
 /** Creates a post, or updates `postId` when the article was sent before. */
 export async function saveWordpressPost(
   connection: WordpressConnection,
@@ -163,23 +245,19 @@ export async function saveWordpressPost(
     ...(post.excerpt ? { excerpt: post.excerpt } : {}),
   };
   let result: unknown;
-  try {
-    result = await request(
-      connection,
-      post.postId ? `/wp/v2/posts/${post.postId}` : "/wp/v2/posts",
-      { method: "POST", body },
-    );
-  } catch (error) {
-    // Someone deleted the post in WordPress: send it again as a new one.
-    if (
-      !(post.postId && error instanceof AppError && error.code === "NOT_FOUND")
-    )
-      throw error;
-    result = await request(connection, "/wp/v2/posts", {
-      method: "POST",
-      body,
-    });
-  }
+  if (!post.postId) result = await createPost(connection, body);
+  else
+    try {
+      result = await request(connection, `/wp/v2/posts/${post.postId}`, {
+        method: "POST",
+        body,
+      });
+    } catch (error) {
+      // Someone deleted the post in WordPress: send it again as a new one.
+      if (!(error instanceof AppError && error.code === "NOT_FOUND"))
+        throw error;
+      result = await createPost(connection, body);
+    }
   const parsed = wpPostSchema.safeParse(result);
   if (!parsed.success)
     throw new AppError(

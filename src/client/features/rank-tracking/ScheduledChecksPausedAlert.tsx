@@ -12,12 +12,11 @@ export function ScheduledChecksPausedAlert() {
       <AlertDescription className="text-foreground">
         <p>
           <span className="font-medium">
-            Scheduled rank tracking has been temporarily disabled.
+            Scheduled rank tracking is paused for now.
           </span>{" "}
-          Scraping Google Search Results has been unreliable industry wide due
-          to change Google has made. Due to this, we&apos;ve disabled it until
-          we have a better solution. We should have an update within the next
-          week. Sorry for the inconvenience.
+          Reading Google results on a schedule has been unreliable industry wide
+          since recent changes at Google. You can still check your rankings any
+          time with Check rankings.
         </p>
       </AlertDescription>
     </Alert>

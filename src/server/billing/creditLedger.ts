@@ -1,4 +1,16 @@
-import { and, asc, eq, exists, gte, lt, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  exists,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
@@ -8,13 +20,14 @@ import {
   creditHolds,
 } from "@/db/schema";
 import {
+  AUTUMN_PRO_PLAN_ID,
   AUTUMN_PRO_YEARLY_PLAN_ID,
   AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
   FREE_PLAN_CREDITS,
   PRO_MONTHLY_CREDITS,
 } from "@/shared/billing";
-import { addMonths } from "@/server/billing/plan-access";
+import { addMonths, lapsedPeriodCutoff } from "@/server/billing/plan-access";
 
 // The app-owned credit ledger: plan rows, balances, holds and the usage log.
 // Every write that moves credits runs as one runBatch, which is a single
@@ -369,6 +382,41 @@ export async function refillYearlyPlanCredits(now = new Date()) {
     refilled += 1;
   }
   return refilled;
+}
+
+/**
+ * Empties the monthly credits of Pro and Pro yearly accounts whose paid
+ * period and grace days are over, as a lapsed plan's monthly allowance ends
+ * with it. Extra credits the customer bought stay. Runs from the 5-minute
+ * cron; a renewal recorded later refills the month. Only touches a positive
+ * balance, so re-runs change nothing.
+ */
+export async function expireLapsedPlanCredits(now = new Date()) {
+  const lapsed = db
+    .select({ organizationId: billingAccounts.organizationId })
+    .from(billingAccounts)
+    .where(
+      and(
+        inArray(billingAccounts.planId, [
+          AUTUMN_PRO_PLAN_ID,
+          AUTUMN_PRO_YEARLY_PLAN_ID,
+        ]),
+        isNotNull(billingAccounts.currentPeriodEnd),
+        lte(billingAccounts.currentPeriodEnd, lapsedPeriodCutoff(now)),
+      ),
+    );
+  const expired = await db
+    .update(creditBalances)
+    .set({ remaining: 0, nextResetAt: null })
+    .where(
+      and(
+        eq(creditBalances.pool, AUTUMN_SEO_DATA_BALANCE_FEATURE_ID),
+        gt(creditBalances.remaining, 0),
+        inArray(creditBalances.organizationId, lapsed),
+      ),
+    )
+    .returning({ organizationId: creditBalances.organizationId });
+  return expired.length;
 }
 
 export async function listCreditEvents(args: {

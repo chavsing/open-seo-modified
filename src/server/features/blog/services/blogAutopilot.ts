@@ -94,6 +94,11 @@ async function postForSite(projectId: string, organizationId: string) {
   const settings = await BlogService.getSettings(projectId);
   if (!settings.wordpress)
     return "Paused: connect your WordPress site to post automatically.";
+  // Check the login before any paid work: a revoked password or a blocked
+  // REST API would otherwise cost a full article every run.
+  const login = await BlogService.testWordpress(projectId);
+  if (!login.ok)
+    return `Skipped: WordPress didn't accept the saved login. ${login.message} Nothing was written or charged. It will try again at the next scheduled time.`;
   const customer = {
     organizationId,
     userId: "system",

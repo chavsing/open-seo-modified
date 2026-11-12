@@ -25,7 +25,10 @@ import {
   searchAccountsAsAdmin,
 } from "./admin-billing";
 import { reportPaypalSubscription } from "./billing-account";
-import { refillYearlyPlanCredits } from "./creditLedger";
+import {
+  expireLapsedPlanCredits,
+  refillYearlyPlanCredits,
+} from "./creditLedger";
 
 // The harness seeds organization "organization"; this member is its owner.
 const ORG = "organization";
@@ -197,6 +200,40 @@ describe("admin billing", () => {
       hasPaidAccess: true,
       paidUntil: "2026-04-10T12:00:00.000Z",
       monthlyRemainingUsd: PRO_MONTHLY_CREDITS / 1000,
+    });
+  });
+
+  it("refuses a Pro month or year that would replace Lifetime", async () => {
+    await apply({ action: "lifetime" });
+
+    await expect(apply({ action: "pro_month" })).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+    await expect(apply({ action: "pro_year" })).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+    expect((await owner()).planId).toBe("lifetime-plan");
+  });
+
+  it("empties a lapsed Pro month's credits after the grace days and keeps bought extras", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_month" }); // paid until 2026-04-10
+    await apply({ action: "add_credits", credits: 5000 });
+
+    // Still in the grace days.
+    expect(
+      await expireLapsedPlanCredits(new Date("2026-04-12T12:00:00Z")),
+    ).toBe(0);
+
+    expect(
+      await expireLapsedPlanCredits(new Date("2026-04-14T12:00:00Z")),
+    ).toBe(1);
+    expect(await owner()).toMatchObject({
+      monthlyRemainingUsd: 0,
+      extraRemainingUsd: 5,
     });
   });
 

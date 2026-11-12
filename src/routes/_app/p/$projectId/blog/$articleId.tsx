@@ -105,7 +105,7 @@ function ArticleEditor({
 
   // Compared with what the server holds, so undoing an edit clears it.
   const dirty =
-    title !== article.title ||
+    title.trim() !== article.title ||
     content !== (article.content ?? "") ||
     meta.trim() !== (article.metaDescription ?? "");
   const edits = { title, content, metaDescription: meta };

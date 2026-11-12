@@ -246,20 +246,30 @@ async function listMembershipsForUser(userId: string) {
 
 // Case-insensitive on purpose: better-auth lowercases the address when it
 // mails an invite, but the stored row keeps whatever the inviter typed.
+function pendingInvitationsForEmail(email: string) {
+  return and(
+    eq(sql`lower(${invitation.email})`, email.trim().toLowerCase()),
+    eq(invitation.status, "pending"),
+    gt(invitation.expiresAt, new Date()),
+  );
+}
+
 async function hasPendingInvitationForEmail(email: string) {
   const [pending] = await db
     .select({ id: invitation.id })
     .from(invitation)
-    .where(
-      and(
-        eq(sql`lower(${invitation.email})`, email.trim().toLowerCase()),
-        eq(invitation.status, "pending"),
-        gt(invitation.expiresAt, new Date()),
-      ),
-    )
+    .where(pendingInvitationsForEmail(email))
     .limit(1);
 
   return pending !== undefined;
+}
+
+async function listPendingInvitationOrganizationIds(email: string) {
+  const rows = await db
+    .selectDistinct({ organizationId: invitation.organizationId })
+    .from(invitation)
+    .where(pendingInvitationsForEmail(email));
+  return rows.map((row) => row.organizationId);
 }
 
 async function getLastActiveOrganizationId(userId: string) {
@@ -295,4 +305,5 @@ export const AuthRepository = {
   getHostedUser,
   getHostedUserNames,
   hasPendingInvitationForEmail,
+  listPendingInvitationOrganizationIds,
 } as const;

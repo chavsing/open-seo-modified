@@ -27,7 +27,8 @@ import {
   getCreditBalanceRows,
   type CreditPool,
 } from "@/server/billing/creditLedger";
-import { addMonths } from "@/server/billing/plan-access";
+import { addMonths, hasPaidAccess } from "@/server/billing/plan-access";
+import { AppError } from "@/server/lib/errors";
 import {
   AUTUMN_LIFETIME_PLAN_ID,
   AUTUMN_PRO_PLAN_ID,
@@ -227,6 +228,37 @@ export type AdminBillingAction =
   | { action: "downgrade" };
 
 /**
+ * A Pro month or year would replace a longer plan and reset its credits: a
+ * Lifetime account would lose Lifetime and up to its full credits, a running
+ * year the rest of the year. Refused, so a misclick can't do it; downgrading
+ * first is the deliberate way.
+ */
+function refuseShorterPlan(
+  account: Awaited<ReturnType<typeof getBillingAccountRow>>,
+  change: AdminBillingAction,
+  now: Date,
+) {
+  if (change.action !== "pro_month" && change.action !== "pro_year") return;
+  if (
+    account?.planId === AUTUMN_LIFETIME_PLAN_ID &&
+    hasPaidAccess(account, now)
+  )
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "This account has Lifetime access, so a Pro plan would replace it and reset its credits. Downgrade to free first if that is really what you want.",
+    );
+  const yearRunning =
+    account?.planId === AUTUMN_PRO_YEARLY_PLAN_ID &&
+    account.currentPeriodEnd !== null &&
+    Date.parse(account.currentPeriodEnd) > now.getTime();
+  if (change.action === "pro_month" && yearRunning)
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "This account has a Pro year running, so a Pro month would cut it short. Use Add a Pro year to renew it.",
+    );
+}
+
+/**
  * Applies an admin's plan change or credit grant, and logs it, in one batch.
  * The log row's id is the request id, so a repeated request fails on the
  * primary key and changes nothing: `applied` is then false.
@@ -253,6 +285,7 @@ export async function applyAdminBillingAction(args: {
   const nowIso = now.toISOString();
   await ensureBillingAccount(organizationId);
   const account = await getBillingAccountRow(organizationId);
+  refuseShorterPlan(account, change, now);
 
   const accountRow = eq(billingAccounts.organizationId, organizationId);
   const monthlyRow = balanceRow(

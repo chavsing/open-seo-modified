@@ -29,8 +29,20 @@ beforeEach(async () => {
     DELETE FROM signup_allowed_emails;
     DELETE FROM signup_settings;
     DELETE FROM invitation;
+    DELETE FROM billing_accounts;
   `);
 });
+
+async function seedInvitation() {
+  await testDb.seedProject();
+  await testDb.client.executeMultiple(`
+    DELETE FROM user WHERE id = 'inviter';
+    INSERT INTO user (id, name, email, email_verified, created_at, updated_at)
+      VALUES ('inviter', 'Inviter', 'inviter@example.com', 1, 0, 0);
+    INSERT INTO invitation (id, organization_id, email, role, status, expires_at, created_at, inviter_id)
+      VALUES ('invite', 'organization', 'teammate@example.com', 'admin', 'pending', ${Date.now() + 86_400_000}, 0, 'inviter');
+  `);
+}
 
 describe("invite-only sign-up", () => {
   it("is on by default and refuses an email nobody allowed", async () => {
@@ -50,16 +62,17 @@ describe("invite-only sign-up", () => {
     expect(await canEmailSignUp("Admin@Example.com")).toBe(true);
   });
 
-  it("allows an email with a pending team invitation", async () => {
-    await testDb.seedProject();
-    await testDb.client.executeMultiple(`
-      DELETE FROM user WHERE id = 'inviter';
-      INSERT INTO user (id, name, email, email_verified, created_at, updated_at)
-        VALUES ('inviter', 'Inviter', 'inviter@example.com', 1, 0, 0);
-      INSERT INTO invitation (id, organization_id, email, role, status, expires_at, created_at, inviter_id)
-        VALUES ('invite', 'organization', 'teammate@example.com', 'admin', 'pending', ${Date.now() + 86_400_000}, 0, 'inviter');
-    `);
+  it("allows an email invited by a paying account", async () => {
+    await seedInvitation();
+    await testDb.client.execute(
+      "INSERT INTO billing_accounts (organization_id, plan_id, created_at, updated_at) VALUES ('organization', 'lifetime-plan', '2026-01-01', '2026-01-01')",
+    );
     expect(await canEmailSignUp("teammate@example.com")).toBe(true);
+  });
+
+  it("refuses an email invited by a free account", async () => {
+    await seedInvitation();
+    expect(await canEmailSignUp("teammate@example.com")).toBe(false);
   });
 
   it("allows anyone once invite-only is switched off", async () => {

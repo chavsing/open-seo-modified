@@ -69,6 +69,7 @@ export function AdminAccountCard({
   onAction: (kind: AdminAction) => void;
 }) {
   const plan = account.planId === "free" ? "Free" : getPlanName(account.planId);
+  const isLifetime = account.planId === "lifetime-plan";
   return (
     <Card>
       <CardContent className="space-y-3">
@@ -122,17 +123,25 @@ export function AdminAccountCard({
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => onAction("pro_month")}>
+          <Button
+            size="sm"
+            onClick={() => onAction("pro_month")}
+            disabled={isLifetime || isYearRunning(account)}
+          >
             {account.planId === "pro-plan" ? "Add a Pro month" : "Start Pro"}
           </Button>
-          <Button size="sm" onClick={() => onAction("pro_year")}>
+          <Button
+            size="sm"
+            onClick={() => onAction("pro_year")}
+            disabled={isLifetime}
+          >
             {isYearRunning(account) ? "Add a Pro year" : "Start Pro yearly"}
           </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => onAction("lifetime")}
-            disabled={account.planId === "lifetime-plan"}
+            disabled={isLifetime}
           >
             Activate Lifetime
           </Button>
