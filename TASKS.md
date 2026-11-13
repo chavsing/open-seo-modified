@@ -63,6 +63,9 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-13: Loops "AGS MASTER notice" email template published and its id
+  added to the live app. A test notice reached the admin inbox and its
+  button opened app.agsmaster.com.
 - 2026-11-13: Suggestions batch (tested locally, deployed 2026-11-13; database
   tables and new screens checked live).
   Version history on articles (text from before each editing session and
@@ -75,7 +78,7 @@ done list at the bottom with the date.
   description is also sent to Yoast and Rank Math fields, which only works
   on sites that expose them. Owners get an email after each automatic post,
   and admins a daily email when the OpenRouter balance is under $10 (both
-  need a Loops template, see below). /admin shows the OpenRouter balance.
+  use the Loops "AGS MASTER notice" template). /admin shows the OpenRouter balance.
   The Context page has "Set up from my website" (fills empty sections and
   key pages, finds 3 competitors, researches topics, about $0.13).
 - 2026-11-13: Blog editor follow-ups (client feedback). Autosave about 1.5
