@@ -11,6 +11,12 @@ import {
 } from "@/server/features/blog/services/blogImages";
 import { prepareWordpressImages } from "@/server/features/blog/services/blogImagePublishing";
 import { markdownToHtml } from "@/server/features/blog/services/markdownToHtml";
+import { BlogArticleExtrasRepository } from "@/server/features/blog/repositories/BlogArticleExtrasRepository";
+import {
+  setWordpressSeoDescription,
+  wordpressTagIds,
+} from "@/server/features/blog/services/blogTaxonomy";
+import { keepVersion } from "@/server/features/blog/services/blogVersions";
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { AppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
@@ -225,6 +231,7 @@ async function getArticle(project: EnsuredProject, articleId: string) {
     ...article,
     projectDomain: project.domain,
     otherTitles: await BlogRepository.listOtherTitles(project.id, article.id),
+    tags: await BlogArticleExtrasRepository.listTags(project.id, article.id),
     ...(await articleImageViews(project.id, article.id)),
   };
 }
@@ -248,6 +255,14 @@ async function updateArticle(
     title !== article.title ||
     articleWords(content ?? "") !== articleWords(article.content ?? "") ||
     metaDescription !== article.metaDescription;
+  // Autosave writes over the text; the version from before this editing
+  // session stays restorable.
+  if (
+    title !== article.title ||
+    content !== article.content ||
+    metaDescription !== article.metaDescription
+  )
+    await keepVersion(projectId, article.id, article, "edit");
   await BlogRepository.updateArticle(projectId, article.id, {
     title,
     content,
@@ -324,8 +339,21 @@ async function sendToWordpress(
       html: markdownToHtml(images.markdown, images.mediaIds),
       excerpt: article.metaDescription,
       featuredMedia: images.featuredMedia,
+      categories: article.wordpressCategoryId
+        ? [article.wordpressCategoryId]
+        : [],
+      tags: await wordpressTagIds(
+        connection,
+        await BlogArticleExtrasRepository.listTags(project.id, article.id),
+      ),
       status: input.publish ? "publish" : "draft",
     });
+    if (article.metaDescription)
+      await setWordpressSeoDescription(
+        connection,
+        post.id,
+        article.metaDescription,
+      );
     const live = post.status === "publish";
     await BlogRepository.updateArticle(project.id, article.id, {
       status: live ? "published" : "wp_draft",
@@ -354,6 +382,7 @@ export const BlogService = {
   connectWordpress,
   testWordpress,
   disconnectWordpress,
+  openConnection,
   listTopics: BlogRepository.listTopics,
   setTopicSkipped,
   listArticles: BlogRepository.listArticles,

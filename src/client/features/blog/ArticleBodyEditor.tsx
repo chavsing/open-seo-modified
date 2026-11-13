@@ -279,9 +279,13 @@ export function ArticleBodyEditor({
   useEffect(() => {
     if (!editor || value === lastValue.current) return;
     lastValue.current = value;
-    editor.commands.setContent(value, {
-      contentType: "markdown",
-      emitUpdate: false,
+    // After this render: the pictures' React views can't render inside it.
+    queueMicrotask(() => {
+      if (editor.isDestroyed) return;
+      editor.commands.setContent(value, {
+        contentType: "markdown",
+        emitUpdate: false,
+      });
     });
   }, [editor, value]);
 

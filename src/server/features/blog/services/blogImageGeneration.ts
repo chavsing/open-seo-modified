@@ -1,4 +1,7 @@
+import { generateText } from "ai";
 import { z } from "zod";
+import { requireOpenRouterCostUsd } from "@/server/lib/chatAgent";
+import { buildChatAgentModel } from "@/server/lib/openrouter";
 import { AppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
@@ -137,4 +140,55 @@ export async function generateImage(
     "UPSTREAM_UNAVAILABLE",
     "Couldn't create the picture right now. Please try again in a minute.",
   );
+}
+
+const MAX_ALT_CHARS = 125;
+
+/**
+ * A short description of what the picture shows, for its alt text, which
+ * Google image search and screen readers read. The model looks at the
+ * picture itself, so it can't describe something that isn't there. Null when
+ * it can't; callers fall back to the heading. Costs a fraction of a cent.
+ */
+export async function describeImage(
+  apiKey: string,
+  image: { bytes: Uint8Array; mediaType: string },
+  topic: string,
+): Promise<{ alt: string | null; costUsd: number }> {
+  let costUsd = 0;
+  try {
+    const result = await generateText({
+      model: buildChatAgentModel(
+        apiKey,
+        await getOptionalEnvValue("OPENROUTER_MODEL"),
+        "low",
+      ),
+      maxOutputTokens: 600,
+      abortSignal: AbortSignal.timeout(45_000),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Write the alt text for this picture in a blog article about "${topic}". One plain sentence under ${MAX_ALT_CHARS} characters saying what the picture shows. Don't start with "Image of" or "Picture of". Answer with the sentence only.`,
+            },
+            { type: "image", image: image.bytes, mediaType: image.mediaType },
+          ],
+        },
+      ],
+      onStepFinish: (step) => {
+        costUsd += requireOpenRouterCostUsd(step.providerMetadata);
+      },
+    });
+    const alt = result.text
+      .replace(/\s+/g, " ")
+      .replace(/^["']|["']$/g, "")
+      .trim()
+      .slice(0, MAX_ALT_CHARS);
+    return { alt: alt || null, costUsd };
+  } catch (error) {
+    console.error("[blog] picture description failed", { error });
+    return { alt: null, costUsd };
+  }
 }

@@ -100,6 +100,18 @@ async function getHostedUser(userId: string) {
   });
 }
 
+/** The email addresses of the organization's owners, for notices. */
+async function listOwnerEmails(organizationId: string) {
+  const rows = await db
+    .select({ email: authUser.email })
+    .from(member)
+    .innerJoin(authUser, eq(authUser.id, member.userId))
+    .where(
+      and(eq(member.organizationId, organizationId), eq(member.role, "owner")),
+    );
+  return rows.map((row) => row.email);
+}
+
 /** Names for a set of user ids in one query; missing ids are simply absent. */
 async function getHostedUserNames(userIds: string[]) {
   if (userIds.length === 0) return [];
@@ -304,6 +316,7 @@ export const AuthRepository = {
   setLastActiveOrganization,
   getHostedUser,
   getHostedUserNames,
+  listOwnerEmails,
   hasPendingInvitationForEmail,
   listPendingInvitationOrganizationIds,
 } as const;

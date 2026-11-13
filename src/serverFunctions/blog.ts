@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { waitUntil } from "cloudflare:workers";
 import { BlogService } from "@/server/features/blog/services/BlogService";
 import {
   createArticleImage,
@@ -11,9 +10,15 @@ import {
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
 import {
-  reviewBlogArticle,
-  writeBlogArticle,
-} from "@/server/features/blog/services/blogWriter";
+  listSiteCategories,
+  saveArticleFiling,
+} from "@/server/features/blog/services/blogFiling";
+import {
+  listVersionSummaries,
+  restoreVersion,
+} from "@/server/features/blog/services/blogVersions";
+import { reviewBlogArticle } from "@/server/features/blog/services/blogWriter";
+import { startArticleWriting } from "@/server/features/blog/services/blogWriting";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
@@ -22,6 +27,8 @@ import {
   connectWordpressSchema,
   createBlogImageSchema,
   removeBlogImageSchema,
+  restoreBlogVersionSchema,
+  saveBlogArticleFilingSchema,
   setBlogReferenceImageSchema,
   sendBlogArticleSchema,
   skipBlogTopicSchema,
@@ -134,17 +141,44 @@ export const sendBlogArticle = createServerFn({ method: "POST" })
 export const writeBlogArticleWithAi = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(writeBlogArticleSchema)
-  .handler(({ data, context }) => {
-    const work = writeBlogArticle(
-      context.project,
+  // Starts a background job; the article page watches for the text.
+  .handler(({ data, context }) =>
+    startArticleWriting(
+      context.projectId,
       { articleId: data.articleId, replace: data.replace },
       context,
-    );
-    // The result is saved on the server, so a closed tab doesn't waste a paid
-    // run: keep the work alive within the request's background grace period.
-    waitUntil(work.catch(() => undefined));
-    return work;
-  });
+    ),
+  );
+
+export const listBlogArticleVersions = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(blogArticleSchema)
+  .handler(({ data, context }) =>
+    listVersionSummaries(context.projectId, data.articleId),
+  );
+
+export const restoreBlogArticleVersion = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(restoreBlogVersionSchema)
+  .handler(({ data, context }) =>
+    restoreVersion(context.projectId, data.articleId, data.versionId),
+  );
+
+export const listBlogCategories = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(blogProjectSchema)
+  .handler(({ context }) => listSiteCategories(context.projectId));
+
+export const saveBlogArticleFiling = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(saveBlogArticleFilingSchema)
+  .handler(({ data, context }) =>
+    saveArticleFiling(context.projectId, {
+      articleId: data.articleId,
+      category: data.category,
+      tags: data.tags,
+    }),
+  );
 
 export const reviewBlogArticleWithAi = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)

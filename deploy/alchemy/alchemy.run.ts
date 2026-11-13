@@ -292,6 +292,8 @@ const dataEnv = {
   LOOPS_TRANSACTIONAL_INVITATION_ID: optionalVar(
     "LOOPS_TRANSACTIONAL_INVITATION_ID",
   ),
+  // Blog autopilot results and the low AI balance warning.
+  LOOPS_TRANSACTIONAL_NOTICE_ID: optionalVar("LOOPS_TRANSACTIONAL_NOTICE_ID"),
   POSTHOG_PUBLIC_KEY: optionalVar("POSTHOG_PUBLIC_KEY"),
   POSTHOG_HOST: optionalVar("POSTHOG_HOST"),
   TURNSTILE_SECRET_KEY: optionalSecret("TURNSTILE_SECRET_KEY"),

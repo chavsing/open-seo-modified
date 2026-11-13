@@ -24,6 +24,7 @@ import { EmptyState } from "@/client/components/EmptyState";
 import { FormActions } from "@/client/components/FormActions";
 import { SectionHeader } from "@/client/components/PageHeader";
 import { Button } from "@/client/components/ui/button";
+import { WebsiteSetupCard } from "@/client/features/projects/project-context/WebsiteSetupCard";
 import { Input } from "@/client/components/ui/input";
 import { Textarea } from "@/client/components/ui/textarea";
 
@@ -68,6 +69,11 @@ export function ProjectContextPage({ projectId }: { projectId: string }) {
             project. They read it before they work and write back what they
             learn, so correct anything that looks wrong.
           </p>
+
+          <WebsiteSetupCard
+            projectId={projectId}
+            onDone={() => contextQuery.refetch()}
+          />
 
           <ProseSections
             projectId={projectId}

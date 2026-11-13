@@ -178,3 +178,32 @@ export async function sendHostedPasswordResetEmail({
     },
   });
 }
+
+/**
+ * A short notice (automatic blog post results, low AI balance) through one
+ * Loops template with `title`, `message` and `linkUrl` variables. Returns
+ * false without sending until LOOPS_TRANSACTIONAL_NOTICE_ID is set, so the
+ * app works before the template exists.
+ */
+export async function sendNoticeEmail({
+  email,
+  title,
+  message,
+  linkUrl,
+}: {
+  email: string;
+  title: string;
+  message: string;
+  linkUrl: string;
+}) {
+  const apiKey = getOptionalEnv("LOOPS_API_KEY");
+  const transactionalId = getOptionalEnv("LOOPS_TRANSACTIONAL_NOTICE_ID");
+  if (!apiKey || !transactionalId) return false;
+  await sendLoopsTransactionalEmail({
+    apiKey,
+    email,
+    transactionalId,
+    dataVariables: { appName: BRAND_NAME, title, message, linkUrl },
+  });
+  return true;
+}

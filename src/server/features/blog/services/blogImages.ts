@@ -12,6 +12,7 @@ import {
 import { BlogImageRepository } from "@/server/features/blog/repositories/BlogImageRepository";
 import { BlogRepository } from "@/server/features/blog/repositories/BlogRepository";
 import {
+  describeImage,
   featuredImagePrompt,
   generateImage,
   sectionImagePrompt,
@@ -158,7 +159,10 @@ export async function createArticleImage(
           context: input.context ?? "",
         });
   const spend: ResearchSpend[] = [];
+  const fallbackAlt =
+    input.kind === "featured" ? article.title : (input.heading ?? "");
   let image;
+  let alt: string | null;
   try {
     image = await generateImage(
       apiKey,
@@ -171,6 +175,14 @@ export async function createArticleImage(
       operation: `blog_image_${input.kind}`,
       costUsd: image.costUsd,
     });
+    const described = await describeImage(apiKey, image, fallbackAlt);
+    alt = described.alt;
+    spend.push({
+      provider: "openrouter",
+      creditFeature: "agent",
+      operation: "blog_image_alt_text",
+      costUsd: described.costUsd,
+    });
   } finally {
     await billResearchSpend(customer, spend);
   }
@@ -180,7 +192,7 @@ export async function createArticleImage(
     kind: input.kind,
     bytes: image.bytes,
     mediaType: image.mediaType,
-    alt: input.kind === "featured" ? article.title : (input.heading ?? ""),
+    alt: alt ?? fallbackAlt,
   });
   if (input.kind === "featured")
     await replaceOthers(projectId, article.id, "featured", row.id);

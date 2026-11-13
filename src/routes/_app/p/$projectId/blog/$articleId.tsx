@@ -1,11 +1,7 @@
-import {
-  createFileRoute,
-  useBlocker,
-  useNavigate,
-} from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useBlocker } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ImagePlus, Sparkles, Trash2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { BackLink, PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { SafeExternalLink } from "@/client/components/SafeExternalLink";
@@ -33,18 +29,18 @@ import {
 } from "@/client/features/blog/ArticleSendBar";
 import { ArticleSidePanel } from "@/client/features/blog/ArticleSidePanel";
 import { ArticleStatusBadge } from "@/client/features/blog/ArticleStatusBadge";
-import { blogKeys, toastBlogError } from "@/client/features/blog/blogQueries";
+import { blogKeys } from "@/client/features/blog/blogQueries";
+import { useArticleAutosave } from "@/client/features/blog/useArticleAutosave";
+import { ArticleFilingCard } from "@/client/features/blog/ArticleFilingCard";
 import {
-  SaveStatusIndicator,
-  useArticleAutosave,
-} from "@/client/features/blog/useArticleAutosave";
+  ArticleHeaderActions,
+  useDeleteArticle,
+} from "@/client/features/blog/ArticleHeaderActions";
+import { VersionHistoryDialog } from "@/client/features/blog/VersionHistoryDialog";
+import { isWriting } from "@/shared/blog-writing";
 import { useArticleImages } from "@/client/features/blog/useArticleImages";
 import { useWriteArticle } from "@/client/features/blog/useWriteArticle";
-import {
-  deleteBlogArticle,
-  getBlogArticle,
-  getBlogSettings,
-} from "@/serverFunctions/blog";
+import { getBlogArticle, getBlogSettings } from "@/serverFunctions/blog";
 import { markdownSections } from "@/shared/blog-images";
 import { checkArticle, PUBLISH_MIN_SCORE } from "@/shared/blog-quality";
 
@@ -59,6 +55,9 @@ function BlogArticleRoute() {
   const articleQuery = useQuery({
     queryKey: blogKeys.article(projectId, articleId),
     queryFn: () => getBlogArticle({ data: { projectId, articleId } }),
+    // While AI writes in the background, watch for the text.
+    refetchInterval: (query) =>
+      isWriting(query.state.data?.writingStartedAt) ? 4000 : false,
   });
 
   return (
@@ -90,9 +89,6 @@ function BlogArticleRoute() {
   );
 }
 
-const onError = (error: unknown) =>
-  toastBlogError(error, { NOT_FOUND: "This article no longer exists." });
-
 function ArticleEditor({
   projectId,
   article,
@@ -101,7 +97,6 @@ function ArticleEditor({
   article: Article;
 }) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [title, setTitle] = useState(article.title);
   const [content, setContent] = useState(article.content ?? "");
   const [meta, setMeta] = useState(article.metaDescription ?? "");
@@ -109,6 +104,7 @@ function ArticleEditor({
     null,
   );
   const [pictures, setPictures] = useState(false);
+  const [history, setHistory] = useState(false);
   // The editor's Markdown formatting and picture placeholders, once loaded.
   const [editorApi, setEditorApi] = useState<ArticleEditorApi | null>(null);
   const settingsQuery = useQuery({
@@ -144,38 +140,32 @@ function ArticleEditor({
     onDone: () => setConfirm(null),
     onSettled: refresh,
   });
+  // Takes text that arrived from the server (AI writing, a restore).
+  const takeText = (text: {
+    title: string;
+    content: string | null;
+    metaDescription: string | null;
+  }) => {
+    setTitle(text.title);
+    setContent(text.content ?? "");
+    setMeta(text.metaDescription ?? "");
+  };
   const write = useWriteArticle({
     projectId,
-    articleId: article.id,
+    article,
     onDone: () => setConfirm(null),
-    onWritten: async (result) => {
-      await refresh();
-      setTitle(result.title);
-      setContent(result.content);
-      setMeta(result.metaDescription);
-    },
+    onStarted: refresh,
+    onWritten: takeText,
   });
   const startWriting = () => {
     // Replacing text, on screen or saved, needs a yes first.
     if (content.trim() || article.content?.trim()) setConfirm("write");
-    else write.mutate(false);
+    else write.start.mutate(false);
   };
-  const remove = useMutation({
-    mutationFn: () =>
-      deleteBlogArticle({ data: { projectId, articleId: article.id } }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: blogKeys.articles(projectId),
-        }),
-        queryClient.invalidateQueries({ queryKey: blogKeys.topics(projectId) }),
-      ]);
-      void navigate({ to: "/p/$projectId/blog", params: { projectId } });
-    },
-    onError: (error) => {
-      setConfirm(null);
-      onError(error);
-    },
+  const remove = useDeleteArticle({
+    projectId,
+    articleId: article.id,
+    onFailed: () => setConfirm(null),
   });
 
   const quality = checkArticle({
@@ -192,7 +182,7 @@ function ArticleEditor({
     (article.aiScore ?? 0) >= PUBLISH_MIN_SCORE &&
     !dirty;
   const isLive = article.status === "published";
-  const busy = send.isPending || remove.isPending || write.isPending;
+  const busy = send.isPending || remove.isPending || write.writing;
   const wordpressConnected = Boolean(settingsQuery.data?.wordpress);
   const autosave = useArticleAutosave({
     projectId,
@@ -251,34 +241,16 @@ function ArticleEditor({
           </span>
         }
         actions={
-          <>
-            <SaveStatusIndicator
-              status={autosave.status}
-              onRetry={autosave.retry}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              pending={sectionsPending > 0}
-              disabled={!hasContent || busy || !editorApi}
-              onClick={() => setPictures(true)}
-            >
-              <ImagePlus />
-              {sectionsPending > 0
-                ? `Creating ${sectionsPending} ${sectionsPending === 1 ? "picture" : "pictures"}`
-                : "Add section pictures"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy || images.working}
-              onClick={() => setConfirm("delete")}
-              aria-label="Delete"
-            >
-              <Trash2 />
-              <span className="hidden sm:inline">Delete</span>
-            </Button>
-          </>
+          <ArticleHeaderActions
+            saveStatus={autosave.status}
+            onRetrySave={autosave.retry}
+            sectionsPending={sectionsPending}
+            canAddPictures={hasContent && !busy && Boolean(editorApi)}
+            onAddPictures={() => setPictures(true)}
+            canChange={!busy && !images.working}
+            onHistory={() => setHistory(true)}
+            onDelete={() => setConfirm("delete")}
+          />
         }
       />
 
@@ -291,7 +263,7 @@ function ArticleEditor({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={200}
-              disabled={write.isPending}
+              disabled={write.writing}
             />
           </Field>
           <Field>
@@ -300,13 +272,13 @@ function ArticleEditor({
               <Button
                 variant="outline"
                 size="sm"
-                pending={write.isPending}
+                pending={write.writing}
                 disabled={busy || images.working}
                 onClick={startWriting}
               >
                 <Sparkles />
-                {write.isPending
-                  ? "Writing and reviewing, 1 to 2 minutes"
+                {write.writing
+                  ? "Writing and reviewing, 1 to 3 minutes"
                   : hasContent
                     ? "Rewrite with AI"
                     : "Write with AI"}
@@ -315,7 +287,7 @@ function ArticleEditor({
             <ArticleBodyEditor
               value={content}
               onChange={setContent}
-              disabled={write.isPending}
+              disabled={write.writing}
               onReady={setEditorApi}
               imageActions={images.imageActions}
               header={
@@ -330,6 +302,11 @@ function ArticleEditor({
                 />
               }
             />
+            {write.lastError ? (
+              <p className="text-sm text-destructive">
+                Writing failed: {write.lastError}
+              </p>
+            ) : null}
             <FieldDescription>
               The title becomes the post&apos;s heading, so start each section
               with a section heading. Or press Write with AI to draft it from
@@ -339,7 +316,7 @@ function ArticleEditor({
           <MetaDescriptionField
             value={meta}
             onChange={setMeta}
-            disabled={write.isPending}
+            disabled={write.writing}
           />
           <ArticleSendBar
             projectId={projectId}
@@ -380,6 +357,22 @@ function ArticleEditor({
             busy={busy}
             onReviewed={refresh}
           />
+          <ArticleFilingCard
+            projectId={projectId}
+            articleId={article.id}
+            category={
+              article.wordpressCategoryId && article.wordpressCategoryName
+                ? {
+                    id: article.wordpressCategoryId,
+                    name: article.wordpressCategoryName,
+                  }
+                : null
+            }
+            tags={article.tags}
+            wordpressConnected={wordpressConnected}
+            disabled={busy}
+            onSaved={refresh}
+          />
           <ArticleSidePanel
             quality={quality}
             hasContent={hasContent}
@@ -395,16 +388,28 @@ function ArticleEditor({
           onClose={() => setPictures(false)}
         />
       ) : null}
+      {history ? (
+        <VersionHistoryDialog
+          projectId={projectId}
+          articleId={article.id}
+          onRestored={(text) => {
+            // On screen first, so autosave never writes the old text back.
+            takeText(text);
+            return refresh();
+          }}
+          onClose={() => setHistory(false)}
+        />
+      ) : null}
       <ArticleConfirmDialogs
         confirm={confirm}
         isLive={isLive}
         pending={{
           send: send.isPending,
-          write: write.isPending,
+          write: write.start.isPending,
           remove: remove.isPending,
         }}
         onPublish={() => send.mutate(true)}
-        onWrite={() => write.mutate(true)}
+        onWrite={() => write.start.mutate(true)}
         onDelete={() => remove.mutate()}
         onClose={() => setConfirm(null)}
       />

@@ -52,7 +52,7 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
     onError: (error) =>
       toastBlogError(error, {
         VALIDATION_ERROR:
-          "Add your website and at least one competitor on the Context page first. Topic ideas come from what competitors rank for.",
+          "Add at least one competitor on the Context page first, or press Set up from my website there to find them. Topic ideas come from what competitors rank for.",
       }),
   });
   const skip = useMutation({

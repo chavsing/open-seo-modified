@@ -6,12 +6,16 @@ import {
 } from "@/server/features/blog/services/blogResearch";
 import { BlogService } from "@/server/features/blog/services/BlogService";
 import { addAutopilotImages } from "@/server/features/blog/services/blogImagePublishing";
+import { fileArticle } from "@/server/features/blog/services/blogWriting";
 import {
   chooseBlogTopic,
   writeBlogArticle,
 } from "@/server/features/blog/services/blogWriter";
 import { ProjectRepository } from "@/server/features/projects/repositories/ProjectRepository";
+import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { sendNoticeEmail } from "@/server/email/loops";
 import { AppError } from "@/server/lib/errors";
+import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
 // An article takes one to two minutes, so a tick writes a few, one site at a
 // time, and stops starting new ones near the deadline. Sites left over stay
@@ -119,6 +123,7 @@ async function postForSite(projectId: string, organizationId: string) {
     customer,
   );
   const pictures = await addAutopilotImages(projectId, articleId, customer);
+  await fileArticle(projectId, articleId, customer);
   const passed =
     article.passedAllChecks && article.aiScore >= PUBLISH_MIN_SCORE;
   const publish = settings.publishMode === "auto";
@@ -135,6 +140,32 @@ async function postForSite(projectId: string, organizationId: string) {
   }
   if (publish) return `${written} and published it.`;
   return `${written} and sent it to WordPress as a draft.`;
+}
+
+/** Emails the site's owners what the automatic run did. Best effort. */
+async function emailOwners(
+  site: { projectId: string; organizationId: string },
+  message: string,
+) {
+  try {
+    const project = await ProjectRepository.getProjectForOrganization(
+      site.projectId,
+      site.organizationId,
+    );
+    const appUrl = (await getOptionalEnvValue("BETTER_AUTH_URL")) ?? "";
+    const linkUrl = `${appUrl.replace(/\/$/, "")}/p/${site.projectId}/blog`;
+    for (const email of await AuthRepository.listOwnerEmails(
+      site.organizationId,
+    ))
+      await sendNoticeEmail({
+        email,
+        title: `Automatic blog post for ${project?.domain ?? project?.name ?? "your site"}`,
+        message,
+        linkUrl,
+      });
+  } catch (error) {
+    console.error("[blog] automatic post email failed", { error });
+  }
 }
 
 /** Cron body: write the next article for every site whose turn has come. */
@@ -167,9 +198,11 @@ export async function runScheduledBlogPosts() {
         });
       message = `Skipped: ${reason(error)} It will try again at the next scheduled time.`;
     }
-    if (message)
+    if (message) {
       await BlogRepository.upsertSettings(site.projectId, {
         lastRunMessage: message,
       }).catch(() => undefined);
+      await emailOwners(site, message);
+    }
   }
 }

@@ -43,6 +43,16 @@ vi.mock("@/server/features/blog/services/BlogService", () => ({
 vi.mock("@/server/features/blog/services/blogImagePublishing", () => ({
   addAutopilotImages,
 }));
+vi.mock("@/server/auth/repositories/AuthRepository", () => ({
+  AuthRepository: { listOwnerEmails: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("@/server/email/loops", () => ({ sendNoticeEmail: vi.fn() }));
+vi.mock("@/server/lib/runtime-env", () => ({
+  getOptionalEnvValue: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("@/server/features/blog/services/blogWriting", () => ({
+  fileArticle: vi.fn(),
+}));
 vi.mock("@/server/features/blog/services/blogWriter", () => ({
   writeBlogArticle,
   chooseBlogTopic,

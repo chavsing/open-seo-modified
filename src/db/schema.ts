@@ -142,4 +142,6 @@ export const {
   blogTopics,
   blogArticles,
   blogImages,
+  blogArticleTags,
+  blogArticleVersions,
 } = schema;

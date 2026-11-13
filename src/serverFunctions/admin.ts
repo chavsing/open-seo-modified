@@ -4,6 +4,7 @@ import { AUTUMN_SEO_DATA_CREDITS_PER_USD } from "@/shared/billing";
 import {
   applyBillingActionAsAdmin,
   isPlatformAdmin,
+  requireAdmin,
   listRenewalsDueAsAdmin,
   listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
@@ -14,7 +15,16 @@ import {
   removeAllowedEmailAsAdmin,
   setInviteOnlyAsAdmin,
 } from "@/server/auth/signup-access";
+import { getOpenRouterBalance } from "@/server/lib/openrouterBalance";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+
+/** What's left to spend on AI, so the admin can top up before it runs out. */
+export const getAdminAiBalance = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .handler(async ({ context }) => {
+    await requireAdmin(context.userEmail);
+    return getOpenRouterBalance();
+  });
 
 export const getAdminStatus = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)

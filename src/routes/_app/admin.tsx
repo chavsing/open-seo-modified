@@ -13,6 +13,7 @@ import {
   isYearRunning,
   type AdminAccount,
 } from "@/client/features/admin/AdminAccountCard";
+import { AiBalanceCard } from "@/client/features/admin/AiBalanceCard";
 import { SignupAccessSection } from "@/client/features/admin/SignupAccessSection";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
@@ -147,6 +148,8 @@ function AdminBilling() {
         with and record it here. Each monthly Pro payment adds one month; a Pro
         yearly payment adds 12 months, with credits refilled each month.
       </p>
+
+      <AiBalanceCard />
 
       <SignupAccessSection />
 

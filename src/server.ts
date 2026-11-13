@@ -191,6 +191,7 @@ function handleFetch(
 // (src/audit-worker.ts); this worker reaches them via cross-script bindings.
 export { RankCheckWorkflow } from "./server/workflows/RankCheckWorkflow";
 export { AiVisibilityWorkflow } from "./server/workflows/AiVisibilityWorkflow";
+export { BlogWriteWorkflow } from "./server/workflows/BlogWriteWorkflow";
 // Durable Object class for the SAM in-app agent (Agents SDK).
 export { SamChatAgent } from "./server/features/sam/SamChatAgent";
 
@@ -216,6 +217,12 @@ export default {
           // persistent incomplete scan means the keyspace outgrew the batch.
           console.warn("[mcp-oauth] purge did not cover the full keyspace");
         }
+        // Once a day: warn the admins before the AI balance runs out.
+        const { warnIfOpenRouterLow } =
+          await import("@/server/lib/openrouterBalance");
+        await warnIfOpenRouterLow().catch((error: unknown) =>
+          console.error("[cron] AI balance check failed", { error }),
+        );
       }
       return;
     }

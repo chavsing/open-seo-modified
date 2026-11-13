@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ProjectContextService } from "@/server/features/project-context/services/ProjectContextService";
+import { setUpFromWebsite } from "@/server/features/project-context/services/websiteSetup";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   getProjectContextSchema,
@@ -26,3 +27,9 @@ export const updateProjectContext = createServerFn({ method: "POST" })
       "user",
     ),
   );
+
+/** Drafts the Context page from the website and researches blog topics. */
+export const setUpProjectFromWebsite = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(getProjectContextSchema)
+  .handler(({ context }) => setUpFromWebsite(context.project, context));

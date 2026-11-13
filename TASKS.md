@@ -65,6 +65,20 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-13: Suggestions batch (all built and tested locally, not deployed).
+  Version history on articles (text from before each editing session and
+  each AI rewrite, with its AI review; restore keeps the current text too).
+  "Write with AI" runs as a background job, so a closed tab no longer loses
+  a paid article (tested: closed mid-way, finished in 78 s). AI picks the
+  WordPress category and 3 to 6 tags after writing; both can be changed in
+  a new card and are sent with the post (new tags are created on the site).
+  Picture alt text is written by AI from the picture itself. The meta
+  description is also sent to Yoast and Rank Math fields, which only works
+  on sites that expose them. Owners get an email after each automatic post,
+  and admins a daily email when the OpenRouter balance is under $10 (both
+  need a Loops template, see below). /admin shows the OpenRouter balance.
+  The Context page has "Set up from my website" (fills empty sections and
+  key pages, finds 3 competitors, researches topics, about $0.13).
 - 2026-11-13: Blog editor follow-ups (client feedback). Autosave about 1.5
   seconds after an edit, with "All changes saved" top right instead of a
   Save button, and a leave warning while a picture is being made. The

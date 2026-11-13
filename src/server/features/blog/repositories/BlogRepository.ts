@@ -6,8 +6,10 @@ import {
   gt,
   isNotNull,
   isNull,
+  lt,
   lte,
   ne,
+  or,
 } from "drizzle-orm";
 import { db } from "@/db";
 import { blogArticles, blogSettings, blogTopics, projects } from "@/db/schema";
@@ -110,6 +112,7 @@ const articleSummaryColumns = {
   status: blogArticles.status,
   wordpressLink: blogArticles.wordpressLink,
   error: blogArticles.error,
+  writingStartedAt: blogArticles.writingStartedAt,
   createdAt: blogArticles.createdAt,
   updatedAt: blogArticles.updatedAt,
   publishedAt: blogArticles.publishedAt,
@@ -186,6 +189,10 @@ async function updateArticle(
       | "aiFeedback"
       | "aiSuggestions"
       | "metaDescription"
+      | "writingStartedAt"
+      | "writeError"
+      | "wordpressCategoryId"
+      | "wordpressCategoryName"
     >
   >,
 ) {
@@ -198,6 +205,32 @@ async function updateArticle(
         eq(blogArticles.id, articleId),
       ),
     );
+}
+
+/**
+ * Marks the article as being written, unless a job already is. A mark older
+ * than `staleBefore` belongs to a job that died, so it doesn't block.
+ */
+async function claimWriting(
+  projectId: string,
+  articleId: string,
+  staleBefore: string,
+) {
+  const claimed = await db
+    .update(blogArticles)
+    .set({ writingStartedAt: new Date().toISOString(), writeError: null })
+    .where(
+      and(
+        eq(blogArticles.projectId, projectId),
+        eq(blogArticles.id, articleId),
+        or(
+          isNull(blogArticles.writingStartedAt),
+          lt(blogArticles.writingStartedAt, staleBefore),
+        ),
+      ),
+    )
+    .returning({ id: blogArticles.id });
+  return claimed.length > 0;
 }
 
 async function deleteArticle(projectId: string, articleId: string) {
@@ -281,6 +314,7 @@ export const BlogRepository = {
   listOtherTitles,
   insertArticle,
   updateArticle,
+  claimWriting,
   deleteArticle,
   listTopicIdeas,
   listDueAutoPosts,

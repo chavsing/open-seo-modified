@@ -61,7 +61,7 @@ function basicAuth(username: string, password: string): string {
   return `Basic ${btoa(String.fromCharCode(...bytes))}`;
 }
 
-async function request(
+export async function wordpressRequest(
   connection: WordpressConnection,
   route: string,
   init: {
@@ -162,7 +162,7 @@ export async function verifyWordpressLogin(
   connection: WordpressConnection,
 ): Promise<{ name: string }> {
   const parsed = wpUserSchema.safeParse(
-    await request(connection, "/wp/v2/users/me", {
+    await wordpressRequest(connection, "/wp/v2/users/me", {
       method: "GET",
       query: "context=edit",
     }),
@@ -195,7 +195,7 @@ export async function uploadWordpressMedia(
   },
 ): Promise<{ id: number; url: string }> {
   const parsed = wpMediaSchema.safeParse(
-    await request(connection, "/wp/v2/media", {
+    await wordpressRequest(connection, "/wp/v2/media", {
       method: "POST",
       file,
       timeoutMs: CREATE_TIMEOUT_MS,
@@ -207,7 +207,7 @@ export async function uploadWordpressMedia(
       "WordPress accepted the picture but sent back an unexpected answer.",
     );
   if (file.alt)
-    await request(connection, `/wp/v2/media/${parsed.data.id}`, {
+    await wordpressRequest(connection, `/wp/v2/media/${parsed.data.id}`, {
       method: "POST",
       body: { alt_text: file.alt },
     }).catch(() => undefined);
@@ -233,7 +233,7 @@ async function findRecentPost(
     per_page: "10",
   });
   const parsed = wpPostListSchema.safeParse(
-    await request(connection, "/wp/v2/posts", {
+    await wordpressRequest(connection, "/wp/v2/posts", {
       method: "GET",
       query: query.toString(),
     }),
@@ -259,12 +259,12 @@ async function createPost(
     () => null,
   );
   if (earlier)
-    return request(connection, `/wp/v2/posts/${earlier.id}`, {
+    return wordpressRequest(connection, `/wp/v2/posts/${earlier.id}`, {
       method: "POST",
       body,
     });
   try {
-    return await request(connection, "/wp/v2/posts", {
+    return await wordpressRequest(connection, "/wp/v2/posts", {
       method: "POST",
       body,
       timeoutMs: CREATE_TIMEOUT_MS,
@@ -291,6 +291,9 @@ export async function saveWordpressPost(
     excerpt: string | null;
     /** The header picture's media id; null leaves the post's own as is. */
     featuredMedia: number | null;
+    /** Category and tag ids; empty leaves the post's own as they are. */
+    categories?: number[];
+    tags?: number[];
     status: "draft" | "publish";
   },
 ): Promise<WordpressPost> {
@@ -300,15 +303,21 @@ export async function saveWordpressPost(
     status: post.status,
     ...(post.excerpt ? { excerpt: post.excerpt } : {}),
     ...(post.featuredMedia ? { featured_media: post.featuredMedia } : {}),
+    ...(post.categories?.length ? { categories: post.categories } : {}),
+    ...(post.tags?.length ? { tags: post.tags } : {}),
   };
   let result: unknown;
   if (!post.postId) result = await createPost(connection, body);
   else
     try {
-      result = await request(connection, `/wp/v2/posts/${post.postId}`, {
-        method: "POST",
-        body,
-      });
+      result = await wordpressRequest(
+        connection,
+        `/wp/v2/posts/${post.postId}`,
+        {
+          method: "POST",
+          body,
+        },
+      );
     } catch (error) {
       // Someone deleted the post in WordPress: send it again as a new one.
       if (!(error instanceof AppError && error.code === "NOT_FOUND"))

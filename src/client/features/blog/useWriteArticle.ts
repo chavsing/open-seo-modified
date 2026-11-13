@@ -1,31 +1,45 @@
 import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { toastBlogError } from "@/client/features/blog/blogQueries";
 import { writeBlogArticleWithAi } from "@/serverFunctions/blog";
+import { isWriting } from "@/shared/blog-writing";
 
-type Written = Awaited<ReturnType<typeof writeBlogArticleWithAi>>;
+type WrittenArticle = {
+  title: string;
+  content: string | null;
+  metaDescription: string | null;
+  aiScore: number | null;
+  writingStartedAt: string | null;
+  writeError: string | null;
+};
 
-/** Writes the article with AI (replacing any text when `replace`), saved. */
+/**
+ * Writes the article with AI (replacing any text when `replace`). The writing
+ * runs on the server; the article page refreshes while it does, and the text
+ * goes into the editor when it arrives. Closing the tab doesn't stop it.
+ */
 export function useWriteArticle({
   projectId,
-  articleId,
+  article,
   onDone,
+  onStarted,
   onWritten,
 }: {
   projectId: string;
-  articleId: string;
+  article: WrittenArticle & { id: string };
   onDone: () => void;
-  onWritten: (result: Written) => Promise<void>;
+  onStarted: () => Promise<unknown>;
+  onWritten: (article: WrittenArticle) => void;
 }) {
-  return useMutation({
+  const start = useMutation({
     mutationFn: (replace: boolean) =>
-      writeBlogArticleWithAi({ data: { projectId, articleId, replace } }),
-    onSuccess: async (result) => {
+      writeBlogArticleWithAi({
+        data: { projectId, articleId: article.id, replace },
+      }),
+    onSuccess: async () => {
       onDone();
-      await onWritten(result);
-      toast.success(
-        `Article written and saved, AI score ${result.aiScore}/10. Read it through before sending.`,
-      );
+      await onStarted();
     },
     onError: (error) => {
       onDone();
@@ -34,9 +48,36 @@ export function useWriteArticle({
           "AI writing isn't available right now. Please try again later.",
         VALIDATION_ERROR: "Add your website to this project first.",
         CONFLICT:
-          "This article already has text. Reload the page and try again.",
+          "This article is already being written, or already has text. Reload the page.",
         NOT_FOUND: "This article was deleted.",
       });
     },
   });
+
+  const writing = isWriting(article.writingStartedAt);
+  const wasWriting = useRef(writing);
+  useEffect(() => {
+    if (wasWriting.current && !writing) {
+      if (article.writeError) toast.error(article.writeError);
+      else if (article.writingStartedAt)
+        toast.error("Writing stopped before it finished. Please try again.");
+      else {
+        onWritten(article);
+        toast.success(
+          `Article written and saved, AI score ${article.aiScore ?? "-"}/10. Read it through before sending.`,
+        );
+      }
+    }
+    wasWriting.current = writing;
+    // Runs when writing ends; `article` is the fresh copy of that render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writing]);
+
+  return {
+    start,
+    /** Writing started here or elsewhere and hasn't finished. */
+    writing: writing || start.isPending,
+    /** Why the last writing failed, until it is tried again. */
+    lastError: writing ? null : article.writeError,
+  };
 }

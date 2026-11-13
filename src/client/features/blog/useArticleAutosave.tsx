@@ -12,7 +12,7 @@ const AUTOSAVE_DELAY_MS = 1500;
 
 type Edits = { title: string; content: string; metaDescription: string };
 
-type SaveStatus = "saved" | "unsaved" | "saving" | "failed" | "no-title";
+export type SaveStatus = "saved" | "unsaved" | "saving" | "failed" | "no-title";
 
 export function useArticleAutosave({
   projectId,

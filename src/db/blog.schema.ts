@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -98,6 +99,15 @@ export const blogArticles = sqliteTable(
     aiSuggestions: text("ai_suggestions"),
     // The search-result summary, sent to WordPress as the post excerpt.
     metaDescription: text("meta_description"),
+    // Set while AI writes the article in the background; cleared when it
+    // finishes. A stale value (the job died) is ignored after a while.
+    writingStartedAt: text("writing_started_at"),
+    // Why the last background writing failed, shown on the article.
+    writeError: text("write_error"),
+    // The WordPress category the post goes in. The name is kept so the
+    // editor can show it without asking WordPress.
+    wordpressCategoryId: integer("wordpress_category_id"),
+    wordpressCategoryName: text("wordpress_category_name"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
     publishedAt: text("published_at"),
@@ -142,4 +152,50 @@ export const blogImages = sqliteTable(
     createdAt: text("created_at").notNull(),
   },
   (table) => [index("blog_images_article_idx").on(table.articleId)],
+);
+
+// The article's WordPress tags, by name; each is matched to (or created as) a
+// tag on the site when the article is sent.
+export const blogArticleTags = sqliteTable(
+  "blog_article_tags",
+  {
+    articleId: text("article_id")
+      .notNull()
+      .references(() => blogArticles.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.articleId, table.name] })],
+);
+
+// Earlier versions of an article, to restore after a mistake. Saves within a
+// few minutes of each other share one version; AI writing makes its own.
+export const blogArticleVersions = sqliteTable(
+  "blog_article_versions",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    articleId: text("article_id")
+      .notNull()
+      .references(() => blogArticles.id, { onDelete: "cascade" }),
+    source: text("source", { enum: ["edit", "ai"] }).notNull(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    metaDescription: text("meta_description"),
+    // The AI review this exact text had, restored with it.
+    aiScore: integer("ai_score"),
+    aiFeedback: text("ai_feedback"),
+    aiSuggestions: text("ai_suggestions"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("blog_article_versions_article_idx").on(
+      table.articleId,
+      table.createdAt,
+    ),
+  ],
 );

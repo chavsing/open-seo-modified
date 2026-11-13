@@ -85,3 +85,14 @@ export const setBlogReferenceImageSchema = blogArticleSchema.extend({
 export const removeBlogImageSchema = blogArticleSchema.extend({
   imageId: z.string().uuid(),
 });
+
+export const restoreBlogVersionSchema = blogArticleSchema.extend({
+  versionId: z.string().min(1),
+});
+
+export const saveBlogArticleFilingSchema = blogArticleSchema.extend({
+  category: z
+    .object({ id: z.number().int().positive(), name: z.string().max(200) })
+    .nullable(),
+  tags: z.array(z.string().trim().min(1).max(60)).max(10),
+});
