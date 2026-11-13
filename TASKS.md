@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-12. Tick a box when a task is done and move it to the
+Last updated: 2026-11-13. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -28,10 +28,8 @@ done list at the bottom with the date.
 ## Claude, next
 
 - [ ] Audit leftovers (found 2026-11-12, not fixed yet): closing the tab
-  during "Write with AI" stops the run after about 30 seconds, unbilled and
-  unsaved, and an automatic run that hits Cloudflare's time limit is unbilled.
-  Both need AI writing moved into a background job; propose a plan first.
-  Also: a renewal recorded in the 3 grace days restarts the month from
+  an automatic run that hits Cloudflare's time limit is unbilled ("Write
+  with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
   today, and two "Write with AI" clicks on a small balance can go below zero.
 - [ ] "New article" button: type a keyword, get a brief, no topic search
       needed.
@@ -65,7 +63,8 @@ done list at the bottom with the date.
 
 ## Done
 
-- 2026-11-13: Suggestions batch (all built and tested locally, not deployed).
+- 2026-11-13: Suggestions batch (tested locally, deployed 2026-11-13; database
+  tables and new screens checked live).
   Version history on articles (text from before each editing session and
   each AI rewrite, with its AI review; restore keeps the current text too).
   "Write with AI" runs as a background job, so a closed tab no longer loses
@@ -92,7 +91,8 @@ done list at the bottom with the date.
   picture) in the Blog Generator instead of sending a WordPress draft.
   Pictures go to WordPress as image figures that fit the theme's column
   (they overflowed on Twenty Twenty-Five) and carry their media id, so
-  WordPress serves smaller sizes to phones. Tested locally; not deployed yet.
+  WordPress serves smaller sizes to phones. Deployed; the client confirmed
+  picture width and Regenerate on the live app.
 - 2026-11-13: Blog images (client request, like the MadeEA editor). The
   article editor is now a visual editor (headings, bold, lists, links,
   pictures) that still saves Markdown. Featured image card: create from the
