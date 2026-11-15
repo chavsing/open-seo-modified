@@ -2,6 +2,7 @@ import { ConfirmDialog } from "@/client/components/ConfirmDialog";
 import { PageHeader } from "@/client/components/PageHeader";
 import { AuditHistorySection } from "@/client/features/audit/launch/AuditHistorySection";
 import { LaunchFormCard } from "@/client/features/audit/launch/LaunchFormCard";
+import { AuditScheduleCard } from "@/client/features/audit/launch/AuditScheduleCard";
 import { useLaunchController } from "@/client/features/audit/launch/useLaunchController";
 import { useHostedPlanGate } from "@/client/features/billing/HostedPlanGate";
 
@@ -37,6 +38,12 @@ export function LaunchView({
           maxPagesLimit={controller.maxPagesLimit}
           paidMaxPagesLimit={controller.paidMaxPagesLimit}
           canRenderJavaScript={controller.canRenderJavaScript}
+        />
+
+        <AuditScheduleCard
+          projectId={projectId}
+          initialUrl={initialUrl}
+          isFreePlan={isFreePlan}
         />
 
         <AuditHistorySection

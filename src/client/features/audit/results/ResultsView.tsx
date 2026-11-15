@@ -15,6 +15,7 @@ import {
 import { PagesTable } from "@/client/features/audit/results/PagesTable";
 import { ShopifyCrawlWarning } from "@/client/features/audit/results/ShopifyCrawlWarning";
 import { RenderingWarnings } from "@/client/features/audit/results/RenderingWarnings";
+import { AuditComparison } from "@/client/features/audit/results/AuditComparison";
 import { PerformanceTable } from "@/client/features/audit/results/ResultsTables";
 import {
   BotProtectionAdvice,
@@ -134,6 +135,8 @@ export function ResultsView({
       )}
 
       <RenderingWarnings data={data} />
+
+      <AuditComparison projectId={projectId} auditId={audit.id} />
 
       <StatsStrip
         pagesCrawled={audit.pagesCrawled}

@@ -25,6 +25,7 @@ import type { AuditConfig } from "@/server/lib/audit/types";
 import { captureServerError, captureServerEvent } from "@/server/lib/posthog";
 import { runAuditPhases } from "@/server/workflows/siteAuditWorkflowPhases";
 import { pgStep } from "@/server/workflows/pgStep";
+import { notifyScheduledAuditDone } from "@/server/features/audit/services/auditSchedules";
 import {
   DB_STEP,
   SETTLE_RENDERING_STEP,
@@ -98,6 +99,11 @@ export class SiteAuditWorkflow extends WorkflowEntrypoint<Env, AuditParams> {
         access: await CrawlerCredentialService.openCrawlerAccess(access),
         renderUsage,
       });
+      // Its own step, after the audit is saved as completed: the email is
+      // claimed once per audit, so a retry never sends it twice.
+      await pgStep(step, "notify-schedule", DB_STEP, () =>
+        notifyScheduledAuditDone(projectId, auditId),
+      );
     } catch (error) {
       console.error(`Audit ${auditId} failed:`, error);
       // Workflow entrypoints run outside the server-function middleware, so

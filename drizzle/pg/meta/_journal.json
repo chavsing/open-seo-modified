@@ -330,6 +330,13 @@
       "when": 1794760032083,
       "tag": "0046_short_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794772552674,
+      "tag": "0047_classy_kronos",
+      "breakpoints": true
     }
   ]
 }

@@ -255,6 +255,13 @@ export default {
         await runScheduledAiVisibility();
       }),
       withPgClient(async () => {
+        const { runScheduledAudits } =
+          await import("@/server/features/audit/services/auditSchedules");
+        const started = await runScheduledAudits();
+        if (started > 0)
+          console.log("[cron] scheduled audits started", started);
+      }),
+      withPgClient(async () => {
         const { runScheduledBlogPosts } =
           await import("@/server/features/blog/services/blogAutopilot");
         await runScheduledBlogPosts();

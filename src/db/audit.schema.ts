@@ -176,3 +176,24 @@ export const auditLighthouseResults = sqliteTable(
     index("audit_lighthouse_results_page_id_idx").on(table.pageId),
   ],
 );
+
+// A project's repeating audit: started by the cron when nextRunAt passes,
+// with the page limit chosen when it was set up. One per project.
+export const auditSchedules = sqliteTable("audit_schedules", {
+  projectId: text("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  startUrl: text("start_url").notNull(),
+  interval: text("interval", { enum: ["weekly", "monthly"] }).notNull(),
+  maxPages: integer("max_pages").notNull(),
+  // Whose audit it is: the person who set the schedule.
+  createdByUserId: text("created_by_user_id").notNull(),
+  nextRunAt: text("next_run_at").notNull(),
+  // The last audit it started, and why the last start failed, if it did.
+  lastAuditId: text("last_audit_id"),
+  lastError: text("last_error"),
+  // The scheduled audit whose summary email went out, so a retried finish
+  // step never sends it twice.
+  notifiedAuditId: text("notified_audit_id"),
+  updatedAt: text("updated_at").notNull(),
+});

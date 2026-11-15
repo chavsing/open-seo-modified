@@ -18,6 +18,9 @@ vi.mock("@/server/workflows/pgStep", () => ({
     fn: () => unknown,
   ) => fn(),
 }));
+vi.mock("@/server/features/audit/services/auditSchedules", () => ({
+  notifyScheduledAuditDone: vi.fn(),
+}));
 vi.mock("@/server/workflows/siteAuditWorkflowPhases", () => ({
   runAuditPhases: mocks.runAuditPhases,
 }));

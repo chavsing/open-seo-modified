@@ -175,3 +175,19 @@ export const auditLighthouseResults = pgTable(
     index("audit_lighthouse_results_page_id_idx").on(table.pageId),
   ],
 );
+
+// See audit.schema.ts (SQLite) for the column notes.
+export const auditSchedules = pgTable("audit_schedules", {
+  projectId: text("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  startUrl: text("start_url").notNull(),
+  interval: text("interval", { enum: ["weekly", "monthly"] }).notNull(),
+  maxPages: integer("max_pages").notNull(),
+  createdByUserId: text("created_by_user_id").notNull(),
+  nextRunAt: timestampColumn("next_run_at").notNull(),
+  lastAuditId: text("last_audit_id"),
+  lastError: text("last_error"),
+  notifiedAuditId: text("notified_audit_id"),
+  updatedAt: timestampColumn("updated_at").notNull(),
+});

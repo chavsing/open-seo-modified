@@ -3,6 +3,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { waitUntil } from "cloudflare:workers";
 import { requireOrgPermission } from "@/server/auth/org-gate";
 import { AuditService } from "@/server/features/audit/services/AuditService";
+import {
+  compareWithPreviousAudit,
+  getAuditSchedule as readAuditSchedule,
+  saveAuditSchedule as writeAuditSchedule,
+} from "@/server/features/audit/services/auditSchedules";
+import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { captureServerEvent } from "@/server/lib/posthog";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
@@ -11,6 +17,7 @@ import {
   getAuditResultsSchema,
   getAuditStatusSchema,
   getCrawlProgressSchema,
+  saveAuditScheduleSchema,
   startAuditSchema,
 } from "@/types/schemas/audit";
 
@@ -93,3 +100,34 @@ export const getAuditCapabilities = createServerFn({ method: "POST" })
   .handler(async () => ({
     canRenderJavaScript: await isAuditRenderingAllowed(),
   }));
+
+export const getAuditSchedule = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(getAuditHistorySchema)
+  .handler(({ context }) => readAuditSchedule(context.projectId));
+
+export const saveAuditSchedule = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(saveAuditScheduleSchema)
+  .handler(async ({ data, context }) =>
+    writeAuditSchedule(
+      {
+        projectId: context.projectId,
+        // Checked now, so a bad address fails here and not at 3am.
+        startUrl:
+          data.interval === "off"
+            ? data.startUrl
+            : await normalizeAndValidateStartUrl(data.startUrl),
+        interval: data.interval,
+        maxPages: data.maxPages,
+      },
+      context,
+    ),
+  );
+
+export const getAuditComparison = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(getAuditResultsSchema)
+  .handler(({ data, context }) =>
+    compareWithPreviousAudit(data.auditId, context.projectId),
+  );

@@ -21,6 +21,13 @@ export const startAuditSchema = z.object({
   lighthouseStrategy: z.enum(["auto", "none"]).optional().default("auto"),
 });
 
+export const saveAuditScheduleSchema = z.object({
+  projectId: z.string().min(1),
+  startUrl: z.string().min(1, "URL is required").max(2048),
+  interval: z.enum(["weekly", "monthly", "off"]),
+  maxPages: z.number().int().min(MIN_AUDIT_PAGES).max(PAID_MAX_AUDIT_PAGES),
+});
+
 export const getAuditStatusSchema = z.object({
   projectId: z.string().min(1),
   auditId: z.string().min(1),
