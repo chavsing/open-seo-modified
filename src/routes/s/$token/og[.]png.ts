@@ -5,6 +5,7 @@ import {
   sharesEnabled,
 } from "@/server/features/reports/shareAccess";
 import { textResponse } from "@/shared/report-sandbox";
+import { activeReportBranding } from "@/server/features/reports/services/reportBranding";
 
 export async function handleReportSocialImage(
   token: string,
@@ -22,7 +23,15 @@ export async function handleReportSocialImage(
   try {
     const { renderReportSocialImage } =
       await import("@/server/features/reports/reportSocialImage");
-    return await renderReportSocialImage(report.title, report.projectDomain);
+    const branding = await activeReportBranding(report.organizationId);
+    return await renderReportSocialImage(
+      report.title,
+      report.projectDomain,
+      branding && {
+        name: branding.companyName,
+        logoDataUrl: branding.logoDataUrl,
+      },
+    );
   } catch (error) {
     console.error("Report social image rendering failed", error);
     return new Response(null, {

@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
   renderReportSocialImage: vi.fn(),
 }));
 
+vi.mock("@/server/features/reports/services/reportBranding", () => ({
+  activeReportBranding: async () => null,
+  brandingPrintHeader: () => "",
+}));
 vi.mock("@/server/features/reports/shareAccess", () => ({
   sharesEnabled: mocks.sharesEnabled,
   SHARE_TOKEN_PATTERN: /^[A-Za-z0-9_-]{32}$/,
@@ -37,6 +41,8 @@ describe("report social image access", () => {
     expect(mocks.renderReportSocialImage).toHaveBeenCalledWith(
       "Acme SEO audit",
       "acme.com",
+      // No branding saved: the app's own.
+      null,
     );
     expect(await response.text()).toBe("image");
   });

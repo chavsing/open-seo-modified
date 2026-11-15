@@ -100,6 +100,14 @@ function withPrintScript(html: string): string {
   return html + tag;
 }
 
+/** Puts `header` right after the document's opening body tag. */
+function withHeader(html: string, header: string): string {
+  const body = /<body\b[^>]*>/i.exec(html);
+  if (!body) return header + html;
+  const end = body.index + body[0].length;
+  return html.slice(0, end) + header + html.slice(end);
+}
+
 /**
  * The one response both report documents are served with — `/r/<id>` for a
  * member and `/s/<token>/raw` for a link holder — so the sandbox, the print
@@ -109,9 +117,19 @@ function withPrintScript(html: string): string {
  */
 export function reportDocumentResponse(
   html: string,
-  options: { print?: boolean; cacheControl: string; noindex?: boolean },
+  options: {
+    print?: boolean;
+    cacheControl: string;
+    noindex?: boolean;
+    /** Markup we wrote, put at the top of a printed report. */
+    printHeader?: string;
+  },
 ): Response {
-  return new Response(options.print ? withPrintScript(html) : html, {
+  const printed =
+    options.print && options.printHeader
+      ? withHeader(html, options.printHeader)
+      : html;
+  return new Response(options.print ? withPrintScript(printed) : html, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",

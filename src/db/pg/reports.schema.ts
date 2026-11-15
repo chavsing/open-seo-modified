@@ -7,6 +7,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { projects } from "./app.schema";
+import { organization } from "./better-auth-schema";
 
 // Timestamps are stored as *text* (same column shape as the SQLite schema); see
 // the note in pg/app.schema.ts. `isoNow` matches `new Date().toISOString()` so
@@ -44,3 +45,14 @@ export const reports = pgTable(
     uniqueIndex("reports_share_token_idx").on(table.shareToken),
   ],
 );
+
+// See ../reports.schema.ts for the column notes.
+export const reportBranding = pgTable("report_branding", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  companyName: text("company_name").notNull(),
+  websiteUrl: text("website_url"),
+  logoDataUrl: text("logo_data_url"),
+  updatedAt: text("updated_at").notNull(),
+});

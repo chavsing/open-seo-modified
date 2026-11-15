@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   getSharedReportByToken: vi.fn(),
 }));
 
+vi.mock("@/server/features/reports/services/reportBranding", () => ({
+  activeReportBranding: async () => null,
+  brandingPrintHeader: () => "",
+}));
 vi.mock("cloudflare:workers", () => ({ env: mocks.env }));
 vi.mock("@/server/features/reports/repositories/ReportRepository", () => ({
   ReportRepository: { getSharedReportByToken: mocks.getSharedReportByToken },

@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { projects } from "./app.schema";
+import { organization } from "./better-auth-schema";
 
 // ============================================================================
 // Reports: the HTML documents agents write for a project. One row is one whole
@@ -83,3 +84,16 @@ export const reports = sqliteTable(
     uniqueIndex("reports_share_token_idx").on(table.shareToken),
   ],
 );
+
+// An account's own branding on reports (white label): shown on shared report
+// pages and printed reports in place of the app's. The logo is a small data:
+// URL, since a report's sandbox only loads data: images.
+export const reportBranding = sqliteTable("report_branding", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  companyName: text("company_name").notNull(),
+  websiteUrl: text("website_url"),
+  logoDataUrl: text("logo_data_url"),
+  updatedAt: text("updated_at").notNull(),
+});

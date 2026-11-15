@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
   getReportHtml: vi.fn(),
 }));
 
+vi.mock("@/server/features/reports/services/reportBranding", () => ({
+  activeReportBranding: async () => null,
+  brandingPrintHeader: () => "",
+}));
 vi.mock("cloudflare:workers", () => ({ env: { AUTH_MODE: "hosted" } }));
 vi.mock("@/middleware/ensure-user/resolve", () => ({
   resolveUserContextFromHeaders: mocks.resolveUserContextFromHeaders,

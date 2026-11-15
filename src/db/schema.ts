@@ -111,6 +111,7 @@ export const {
   projectResearchLog,
   reports,
   reportTemplates,
+  reportBranding,
   audits,
   auditPages,
   auditIssues,

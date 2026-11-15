@@ -6,6 +6,10 @@ import { ProjectRepository } from "@/server/features/projects/repositories/Proje
 import { ReportRepository } from "@/server/features/reports/repositories/ReportRepository";
 import { asAppError } from "@/server/lib/errors";
 import { reportDocumentResponse, textResponse } from "@/shared/report-sandbox";
+import {
+  activeReportBranding,
+  brandingPrintHeader,
+} from "@/server/features/reports/services/reportBranding";
 
 // The report viewer: the stored document, served byte for byte from the app's
 // own origin and locked down by REPORT_CSP. A raw-Response route, so no React
@@ -82,9 +86,15 @@ async function handleReportRequest(
   // the browser's print dialog itself.
   const print = new URL(request.url).searchParams.get("print") === "1";
 
+  // The account's own branding heads the PDF (white label).
+  const branding = print
+    ? await activeReportBranding(context.organizationId)
+    : null;
+
   return reportDocumentResponse(html, {
     print,
     cacheControl: "private, no-store",
+    printHeader: branding ? brandingPrintHeader(branding) : undefined,
   });
 }
 

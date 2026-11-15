@@ -7,6 +7,8 @@ import { BRAND_NAME } from "@/shared/brand";
 export async function renderReportSocialImage(
   title: string,
   projectDomain?: string | null,
+  /** The account's own name and logo, shown instead of the app's. */
+  brand?: { name: string; logoDataUrl: string | null } | null,
 ): Promise<Response> {
   // Projects normally store a bare domain. Also handle older full URLs, and
   // omit missing/invalid websites rather than failing an otherwise valid card.
@@ -25,9 +27,19 @@ export async function renderReportSocialImage(
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-        <img src={logo} width={64} height={64} style={{ borderRadius: 14 }} />
+        {brand ? (
+          brand.logoDataUrl ? (
+            <img
+              src={brand.logoDataUrl}
+              height={64}
+              style={{ maxWidth: 240 }}
+            />
+          ) : null
+        ) : (
+          <img src={logo} width={64} height={64} style={{ borderRadius: 14 }} />
+        )}
         <div style={{ fontSize: 34, fontWeight: 600, letterSpacing: -1 }}>
-          {BRAND_NAME}
+          {brand?.name ?? BRAND_NAME}
         </div>
       </div>
       <div

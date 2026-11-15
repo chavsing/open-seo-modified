@@ -9,6 +9,7 @@ import { REPORT_IFRAME_SANDBOX } from "@/shared/report-sandbox";
 import { sharePath } from "@/shared/report-share";
 import { domainField } from "@/types/schemas/domain";
 import { BRAND_NAME, MARKETING_SITE_URL } from "@/shared/brand";
+import { activeReportBranding } from "@/server/features/reports/services/reportBranding";
 
 // The public face of a shared report, `/s/<token>`: a slim bar and the
 // document in the same sandboxed frame the in-app viewer uses. Rendered to a
@@ -61,6 +62,8 @@ h1{margin:0;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;te
 .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-text)}
 .btn.primary:hover{filter:brightness(.92)}
 .btn svg{width:16px;height:16px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{height:28px;width:auto;max-width:120px;object-fit:contain}
 iframe{flex:1;min-height:0;width:100%;border:0;background:var(--surface)}
 main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center}
 main h1{white-space:normal;font-size:18px}
@@ -96,10 +99,12 @@ function TryButton() {
 
 function Document({
   title,
+  siteName = BRAND_NAME,
   head,
   children,
 }: {
   title: string;
+  siteName?: string;
   head?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -112,7 +117,7 @@ function Document({
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="robots" content="noindex, nofollow" />
-        <title>{`${title} · ${BRAND_NAME}`}</title>
+        <title>{`${title} · ${siteName}`}</title>
         {head}
         <link rel="icon" href="/favicon.ico" />
         <style dangerouslySetInnerHTML={{ __html: STYLES }} />
@@ -189,14 +194,18 @@ export async function renderSharePage(
     domain: domain.success ? domain.data : "",
   });
   const imageUrl = `${canonical}/og.png?${imageVersion}`;
+  // The account's own name and logo replace the app's (white label).
+  const branding = await activeReportBranding(report.organizationId);
+  const siteName = branding?.companyName ?? BRAND_NAME;
 
   return htmlResponse(
     <Document
       title={report.title}
+      siteName={siteName}
       head={
         <>
           <meta property="og:type" content="article" />
-          <meta property="og:site_name" content={BRAND_NAME} />
+          <meta property="og:site_name" content={siteName} />
           <meta property="og:title" content={report.title} />
           <meta name="twitter:title" content={report.title} />
           {description ? (
@@ -211,24 +220,31 @@ export async function renderSharePage(
           <meta property="og:image:height" content="630" />
           <meta
             property="og:image:alt"
-            content={`${report.title} · ${BRAND_NAME}`}
+            content={`${report.title} · ${siteName}`}
           />
           <meta name="twitter:image" content={imageUrl} />
           <meta
             name="twitter:image:alt"
-            content={`${report.title} · ${BRAND_NAME}`}
+            content={`${report.title} · ${siteName}`}
           />
           <meta name="twitter:card" content="summary_large_image" />
         </>
       }
     >
       <header>
-        <div className="title">
-          <h1>{report.title}</h1>
-          <p className="meta">
-            Made with {BRAND_NAME} · Updated{" "}
-            {formatRelativeTime(report.updatedAt)}
-          </p>
+        <div className="title brand">
+          {branding?.logoDataUrl ? (
+            <img src={branding.logoDataUrl} alt={branding.companyName} />
+          ) : null}
+          <div className="title">
+            <h1>{report.title}</h1>
+            <p className="meta">
+              {branding
+                ? `Prepared by ${branding.companyName}`
+                : `Made with ${BRAND_NAME}`}{" "}
+              · Updated {formatRelativeTime(report.updatedAt)}
+            </p>
+          </div>
         </div>
         <div className="actions">
           <button type="button" className="btn" id="share">
@@ -249,7 +265,20 @@ export async function renderSharePage(
             </svg>
             <span>Share</span>
           </button>
-          <TryButton />
+          {branding ? (
+            branding.websiteUrl ? (
+              <a
+                className="btn primary"
+                href={branding.websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Visit {branding.companyName}
+              </a>
+            ) : null
+          ) : (
+            <TryButton />
+          )}
         </div>
       </header>
       <iframe

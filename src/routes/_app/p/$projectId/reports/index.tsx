@@ -4,6 +4,7 @@ import { Button } from "@/client/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ReportsList } from "@/client/features/reports/ReportsList";
+import { ReportBrandingDialog } from "@/client/features/reports/ReportBrandingDialog";
 import {
   DeleteReportModal,
   reportsQueryKey,
@@ -22,6 +23,7 @@ function ReportsPage() {
   const [pendingDelete, setPendingDelete] = useState<ReportListItem | null>(
     null,
   );
+  const [brandingOpen, setBrandingOpen] = useState(false);
 
   const reportsQuery = useQuery({
     queryKey: reportsQueryKey(projectId),
@@ -43,18 +45,23 @@ function ReportsPage() {
           title="Reports"
           description="HTML reports your agents saved to this project."
           actions={
-            <Button
-              variant="ghost"
-              nativeButton={false}
-              render={
-                <Link
-                  to="/p/$projectId/reports/templates"
-                  params={{ projectId }}
-                />
-              }
-            >
-              Templates
-            </Button>
+            <>
+              <Button variant="ghost" onClick={() => setBrandingOpen(true)}>
+                Your branding
+              </Button>
+              <Button
+                variant="ghost"
+                nativeButton={false}
+                render={
+                  <Link
+                    to="/p/$projectId/reports/templates"
+                    params={{ projectId }}
+                  />
+                }
+              >
+                Templates
+              </Button>
+            </>
           }
         />
 
@@ -75,6 +82,13 @@ function ReportsPage() {
           isPending={deleteMutation.isPending}
           onClose={() => setPendingDelete(null)}
           onConfirm={() => deleteMutation.mutate(pendingDelete.id)}
+        />
+      ) : null}
+
+      {brandingOpen ? (
+        <ReportBrandingDialog
+          projectId={projectId}
+          onClose={() => setBrandingOpen(false)}
         />
       ) : null}
     </div>
