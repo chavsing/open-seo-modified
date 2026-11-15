@@ -42,6 +42,12 @@ export const booleanSearchParamSchema = z
   .union([z.boolean(), z.enum(["true", "false"])])
   .transform((value) => value === true || value === "true");
 
+export const keywordGapSchema = z.object({
+  projectId: z.string().uuid(),
+  yourDomain: domainField,
+  competitor: domainField,
+});
+
 export const domainOverviewSchema = z.object({
   projectId: z.string().uuid(),
   domain: z.string().min(1, "Domain is required").max(2048),

@@ -5,7 +5,9 @@ import {
   domainKeywordSuggestionsSchema,
   domainKeywordsPageRequestSchema,
   domainPagesPageRequestSchema,
+  keywordGapSchema,
 } from "@/types/schemas/domain";
+import { findKeywordGap } from "@/server/features/domain/services/keywordGap";
 import { DomainService } from "@/server/features/domain/services/DomainService";
 import { resolveLabsMarket } from "@/shared/keyword-locations";
 
@@ -82,3 +84,17 @@ export const getDomainPagesPage = createServerFn({ method: "POST" })
 
     return DomainService.getPagesPage(input, context);
   });
+
+export const getKeywordGap = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(keywordGapSchema)
+  .handler(({ data, context }) =>
+    findKeywordGap(
+      {
+        ...data,
+        ...resolveLabsMarket({}, context.project),
+        projectId: context.projectId,
+      },
+      context,
+    ),
+  );

@@ -23,6 +23,7 @@ import {
   fetchRelevantPages,
   fetchSerpCompetitors,
 } from "@/server/lib/dataforseo/labs";
+import { fetchKeywordGap } from "@/server/lib/dataforseo/labsKeywordGap";
 import {
   fetchAdsKeywordIdeas,
   fetchAdsSearchVolume,
@@ -250,6 +251,7 @@ export const dataforseoPricing = {
       labsUsd(input.limit),
     ),
     relevantPages: priced(fetchRelevantPages, (input) => labsUsd(input.limit)),
+    keywordGap: priced(fetchKeywordGap, (input) => labsUsd(input.limit)),
   },
   serp: {
     live: priced(fetchLiveSerp, (input) =>

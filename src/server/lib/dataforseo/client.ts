@@ -40,6 +40,7 @@ import {
   fetchRelevantPages,
   fetchSerpCompetitors,
 } from "@/server/lib/dataforseo/labs";
+import { fetchKeywordGap } from "@/server/lib/dataforseo/labsKeywordGap";
 import {
   fetchAdsKeywordIdeas,
   fetchAdsSearchVolume,
@@ -203,6 +204,11 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
         customer,
         fetchRelevantPages,
         dataforseoPricing.domain.relevantPages,
+      ),
+      keywordGap: meter(
+        customer,
+        fetchKeywordGap,
+        dataforseoPricing.domain.keywordGap,
       ),
     },
     serp: {
