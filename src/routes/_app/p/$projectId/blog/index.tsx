@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { ProjectPageHeader } from "@/client/features/projects/ProjectPageHeader";
 import { BlogArticlesCard } from "@/client/features/blog/BlogArticlesCard";
+import { BlogCalendarCard } from "@/client/features/blog/BlogCalendarCard";
 import { BlogSettingsCard } from "@/client/features/blog/BlogSettingsCard";
 import { BlogTopicsCard } from "@/client/features/blog/BlogTopicsCard";
 import {
@@ -11,7 +12,7 @@ import {
   TabsTrigger,
 } from "@/client/components/ui/tabs";
 
-const TABS = ["articles", "topics", "settings"] as const;
+const TABS = ["articles", "calendar", "topics", "settings"] as const;
 type BlogTab = (typeof TABS)[number];
 
 export const Route = createFileRoute("/_app/p/$projectId/blog/")({
@@ -42,6 +43,7 @@ function BlogRoute() {
         >
           <TabsList>
             <TabsTrigger value="articles">Articles</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="topics">Topic ideas</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -50,6 +52,9 @@ function BlogRoute() {
               projectId={projectId}
               onFindTopics={() => setTab("topics")}
             />
+          </TabsContent>
+          <TabsContent value="calendar" className="pt-4">
+            <BlogCalendarCard projectId={projectId} />
           </TabsContent>
           <TabsContent value="topics" className="pt-4">
             <BlogTopicsCard projectId={projectId} />
