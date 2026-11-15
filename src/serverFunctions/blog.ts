@@ -7,6 +7,7 @@ import {
 } from "@/server/features/blog/services/blogImages";
 import {
   createBlogBrief,
+  createBlogBriefFromKeyword,
   findBlogTopics,
 } from "@/server/features/blog/services/blogResearch";
 import {
@@ -22,6 +23,7 @@ import { startArticleWriting } from "@/server/features/blog/services/blogWriting
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
+  blogKeywordSchema,
   blogProjectSchema,
   blogTopicSchema,
   connectWordpressSchema,
@@ -95,6 +97,13 @@ export const createBrief = createServerFn({ method: "POST" })
   .validator(blogTopicSchema)
   .handler(({ data, context }) =>
     createBlogBrief(context.project, data.topicId, context),
+  );
+
+export const createBriefFromKeyword = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(blogKeywordSchema)
+  .handler(({ data, context }) =>
+    createBlogBriefFromKeyword(context.project, data.keyword, context),
   );
 
 export const listBlogArticles = createServerFn({ method: "POST" })

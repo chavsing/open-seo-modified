@@ -42,6 +42,14 @@ export const blogTopicSchema = projectScoped.extend({
   topicId: z.string().min(1),
 });
 
+export const blogKeywordSchema = projectScoped.extend({
+  keyword: z
+    .string()
+    .trim()
+    .min(2, "Type a keyword")
+    .max(80, "Keep the keyword under 80 characters"),
+});
+
 export const skipBlogTopicSchema = blogTopicSchema.extend({
   skipped: z.boolean(),
 });

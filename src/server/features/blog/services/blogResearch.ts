@@ -278,7 +278,9 @@ export async function createBlogBrief(
     `- **Monthly searches:** ${topic.searchVolume?.toLocaleString("en-US") ?? "unknown"}`,
     `- **Difficulty:** ${topic.keywordDifficulty ?? "unknown"} / 100`,
     `- **Target length:** about ${target} words`,
-    `- **Found because:** ${topic.competitorDomain} ranks #${topic.competitorPosition ?? "?"} for it`,
+    topic.competitorDomain
+      ? `- **Found because:** ${topic.competitorDomain} ranks #${topic.competitorPosition ?? "?"} for it`
+      : "- **Found because:** you chose this keyword",
     "",
     "## What ranks now",
     ...organic.map(
@@ -315,4 +317,37 @@ export async function createBlogBrief(
   const saved = await BlogRepository.getArticleForTopic(project.id, topic.id);
   if (!saved) throw new AppError("INTERNAL_ERROR");
   return { articleId: saved.id };
+}
+
+/**
+ * Starts an article from a keyword the user typed: saves it as a topic (no
+ * competitor behind it) and builds its brief. Typing a keyword that is already
+ * a topic reuses that topic, and so its article.
+ */
+export async function createBlogBriefFromKeyword(
+  project: EnsuredProject,
+  keyword: string,
+  customer: BillingCustomerContext,
+): Promise<{ articleId: string }> {
+  requireDomain(project);
+  const normalized = keyword.toLowerCase().replace(/\s+/g, " ").trim();
+  const find = async () =>
+    (await BlogRepository.listTopics(project.id)).find(
+      (topic) => topic.keyword === normalized,
+    );
+  let topic = await find();
+  if (!topic) {
+    await BlogRepository.upsertTopics([
+      {
+        id: crypto.randomUUID(),
+        projectId: project.id,
+        keyword: normalized,
+        competitorDomain: "",
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    topic = await find();
+  }
+  if (!topic) throw new AppError("INTERNAL_ERROR");
+  return createBlogBrief(project, topic.id, customer);
 }

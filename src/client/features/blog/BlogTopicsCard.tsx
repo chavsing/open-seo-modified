@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -5,6 +6,8 @@ import { Lightbulb } from "lucide-react";
 import { QueryError } from "@/client/components/QueryState";
 import { Badge } from "@/client/components/ui/badge";
 import { Button } from "@/client/components/ui/button";
+import { Field, FieldLabel } from "@/client/components/ui/field";
+import { Input } from "@/client/components/ui/input";
 import {
   Empty,
   EmptyDescription,
@@ -23,6 +26,7 @@ import {
 } from "@/client/components/ui/table";
 import {
   createBrief,
+  createBriefFromKeyword,
   findTopics,
   listBlogTopics,
   skipBlogTopic,
@@ -61,21 +65,22 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
     onSuccess: refresh,
     onError: (error) => toastBlogError(error),
   });
+  const openBrief = async ({ articleId }: { articleId: string }) => {
+    await Promise.all([
+      refresh(),
+      queryClient.invalidateQueries({
+        queryKey: blogKeys.articles(projectId),
+      }),
+    ]);
+    void navigate({
+      to: "/p/$projectId/blog/$articleId",
+      params: { projectId, articleId },
+    });
+  };
   const brief = useMutation({
     mutationFn: (topicId: string) =>
       createBrief({ data: { projectId, topicId } }),
-    onSuccess: async ({ articleId }) => {
-      await Promise.all([
-        refresh(),
-        queryClient.invalidateQueries({
-          queryKey: blogKeys.articles(projectId),
-        }),
-      ]);
-      void navigate({
-        to: "/p/$projectId/blog/$articleId",
-        params: { projectId, articleId },
-      });
-    },
+    onSuccess: openBrief,
     onError: (error) =>
       toastBlogError(error, {
         VALIDATION_ERROR: "Add your website to this project first.",
@@ -119,6 +124,8 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
         </p>
         {findButton}
       </div>
+
+      <KeywordBriefForm projectId={projectId} onCreated={openBrief} />
 
       {topics.length === 0 ? (
         <Empty className="border">
@@ -165,7 +172,7 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
                     {topic.keywordDifficulty ?? "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {topic.competitorDomain}
+                    {topic.competitorDomain || "Your keyword"}
                     {topic.competitorPosition
                       ? ` (#${topic.competitorPosition})`
                       : ""}
@@ -214,5 +221,55 @@ export function BlogTopicsCard({ projectId }: { projectId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Starts an article from the user's own keyword, skipping the topic search. */
+function KeywordBriefForm({
+  projectId,
+  onCreated,
+}: {
+  projectId: string;
+  onCreated: (result: { articleId: string }) => Promise<void>;
+}) {
+  const id = useId();
+  const [keyword, setKeyword] = useState("");
+  const create = useMutation({
+    mutationFn: () =>
+      createBriefFromKeyword({ data: { projectId, keyword: keyword.trim() } }),
+    onSuccess: onCreated,
+    onError: (error) =>
+      toastBlogError(error, {
+        VALIDATION_ERROR: "Add your website to this project first.",
+      }),
+  });
+
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (keyword.trim().length >= 2) create.mutate();
+      }}
+    >
+      <Field className="min-w-0 flex-1 basis-64">
+        <FieldLabel htmlFor={id}>Or write about your own keyword</FieldLabel>
+        <Input
+          id={id}
+          value={keyword}
+          maxLength={80}
+          placeholder="e.g. how to choose a roofer"
+          onChange={(event) => setKeyword(event.target.value)}
+        />
+      </Field>
+      <Button
+        type="submit"
+        variant="outline"
+        pending={create.isPending}
+        disabled={keyword.trim().length < 2}
+      >
+        Create brief
+      </Button>
+    </form>
   );
 }
