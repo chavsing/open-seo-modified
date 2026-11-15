@@ -5,6 +5,8 @@ import {
 } from "@/server/billing/subscription";
 import { BlogRepository } from "@/server/features/blog/repositories/BlogRepository";
 import { BlogService } from "@/server/features/blog/services/BlogService";
+import { createBlogBrief } from "@/server/features/blog/services/blogResearch";
+import type { EnsuredProject } from "@/middleware/ensure-user/types";
 import {
   listWordpressCategories,
   suggestArticleTaxonomy,
@@ -77,11 +79,39 @@ export async function startArticleWriting(
   }
 }
 
+/**
+ * Several topics at once: each gets its brief, then background writing. One
+ * topic failing (no credits left, already being written) doesn't stop the
+ * others, and each failure is named so the person knows what to retry.
+ */
+export async function startTopicsWriting(
+  project: EnsuredProject,
+  topicIds: string[],
+  customer: BillingCustomerContext,
+) {
+  let started = 0;
+  const failed: { topicId: string; message: string }[] = [];
+  for (const topicId of new Set(topicIds)) {
+    try {
+      const { articleId } = await createBlogBrief(project, topicId, customer);
+      await startArticleWriting(
+        project.id,
+        { articleId, replace: false },
+        customer,
+      );
+      started += 1;
+    } catch (error) {
+      failed.push({ topicId, message: failureMessage(error) });
+    }
+  }
+  return { started, failed };
+}
+
 /** Our own wording for why writing failed; never a raw error. */
 function failureMessage(error: unknown) {
   if (error instanceof AppError) {
     if (error.code === "INSUFFICIENT_CREDITS")
-      return "This account ran out of usage credits.";
+      return "This account is out of usage credits.";
     if (error.code === "UPSTREAM_UNAVAILABLE")
       return "AI writing isn't available right now. Please try again later.";
     if (error.message !== error.code) return error.message;

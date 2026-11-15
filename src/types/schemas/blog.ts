@@ -50,6 +50,13 @@ export const blogKeywordSchema = projectScoped.extend({
     .max(80, "Keep the keyword under 80 characters"),
 });
 
+// A few at a time: each article is minutes of AI writing and its own credits.
+export const MAX_BULK_ARTICLES = 5;
+
+export const writeBlogTopicsSchema = projectScoped.extend({
+  topicIds: z.array(z.string().min(1)).min(1).max(MAX_BULK_ARTICLES),
+});
+
 export const skipBlogTopicSchema = blogTopicSchema.extend({
   skipped: z.boolean(),
 });

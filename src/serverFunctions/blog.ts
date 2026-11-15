@@ -19,7 +19,10 @@ import {
   restoreVersion,
 } from "@/server/features/blog/services/blogVersions";
 import { reviewBlogArticle } from "@/server/features/blog/services/blogWriter";
-import { startArticleWriting } from "@/server/features/blog/services/blogWriting";
+import {
+  startArticleWriting,
+  startTopicsWriting,
+} from "@/server/features/blog/services/blogWriting";
 import { requireProjectContext } from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
@@ -37,6 +40,7 @@ import {
   updateBlogArticleSchema,
   updateBlogSettingsSchema,
   writeBlogArticleSchema,
+  writeBlogTopicsSchema,
 } from "@/types/schemas/blog";
 
 export const getBlogSettings = createServerFn({ method: "POST" })
@@ -157,6 +161,13 @@ export const writeBlogArticleWithAi = createServerFn({ method: "POST" })
       { articleId: data.articleId, replace: data.replace },
       context,
     ),
+  );
+
+export const writeBlogTopics = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(writeBlogTopicsSchema)
+  .handler(({ data, context }) =>
+    startTopicsWriting(context.project, data.topicIds, context),
   );
 
 export const listBlogArticleVersions = createServerFn({ method: "POST" })
