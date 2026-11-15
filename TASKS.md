@@ -30,10 +30,8 @@ done list at the bottom with the date.
   an automatic run that hits Cloudflare's time limit is unbilled ("Write
   with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
   today, and two "Write with AI" clicks on a small balance can go below zero.
-- [ ] Gap review priority 2, what is left (blog and keyword gap shipped
-      2026-11-16): scheduled site audits compared with the last one,
-      reports with the customer's own logo as a real PDF, and view-only team
-      seats.
+- [ ] Gap review priority 2, what is left: reports with the customer's own
+      logo as a real PDF, and view-only team seats.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
       competitors, find blog topics, start tracking keywords and fill in the
       Context page (business overview, positioning) from the site scan when a
@@ -86,7 +84,11 @@ done list at the bottom with the date.
   the next automatic ones are due), writing up to 5 topic ideas at once, a
   Keyword Gap page under Research (a competitor's keywords your site doesn't
   rank for, with Write about it), and two AI chatbot questions in the
-  landing page FAQ. All deployed.
+  landing page FAQ. All deployed. Also: site audits can repeat weekly or
+  monthly (paid plans, Lighthouse off), every audit shows new and fixed
+  issues against the previous one, and the owner gets an email after each
+  scheduled audit. Local SEO parked: only worth it if Bryan's customers are
+  mostly local businesses.
 - 2026-11-16: Customer billing emails (gap review phase 1, the parts that
   don't need PayPal). "Your plan is active" when a payment is recorded on
   /admin (Pro month, Pro year, Lifetime, extra credits). A daily email when
