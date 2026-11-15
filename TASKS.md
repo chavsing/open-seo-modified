@@ -21,9 +21,8 @@ done list at the bottom with the date.
       sign-in stops working.
 - [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
       consider auto top-up.
-- [ ] After the live tests: disconnect the test WordPress (the Cloudflare
-      tunnel address) in the Default project's Blog Generator Settings, or set
-      "How often to write" to Off, so the run due 2026-11-19 doesn't fail.
+- [ ] Get the PayPal Live app's Secret key from Bryan (asked 2026-11-16) and
+      add it to .env.saas as PAYPAL_CLIENT_SECRET, for automatic activation.
 
 ## Claude, next
 
@@ -31,8 +30,11 @@ done list at the bottom with the date.
   an automatic run that hits Cloudflare's time limit is unbilled ("Write
   with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
   today, and two "Write with AI" clicks on a small balance can go below zero.
-- [ ] "New article" button: type a keyword, get a brief, no topic search
-      needed.
+- [ ] Gap review priority 2, in the order agreed on 2026-11-16 (blog first,
+      then research pages, then agency tools): a content calendar showing
+      the next automatic posts, writing several articles at once, a keyword
+      gap page, scheduled site audits compared with the last one, reports
+      with the customer's own logo as a real PDF, and view-only team seats.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
       competitors, find blog topics, start tracking keywords and fill in the
       Context page (business overview, positioning) from the site scan when a
@@ -42,6 +44,14 @@ done list at the bottom with the date.
       specific to the business.
 
 ## Claude, waiting on a decision
+
+- [ ] Automatic PayPal activation: waiting on Bryan's Secret key. Plan: a
+      PayPal webhook, the yearly, Lifetime and credit links swapped for
+      PayPal buttons that carry the account, and an unmatched payments list
+      on /admin.
+- [ ] Local SEO page (Google Maps rank grid): the original OpenSEO has it,
+      about 60 files plus new tables to port. The map needs a Google Maps
+      API key on Bryan's Google Cloud account (billed by Google).
 
 - [ ] Blog Generator tools for customers' own AI apps (Claude, ChatGPT, Grok
       through Agent setup). Today the 76 MCP tools cover everything except
@@ -63,6 +73,16 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-16: Gap review decisions from Bryan: no free trial (free plan with
+  $1 of credits stays), rank tracking limited to the cheapest option,
+  Drafts only as the WordPress default (already the default). Automatic
+  rank checks are back on for paid plans, weekly or monthly only (no
+  daily), after porting the original OpenSEO's reliability fixes; they are
+  paid from the customer's credits. Owners get one email when keywords on
+  Google's first two pages drop 5 or more places. Blog Generator: start an
+  article from your own keyword, and articles now link to the customer's
+  earlier published articles, with made-up links to their site removed.
+  Brand Lookup stays out of the menu: Prompt Research replaced it.
 - 2026-11-16: Customer billing emails (gap review phase 1, the parts that
   don't need PayPal). "Your plan is active" when a payment is recorded on
   /admin (Pro month, Pro year, Lifetime, extra credits). A daily email when
