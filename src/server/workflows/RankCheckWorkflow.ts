@@ -11,6 +11,7 @@ import {
 } from "@/server/billing/subscription";
 import { RankTrackingRepository } from "@/server/features/rank-tracking/repositories/RankTrackingRepository";
 import { failRunIfActive } from "@/server/features/rank-tracking/services/rankCheckRunGuards";
+import { alertRankDrops } from "@/server/features/rank-tracking/services/rankDropAlert";
 import {
   runLiveCheck,
   runQueuedCheck,
@@ -129,6 +130,7 @@ async function finalizeRankCheckRun(input: {
   runId: string;
   configId: string;
   projectId: string;
+  domain: string;
   billingCustomer: BillingCustomerContext;
   trigger: RankCheckParams["trigger"];
   devices: RankCheckParams["devices"];
@@ -154,6 +156,13 @@ async function finalizeRankCheckRun(input: {
   const snapshots = await RankTrackingRepository.getSnapshotsForRun(
     input.runId,
   );
+  // Read while this run is still active, so these are the earlier positions.
+  const positionsBefore =
+    input.trigger === "scheduled"
+      ? await RankTrackingRepository.getLatestSnapshotsForKeywords(
+          input.configId,
+        )
+      : [];
   const keywordsChecked = new Set(snapshots.map((s) => s.trackingKeywordId))
     .size;
   const devices: Array<"desktop" | "mobile"> =
@@ -214,6 +223,14 @@ async function finalizeRankCheckRun(input: {
       lastCheckedAt: nowIso,
       lastSkipReason: null,
     });
+    if (input.trigger === "scheduled")
+      await alertRankDrops({
+        organizationId: input.billingCustomer.organizationId,
+        projectId: input.projectId,
+        domain: input.domain,
+        before: positionsBefore,
+        after: snapshots,
+      });
   }
 
   // One-line summary per run, visible in Workers Logs.
@@ -408,6 +425,7 @@ export class RankCheckWorkflow extends WorkflowEntrypoint<
           runId,
           configId,
           projectId,
+          domain,
           billingCustomer,
           trigger,
           devices,

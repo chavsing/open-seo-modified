@@ -31,6 +31,9 @@ vi.mock(
 vi.mock("@/server/features/rank-tracking/services/rankCheckRunGuards", () => ({
   failRunIfActive: mocks.failRunIfActive,
 }));
+vi.mock("@/server/features/rank-tracking/services/rankDropAlert", () => ({
+  alertRankDrops: vi.fn(),
+}));
 vi.mock("@/server/workflows/rankCheckPaths", () => ({
   runLiveCheck: mocks.runLiveCheck,
   runQueuedCheck: vi.fn(),

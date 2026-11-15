@@ -12,7 +12,6 @@ import {
   refillYearlyPlanCredits,
   releaseExpiredCreditHolds,
 } from "@/server/billing/creditLedger";
-import { SCHEDULED_RANK_CHECKS_PAUSED } from "@/shared/rank-tracking-pause";
 import { reconcileStaleAudits } from "@/server/features/audit/services/auditReconciler";
 import { getOrCreateOrganizationCustomer } from "@/server/billing/subscription";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
@@ -249,9 +248,7 @@ export default {
     }
     // Scope a per-request Postgres client for the cron run (no-op in D1 mode).
     const checks = await Promise.allSettled([
-      SCHEDULED_RANK_CHECKS_PAUSED && isHostedAuthMode(env.AUTH_MODE)
-        ? Promise.resolve()
-        : withPgClient(() => runScheduledRankChecks(env)),
+      withPgClient(() => runScheduledRankChecks(env)),
       withPgClient(async () => {
         const { runScheduledAiVisibility } =
           await import("@/server/features/ai-visibility/services/scheduledAiVisibility");

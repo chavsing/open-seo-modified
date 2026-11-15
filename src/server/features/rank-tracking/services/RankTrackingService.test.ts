@@ -16,10 +16,6 @@ const mocks = vi.hoisted(() => ({
   customerHasPaidPlan: vi.fn(),
 }));
 
-// These tests cover normal scheduling, not the temporary pause.
-vi.mock("@/shared/rank-tracking-pause", () => ({
-  SCHEDULED_RANK_CHECKS_PAUSED: false,
-}));
 vi.mock("cloudflare:workers", () => ({
   env: { RANK_CHECK_WORKFLOW: { create: mocks.startWorkflow } },
 }));
@@ -78,6 +74,7 @@ function stubSandbox(statusCode: number, statusMessage = "Ok.") {
 describe("RankTrackingService.createConfig", () => {
   beforeEach(() => {
     stubSandbox(20000);
+    mocks.isHosted.mockResolvedValue(false);
   });
 
   it("reactivates an archived config instead of throwing, applying the new settings", async () => {
@@ -118,6 +115,17 @@ describe("RankTrackingService.createConfig", () => {
     );
     // Reactivation must not insert a duplicate row.
     expect(mocks.createConfig).not.toHaveBeenCalled();
+  });
+
+  it("refuses a daily schedule on the hosted platform", async () => {
+    mocks.isHosted.mockResolvedValue(true);
+    mocks.getConfigByProjectDomainLocation.mockResolvedValue(null);
+
+    await expect(RankTrackingService.createConfig(baseInput)).rejects.toThrow(
+      "Daily rank checks aren't available",
+    );
+    expect(mocks.createConfig).not.toHaveBeenCalled();
+    expect(mocks.updateConfig).not.toHaveBeenCalled();
   });
 
   it("throws when an active config already tracks the same domain + location", async () => {
