@@ -30,8 +30,7 @@ done list at the bottom with the date.
   an automatic run that hits Cloudflare's time limit is unbilled ("Write
   with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
   today, and two "Write with AI" clicks on a small balance can go below zero.
-- [ ] Gap review priority 2, what is left: reports with the customer's own
-      logo as a real PDF, and view-only team seats.
+- [ ] Gap review priority 2, what is left: view-only team seats.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
       competitors, find blog topics, start tracking keywords and fill in the
       Context page (business overview, positioning) from the site scan when a
@@ -46,10 +45,6 @@ done list at the bottom with the date.
       PayPal webhook, the yearly, Lifetime and credit links swapped for
       PayPal buttons that carry the account, and an unmatched payments list
       on /admin.
-- [ ] Local SEO page (Google Maps rank grid): the original OpenSEO has it,
-      about 60 files plus new tables to port. The map needs a Google Maps
-      API key on Bryan's Google Cloud account (billed by Google).
-
 - [ ] Blog Generator tools for customers' own AI apps (Claude, ChatGPT, Grok
       through Agent setup). Today the 76 MCP tools cover everything except
       the Blog Generator. Adding them is a new MCP tool, so it needs a plugin
@@ -87,8 +82,11 @@ done list at the bottom with the date.
   landing page FAQ. All deployed. Also: site audits can repeat weekly or
   monthly (paid plans, Lighthouse off), every audit shows new and fixed
   issues against the previous one, and the owner gets an email after each
-  scheduled audit. Local SEO parked: only worth it if Bryan's customers are
-  mostly local businesses.
+  scheduled audit. Local SEO dropped: Bryan's customers are a mix of
+  businesses in different countries, not mostly local ones. Reports: paid
+  accounts can put their own company name, website and logo on shared and
+  printed reports (Reports, Your branding). A PDF made on the server needs
+  Cloudflare's browser service, so PDFs still come from the print window.
 - 2026-11-16: Customer billing emails (gap review phase 1, the parts that
   don't need PayPal). "Your plan is active" when a payment is recorded on
   /admin (Pro month, Pro year, Lifetime, extra credits). A daily email when
