@@ -229,6 +229,11 @@ summary:focus-visible {
   padding: 4rem 0;
 }
 
+/* Menu links land below the sticky header instead of under it. */
+.section[id] {
+  scroll-margin-top: 3.75rem;
+}
+
 .section-alt {
   background: var(--section-alt);
   border-top: 1px solid var(--border);
