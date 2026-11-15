@@ -20,6 +20,7 @@ import {
   includedCreditsFeature,
   PLAN_OFFERS,
   PRO_PLAN_OFFER,
+  PRO_YEARLY_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { PAYPAL_AUTOPAY_URL } from "@/shared/billing";
@@ -200,17 +201,22 @@ function BillingPage() {
                     {supportLink}.
                   </p>
                 ) : account.isYearly ? (
-                  <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-                    {account.paidUntil
-                      ? `Paid through ${new Date(account.paidUntil).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}. `
-                      : null}
-                    {refillDate
-                      ? `Your credits refill on ${refillDate}. `
-                      : null}
-                    The yearly plan doesn&rsquo;t renew by itself: to keep it,
-                    pay for another year before it ends. Questions? Email{" "}
-                    {supportLink}.
-                  </p>
+                  <div className="space-y-3 border-t border-border pt-3">
+                    <p className="text-sm text-muted-foreground">
+                      {account.paidUntil
+                        ? `Paid through ${new Date(account.paidUntil).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}. `
+                        : null}
+                      {refillDate
+                        ? `Your credits refill on ${refillDate}. `
+                        : null}
+                      The yearly plan doesn&rsquo;t renew by itself: to keep it,
+                      pay for another year before it ends. Questions? Email{" "}
+                      {supportLink}.
+                    </p>
+                    {canManageBilling ? (
+                      <PlanPaymentAction offer={PRO_YEARLY_PLAN_OFFER} />
+                    ) : null}
+                  </div>
                 ) : (
                   <div className="space-y-3 border-t border-border pt-3">
                     <p className="text-sm text-muted-foreground">

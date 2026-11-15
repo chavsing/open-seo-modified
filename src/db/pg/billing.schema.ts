@@ -93,3 +93,23 @@ export const billingAdminActions = pgTable(
     index("billing_admin_actions_org_idx").on(t.organizationId, t.createdAt),
   ],
 );
+
+export const billingNotices = pgTable(
+  "billing_notices",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: [
+        "year_ending_soon",
+        "year_ending_now",
+        "year_ended",
+        "low_credits",
+      ],
+    }).notNull(),
+    periodKey: text("period_key").notNull(),
+    sentAt: text("sent_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.organizationId, t.kind, t.periodKey] })],
+);

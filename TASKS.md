@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-13. Tick a box when a task is done and move it to the
+Last updated: 2026-11-16. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -63,6 +63,18 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-16: Customer billing emails (gap review phase 1, the parts that
+  don't need PayPal). "Your plan is active" when a payment is recorded on
+  /admin (Pro month, Pro year, Lifetime, extra credits). A daily email when
+  a Pro year ends in 14 days, in 3 days, and once it has ended. A daily
+  warning when a paid account drops under $5 of credits, once per credit
+  period. Each reminder is sent once. Yearly customers now get a "Pay for a
+  year here" button on the billing page (it only told them to pay). Still
+  to do for phase 1: automatic activation after PayPal payment (waits on
+  the client's PayPal REST app).
+- 2026-11-15: Landing page: Blog Generator section and menu link, 30-day
+  money-back guarantee under the hero, under the prices and in the FAQ,
+  rank tracking worded as checks. Live on agsmaster.com.
 - 2026-11-13: Loops "AGS MASTER notice" email template published and its id
   added to the live app. A test notice reached the admin inbox and its
   button opened app.agsmaster.com.

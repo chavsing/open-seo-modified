@@ -223,6 +223,14 @@ export default {
         await warnIfOpenRouterLow().catch((error: unknown) =>
           console.error("[cron] AI balance check failed", { error }),
         );
+        // And the customers' billing emails: a Pro year ending, low credits.
+        await withPgClient(async () => {
+          const { sendBillingReminders } =
+            await import("@/server/billing/billingNotices");
+          console.log("[cron] billing reminders", await sendBillingReminders());
+        }).catch((error: unknown) =>
+          console.error("[cron] billing reminders failed", { error }),
+        );
       }
       return;
     }

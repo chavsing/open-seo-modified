@@ -477,6 +477,13 @@
       "when": 1794513794933,
       "tag": "0067_lonely_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "6",
+      "when": 1794760030097,
+      "tag": "0068_curious_the_hunter",
+      "breakpoints": true
     }
   ]
 }

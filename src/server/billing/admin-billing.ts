@@ -6,6 +6,7 @@ import {
   searchBillingAccounts,
   type AdminBillingAction,
 } from "@/server/billing/adminBillingRepository";
+import { notifyPlanChange } from "@/server/billing/billingNotices";
 import { hasPaidAccess, paidAccessEndsAt } from "@/server/billing/plan-access";
 import { AppError } from "@/server/lib/errors";
 import {
@@ -87,5 +88,11 @@ export async function applyBillingActionAsAdmin(args: {
     change: args.change,
     applied: result.applied,
   });
+  // Only an applied change emails, so a repeated submit can't send twice.
+  if (result.applied)
+    await notifyPlanChange(args.organizationId, args.change).catch(
+      (error: unknown) =>
+        console.error("[billing] plan change email failed", { error }),
+    );
   return result;
 }

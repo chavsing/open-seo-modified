@@ -116,3 +116,27 @@ export const billingAdminActions = sqliteTable(
     index("billing_admin_actions_org_idx").on(t.organizationId, t.createdAt),
   ],
 );
+
+// Billing emails already sent (plan ending, low credits), one row per org,
+// kind and period, so the daily run never sends the same one twice.
+export const billingNotices = sqliteTable(
+  "billing_notices",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: [
+        "year_ending_soon",
+        "year_ending_now",
+        "year_ended",
+        "low_credits",
+      ],
+    }).notNull(),
+    // What the notice was about, e.g. the paid period's end, so the next
+    // period gets its own notice.
+    periodKey: text("period_key").notNull(),
+    sentAt: text("sent_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.organizationId, t.kind, t.periodKey] })],
+);

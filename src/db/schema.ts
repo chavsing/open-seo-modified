@@ -129,6 +129,7 @@ export const {
   creditHolds,
   creditEvents,
   billingAdminActions,
+  billingNotices,
   ga4Connections,
   gscConnections,
   telemetryState,
