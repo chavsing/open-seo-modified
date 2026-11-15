@@ -167,6 +167,23 @@ async function listOtherTitles(projectId: string, articleId: string) {
   return rows.map((row) => row.title);
 }
 
+/** The project's other articles that are live on WordPress, to link to. */
+async function listPublishedLinks(projectId: string, articleId: string) {
+  const rows = await db
+    .select({ title: blogArticles.title, url: blogArticles.wordpressLink })
+    .from(blogArticles)
+    .where(
+      and(
+        eq(blogArticles.projectId, projectId),
+        ne(blogArticles.id, articleId),
+        eq(blogArticles.status, "published"),
+      ),
+    );
+  return rows.flatMap((row) =>
+    row.url ? [{ title: row.title, url: row.url }] : [],
+  );
+}
+
 /** Inserts the article unless the topic already has one (double-click). */
 async function insertArticle(row: typeof blogArticles.$inferInsert) {
   await db.insert(blogArticles).values(row).onConflictDoNothing();
@@ -312,6 +329,7 @@ export const BlogRepository = {
   getArticle,
   getArticleForTopic,
   listOtherTitles,
+  listPublishedLinks,
   insertArticle,
   updateArticle,
   claimWriting,

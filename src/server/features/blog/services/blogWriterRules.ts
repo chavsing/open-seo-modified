@@ -14,7 +14,7 @@ export const RULES = [
   "The keyword appears in the first 100 words and in at least one ## heading.",
   "At least 3 ## section headings. Never use a single # heading: the title is the page heading.",
   "Paragraphs of at most 120 words. Use lists and short paragraphs.",
-  "At least one Markdown link to a page on the business's own site, chosen only from sitePages. Never invent a URL.",
+  "Two to four Markdown links to pages on the business's own site, chosen only from sitePages and yourArticles. Link to yourArticles on related topics where they fit the text. Never invent a URL.",
   "No placeholders, brackets to fill in, TODOs, or remarks about being an AI. Write finished, publishable text.",
   "Answer the questions people ask, in your own words. Never copy competitors' text.",
   "Only cover questions that fit this business and the keyword. Skip ones about other brands or unrelated topics.",

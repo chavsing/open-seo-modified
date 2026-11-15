@@ -35,6 +35,10 @@ import {
 } from "@/server/features/blog/services/blogWriterRules";
 import { withoutImages } from "@/shared/blog-images";
 import {
+  keepKnownOwnLinks,
+  linkKey,
+} from "@/server/features/blog/services/blogLinks";
+import {
   PUBLISH_MIN_SCORE,
   briefFacts,
   checkArticle,
@@ -151,10 +155,11 @@ export async function writeBlogArticle(
     );
   const ai = await openAi(customer);
 
-  const [found, otherTitles, business] = await Promise.all([
+  const [found, otherTitles, business, yourArticles] = await Promise.all([
     sitePages(domain),
     BlogRepository.listOtherTitles(project.id, article.id),
     businessContext(project.id),
+    BlogRepository.listPublishedLinks(project.id, article.id),
   ]);
   // The owner's key pages first, so the article links where it matters.
   const links = [
@@ -163,6 +168,9 @@ export async function writeBlogArticle(
       ...found,
     ]),
   ];
+  const linkable = new Set(
+    [...links, ...yourArticles.map((a) => a.url)].map(linkKey),
+  );
   const facts = briefFacts(article.brief);
   const range = lengthRange(facts.targetWords);
   const lengthRule = range.max
@@ -187,7 +195,11 @@ export async function writeBlogArticle(
     // A body H1 would compete with the title; demote it rather than fail.
     return {
       title: draft.title.trim(),
-      content: draft.content.replace(/^#\s/gm, "## ").trim(),
+      content: keepKnownOwnLinks(
+        draft.content.replace(/^#\s/gm, "## ").trim(),
+        domain,
+        linkable,
+      ),
       metaDescription: draft.metaDescription.trim(),
     };
   };
@@ -222,6 +234,7 @@ export async function writeBlogArticle(
           relatedSearches: facts.relatedSearches,
           businessContext: business,
           sitePages: links,
+          yourArticles,
           titlesAlreadyUsed: otherTitles,
         }),
       ),
@@ -244,6 +257,7 @@ export async function writeBlogArticle(
             relatedSearches: facts.relatedSearches,
             businessContext: business,
             sitePages: links,
+            yourArticles,
             titlesAlreadyUsed: otherTitles,
             draft: best.draft,
           }),

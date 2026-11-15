@@ -14,6 +14,11 @@ vi.mock("@/server/features/blog/repositories/BlogRepository", () => ({
     getArticle,
     updateArticle,
     listOtherTitles: vi.fn().mockResolvedValue([]),
+    listPublishedLinks: vi
+      .fn()
+      .mockResolvedValue([
+        { title: "Roast dates", url: "https://acme.com/blog/roast-dates/" },
+      ]),
   },
 }));
 vi.mock("@/server/features/blog/services/blogBusiness", () => ({
@@ -158,5 +163,38 @@ describe("writeBlogArticle", () => {
       writeBlogArticle(project, { articleId: "a1", replace: false }, customer),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(updateArticle).not.toHaveBeenCalled();
+  });
+
+  it("turns links to made-up pages on the site into plain text", async () => {
+    const links = [
+      "[roast dates](http://www.acme.com/blog/roast-dates)",
+      "[price list](https://acme.com/prices-2026)",
+      "[brewing guide](https://example.org/brew)",
+    ].join(" ");
+    generateText
+      .mockResolvedValueOnce(
+        reply(
+          goodTitle,
+          `${goodBody}
+${links}
+`,
+        ),
+      )
+      .mockResolvedValueOnce(review(10));
+
+    const saved = await writeBlogArticle(
+      project,
+      { articleId: "a1", replace: false },
+      customer,
+    );
+
+    expect(saved.content).toContain(
+      "[roast dates](http://www.acme.com/blog/roast-dates)",
+    );
+    expect(saved.content).toContain(" price list ");
+    expect(saved.content).not.toContain("prices-2026");
+    expect(saved.content).toContain(
+      "[brewing guide](https://example.org/brew)",
+    );
   });
 });
