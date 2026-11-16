@@ -32,7 +32,7 @@ import {
 import { TransferOwnershipModal } from "@/client/features/team/TransferOwnershipModal";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient, useSession } from "@/lib/auth-client";
-import { hasOrgPermission } from "@/lib/org-permissions";
+import { hasOrgPermission, VIEWER_ROLE } from "@/lib/org-permissions";
 import { getTeam, sendTeamInvitation } from "@/serverFunctions/organization";
 
 const RESEND_KEY = ["team", "resend-invitation"];
@@ -72,7 +72,9 @@ export function TeamSettings() {
   // the same link with a refreshed expiry.
   const resendMutation = useMutation({
     mutationKey: RESEND_KEY,
-    mutationFn: (email: string) => sendTeamInvitation({ data: { email } }),
+    // The invitation's own access goes along, or the server would replace it.
+    mutationFn: (invitation: { email: string; role: "admin" | "viewer" }) =>
+      sendTeamInvitation({ data: invitation }),
     onSuccess: () => {
       captureClientEvent("team:invitation_resend");
       toast.success("Invitation resent");
@@ -98,6 +100,24 @@ export function TeamSettings() {
       toast.success("Member removed");
       void refreshTeam();
     },
+  });
+
+  const changeRoleMutation = useMutation({
+    mutationFn: async (change: { memberId: string; role: string }) => {
+      const result = await authClient.organization.updateMemberRole(change);
+      if (result.error) {
+        throw new Error(result.error.message || "Failed to change the access");
+      }
+    },
+    onSuccess: (_, change) => {
+      toast.success(
+        change.role === VIEWER_ROLE
+          ? "They now have view-only access"
+          : "They now have full access",
+      );
+      void refreshTeam();
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const cancelInvitationMutation = useMutation({
@@ -161,8 +181,9 @@ export function TeamSettings() {
         }
       />
       <p className="text-sm text-muted-foreground">
-        Teammates join as Admins. Admins have full access to each project except
-        for billing.
+        Admins have full access to each project except for billing. View-only
+        teammates can look at everything but can&rsquo;t change anything or use
+        credits.
       </p>
       {orgContextQuery.isSuccess && !canManageTeam ? (
         <PermissionHint action="invite or remove teammates" />
@@ -192,6 +213,16 @@ export function TeamSettings() {
                   isOwner={isOwner}
                   isRemoving={pendingRemovals.includes(member.id)}
                   onRemove={() => removeMemberMutation.mutate(member.id)}
+                  isChangingRole={
+                    changeRoleMutation.isPending &&
+                    changeRoleMutation.variables.memberId === member.id
+                  }
+                  onChangeRole={(nextRole) =>
+                    changeRoleMutation.mutate({
+                      memberId: member.id,
+                      role: nextRole,
+                    })
+                  }
                   onTransferOwnership={() => setTransferTarget(member)}
                 />
               ))}
@@ -202,7 +233,13 @@ export function TeamSettings() {
                   canManageTeam={canManageTeam}
                   isResending={pendingResends.includes(invitation.email)}
                   isCanceling={pendingCancels.includes(invitation.id)}
-                  onResend={() => resendMutation.mutate(invitation.email)}
+                  onResend={() =>
+                    resendMutation.mutate({
+                      email: invitation.email,
+                      role:
+                        invitation.role === VIEWER_ROLE ? "viewer" : "admin",
+                    })
+                  }
                   onCancel={() =>
                     cancelInvitationMutation.mutate(invitation.id)
                   }

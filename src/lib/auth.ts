@@ -1,3 +1,4 @@
+import { VIEWER_ROLE } from "@/lib/org-permissions";
 import { env } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
@@ -64,15 +65,17 @@ function createAuth() {
             // /api/auth/organization/invite-member endpoint creates a pending
             // invitation but emails nobody.
             organizationHooks: {
-              // The invite UI only offers "admin", but the endpoint accepts
-              // any role string; enforce server-side. This also keeps an
+              // The invite UI offers "admin" (full access) or "viewer" (view
+              // only), but the endpoint accepts any role string; enforce
+              // server-side. This also keeps an
               // owner from minting a second owner and leaving — the path
               // that would re-mint a fresh org + free-plan grant at next
               // sign-in.
               beforeCreateInvitation: async ({ invitation }) => {
-                if (invitation.role !== "admin") {
+                if (!["admin", VIEWER_ROLE].includes(invitation.role)) {
                   throw new APIError("BAD_REQUEST", {
-                    message: "Teammates can only be invited as admins.",
+                    message:
+                      "Teammates can only be invited with full or view-only access.",
                   });
                 }
               },

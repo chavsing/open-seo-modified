@@ -8,10 +8,13 @@ import { listCreditEvents } from "@/server/billing/creditLedger";
 import { AppError } from "@/server/lib/errors";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { PAYPAL_SUBSCRIPTION_ID_PATTERN } from "@/shared/billing";
-import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+import {
+  requireAuthenticatedContext,
+  requireAuthenticatedReadContext,
+} from "@/serverFunctions/middleware";
 
 export const getBillingAccount = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(({ context }) => getOrganizationBillingAccount(context));
 
 export const reportPaypalSubscriptionApproved = createServerFn({
@@ -44,7 +47,7 @@ export type BillingUsageEvent = {
 const pathsSchema = z.array(z.string());
 
 export const getBillingUsageEvents = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .validator(billingUsageRangeSchema)
   .handler(async ({ data, context }) => {
     if (!(await isHostedServerAuthMode())) {

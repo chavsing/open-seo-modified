@@ -4,7 +4,10 @@ import { z } from "zod";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { ReportService } from "@/server/features/reports/services/ReportService";
 import { ReportTemplateService } from "@/server/features/reports/services/ReportTemplateService";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import {
   REPORT_APP_LIST_LIMIT,
   REPORT_DEFAULT_LIST_LIMIT,
@@ -67,7 +70,7 @@ async function withDisplayNames(
 }
 
 export const listReports = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(listReportsSchema)
   .handler(async ({ data, context }) => {
     const result = await ReportService.listReports({
@@ -85,7 +88,7 @@ export const listReports = createServerFn({ method: "POST" })
 
 /** Metadata only. The document itself is served by /r/<reportId>. */
 export const getReport = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(reportRefSchema)
   .handler(async ({ data, context }) => {
     const report = await ReportService.getReport(

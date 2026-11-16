@@ -1,3 +1,4 @@
+import { canEditWorkspace } from "@/lib/org-permissions";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { ProjectService } from "@/server/features/projects/services/ProjectService";
 import { AppError } from "@/server/lib/errors";
@@ -27,6 +28,10 @@ async function requireProjectAccess(
     if (!resolved || !membership) {
       throw new AppError("FORBIDDEN");
     }
+    // A view-only member of the project's organization can't run tools there.
+    if (!canEditWorkspace(membership.role)) {
+      throw new AppError("VIEW_ONLY");
+    }
 
     const projectAuth = {
       ...auth,
@@ -54,6 +59,11 @@ async function requireProjectAccess(
   );
   if (!project) {
     throw new AppError("FORBIDDEN");
+  }
+  // The in-app chat's pinned role is read per turn, so this stops the tools
+  // of a chat left open after its member was made view only.
+  if (!canEditWorkspace(auth.role)) {
+    throw new AppError("VIEW_ONLY");
   }
 
   return {

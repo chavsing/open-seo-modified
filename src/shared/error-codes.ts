@@ -6,6 +6,7 @@ const ERROR_CODES = [
   "PAYMENT_REQUIRED",
   "INSUFFICIENT_CREDITS",
   "FORBIDDEN",
+  "VIEW_ONLY",
   "NOT_FOUND",
   "AUDIT_CAPACITY_REACHED",
   "AUDIT_PAGE_LIMIT_EXCEEDED",
@@ -34,6 +35,7 @@ const NON_REPORTABLE_ERROR_CODES = new Set<ErrorCode>([
   // and transient, and nothing in the app can act on it.
   "RATE_LIMITED",
   "NOT_FOUND",
+  "VIEW_ONLY",
   "PAYMENT_REQUIRED",
   "INSUFFICIENT_CREDITS",
   "VALIDATION_ERROR",

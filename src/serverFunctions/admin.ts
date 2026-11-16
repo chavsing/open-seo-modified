@@ -16,7 +16,10 @@ import {
   setInviteOnlyAsAdmin,
 } from "@/server/auth/signup-access";
 import { getOpenRouterBalance } from "@/server/lib/openrouterBalance";
-import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+import {
+  requireAuthenticatedContext,
+  requireAuthenticatedReadContext,
+} from "@/serverFunctions/middleware";
 
 /** What's left to spend on AI, so the admin can top up before it runs out. */
 export const getAdminAiBalance = createServerFn({ method: "POST" })
@@ -27,7 +30,7 @@ export const getAdminAiBalance = createServerFn({ method: "POST" })
   });
 
 export const getAdminStatus = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => ({
     isAdmin: await isPlatformAdmin(context.userEmail),
   }));

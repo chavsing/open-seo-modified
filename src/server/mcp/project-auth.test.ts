@@ -161,4 +161,25 @@ describe("withMcpProjectAuth with a user-scoped credential", () => {
     expect(mocks.getMembership).not.toHaveBeenCalled();
     expect(handler).not.toHaveBeenCalled();
   });
+
+  // A view-only member can open the workspace in the app, but tools change
+  // data and spend credits, so neither credential kind may run them.
+  it.each([
+    ["the in-app chat", makeToolContext({ role: "viewer" })],
+    ["an AI app", makeToolContext({ orgScope: "user" })],
+  ])("refuses a view-only member using %s", async (_, context) => {
+    mocks.getProjectForOrganization.mockResolvedValue({ id: "project_123" });
+    mocks.getProjectWithOrganization.mockResolvedValue({
+      organizationId: "org_123",
+      project: { id: "project_123" },
+    });
+    mocks.getMembership.mockResolvedValue({ role: "viewer" });
+    const handler = vi.fn();
+
+    await expect(
+      withMcpProjectAuth(handler)({ projectId: "project_123" }, context),
+    ).rejects.toThrow("VIEW_ONLY");
+
+    expect(handler).not.toHaveBeenCalled();
+  });
 });

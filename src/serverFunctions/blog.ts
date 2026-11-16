@@ -23,7 +23,10 @@ import {
   startArticleWriting,
   startTopicsWriting,
 } from "@/server/features/blog/services/blogWriting";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import {
   blogArticleSchema,
   blogKeywordSchema,
@@ -44,7 +47,7 @@ import {
 } from "@/types/schemas/blog";
 
 export const getBlogSettings = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogProjectSchema)
   .handler(({ context }) => BlogService.getSettings(context.projectId));
 
@@ -80,7 +83,7 @@ export const disconnectWordpress = createServerFn({ method: "POST" })
   .handler(({ context }) => BlogService.disconnectWordpress(context.projectId));
 
 export const listBlogTopics = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogProjectSchema)
   .handler(({ context }) => BlogService.listTopics(context.projectId));
 
@@ -111,12 +114,12 @@ export const createBriefFromKeyword = createServerFn({ method: "POST" })
   );
 
 export const listBlogArticles = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogProjectSchema)
   .handler(({ context }) => BlogService.listArticles(context.projectId));
 
 export const getBlogArticle = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogArticleSchema)
   .handler(({ data, context }) =>
     BlogService.getArticle(context.project, data.articleId),
@@ -171,7 +174,7 @@ export const writeBlogTopics = createServerFn({ method: "POST" })
   );
 
 export const listBlogArticleVersions = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogArticleSchema)
   .handler(({ data, context }) =>
     listVersionSummaries(context.projectId, data.articleId),
@@ -185,7 +188,7 @@ export const restoreBlogArticleVersion = createServerFn({ method: "POST" })
   );
 
 export const listBlogCategories = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(blogProjectSchema)
   .handler(({ context }) => listSiteCategories(context.projectId));
 

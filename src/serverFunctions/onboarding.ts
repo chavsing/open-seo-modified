@@ -3,7 +3,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { user, userOnboardingAnswers } from "@/db/schema";
 import { db } from "@/db";
-import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+import {
+  requireAuthenticatedContext,
+  requireAuthenticatedReadContext,
+} from "@/serverFunctions/middleware";
 
 const onboardingAnswersSchema = z.object({
   interestedFeatures: z.array(z.string()).optional(),
@@ -14,7 +17,7 @@ const onboardingAnswersSchema = z.object({
 });
 
 export const getOnboardingAnswers = createServerFn({ method: "GET" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => {
     const answers = await db.query.userOnboardingAnswers.findFirst({
       columns: {
@@ -109,7 +112,7 @@ export const saveOnboardingAnswers = createServerFn({ method: "POST" })
 // Records that the one-time "connect Search Console" nudge has been shown and
 // resolved (dismissed or acted on) so it never reappears for this user.
 export const dismissGscNudge = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => {
     const now = new Date().toISOString();
     await db

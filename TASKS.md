@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-16. Tick a box when a task is done and move it to the
+Last updated: 2026-11-17. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -30,7 +30,6 @@ done list at the bottom with the date.
   an automatic run that hits Cloudflare's time limit is unbilled ("Write
   with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
   today, and two "Write with AI" clicks on a small balance can go below zero.
-- [ ] Gap review priority 2, what is left: view-only team seats.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
       competitors, find blog topics, start tracking keywords and fill in the
       Context page (business overview, positioning) from the site scan when a
@@ -65,6 +64,14 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-17: View-only team seats. Inviting a teammate now asks for Full
+  access (Admin) or View only, and the team menu switches an existing
+  teammate between the two. A view-only teammate sees the dashboard, rank
+  tracking, saved keywords, site audits, prompt tracking, GSC insights,
+  blog articles and reports, but every change, research tool, the AI chat
+  and AI app connections are refused on the server with a clear message.
+  New actions are refused for them by default. Gap review priority 2 is
+  complete.
 - 2026-11-16: Gap review decisions from Bryan: no free trial (free plan with
   $1 of credits stays), rank tracking limited to the cheapest option,
   Drafts only as the WordPress default (already the default). Automatic

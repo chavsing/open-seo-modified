@@ -12,7 +12,10 @@ import {
   updateSavedKeywordTagsSchema,
 } from "@/types/schemas/keywords";
 import { KeywordResearchService } from "@/server/features/keywords/services/KeywordResearchService";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import { resolveMarket } from "@/shared/keyword-locations";
 
 function shouldUseKeywordE2eFixtures() {
@@ -52,7 +55,7 @@ export const saveKeywords = createServerFn({ method: "POST" })
   });
 
 export const getSavedKeywords = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getSavedKeywordsSchema)
   .handler(async ({ data, context }) => {
     return KeywordResearchService.getSavedKeywords({
@@ -62,7 +65,7 @@ export const getSavedKeywords = createServerFn({ method: "POST" })
   });
 
 export const exportSavedKeywords = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(exportSavedKeywordsSchema)
   .handler(async ({ data, context }) => {
     return KeywordResearchService.exportSavedKeywords({

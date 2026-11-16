@@ -14,7 +14,7 @@ import {
   sumSearchTotals,
   toDimensionRows,
 } from "@/server/features/gsc/searchPerformanceReport";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import { requireProjectReadContext } from "@/serverFunctions/middleware";
 import {
   searchPerformanceInputSchema,
   searchPerformanceTableExportInputSchema,
@@ -72,7 +72,7 @@ function isExpectedConnectionFailure(error: unknown): boolean {
  * free.
  */
 export const getSearchPerformanceReport = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(searchPerformanceInputSchema)
   .handler(async ({ data, context }) => {
     const { startDate, endDate } = resolveDateRange({
@@ -145,7 +145,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
  * fetch one extra row to detect a next page. All first-party GSC data, free.
  */
 export const getSearchPerformanceTable = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(searchPerformanceTableInputSchema)
   .handler(async ({ data, context }) => {
     const { startDate, endDate } = resolveDateRange({
@@ -195,7 +195,7 @@ export const getSearchPerformanceTable = createServerFn({ method: "POST" })
  * EXPORT_ROW_LIMIT), rather than only the visible page.
  */
 export const exportSearchPerformanceTable = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(searchPerformanceTableExportInputSchema)
   .handler(async ({ data, context }) => {
     const { startDate, endDate } = resolveDateRange({

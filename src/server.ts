@@ -1,3 +1,4 @@
+import { canEditWorkspace } from "@/lib/org-permissions";
 import {
   createStartHandler,
   defaultStreamHandler,
@@ -88,7 +89,7 @@ async function authorizeSamChat(
         context.organizationId,
       )
     : null;
-  if (!session || !project) {
+  if (!session || !project || !canEditWorkspace(context.role)) {
     return new Response("Forbidden", { status: 403 });
   }
   // Make sure the org's billing account (and its free credits) exists before

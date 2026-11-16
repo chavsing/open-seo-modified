@@ -14,7 +14,11 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-import { organizationContextQueryOptions } from "@/client/features/team/organizationQueries";
+import {
+  organizationContextQueryOptions,
+  useIsViewOnly,
+} from "@/client/features/team/organizationQueries";
+import { ViewOnlyNote } from "@/client/features/team/ViewOnlyNote";
 import { switchOrganization } from "@/serverFunctions/organization";
 import { getAdminStatus } from "@/serverFunctions/admin";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
@@ -140,10 +144,13 @@ export function Sidebar({
   // the sidebar has its full shape from the first paint instead of growing
   // once projects load. The placeholder rows never render these links.
   const navPlaceholder = projectId === null && projectPending;
+  const viewOnly = useIsViewOnly(ready);
   const navGroups =
     projectId !== null || navPlaceholder
-      ? getProjectNavGroups(projectId ?? "")
-      : [connectNavGroup];
+      ? getProjectNavGroups(projectId ?? "", viewOnly)
+      : viewOnly
+        ? []
+        : [connectNavGroup];
   const { pathname } = useLocation();
   const { setOpenMobile } = useSidebar();
   // SAM is hidden from navigation: the chat route is only reachable by URL,
@@ -214,6 +221,7 @@ export function Sidebar({
           </nav>
         )}
       </SidebarContent>
+      {viewOnly ? <ViewOnlyNote /> : null}
       {/* Billing exists only in hosted mode, and waits for the session. */}
       {ready && isHostedClientAuthMode() ? (
         <UpgradeCard onNavigate={() => setOpenMobile(false)} />

@@ -6,7 +6,10 @@ import {
   removeReportBranding,
   saveReportBranding,
 } from "@/server/features/reports/services/reportBranding";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import { saveReportBrandingSchema } from "@/types/schemas/report-branding";
 
 // The account's branding on reports. Reached from a project's Reports page, so
@@ -17,7 +20,7 @@ import { saveReportBrandingSchema } from "@/types/schemas/report-branding";
 const projectScopeSchema = z.object({ projectId: z.string().min(1) });
 
 export const getReportBranding = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(projectScopeSchema)
   .handler(({ context }) => getReportBrandingSettings(context.organizationId));
 

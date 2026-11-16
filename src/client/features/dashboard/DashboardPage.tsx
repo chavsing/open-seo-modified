@@ -18,6 +18,7 @@ import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { sort } from "remeda";
 import { DashboardOnboarding } from "./DashboardOnboarding";
+import { useIsViewOnly } from "@/client/features/team/organizationQueries";
 import {
   AuditHealthCard,
   GscCard,
@@ -53,6 +54,9 @@ export function DashboardPage({
 
   const activation = activationQuery.data;
   const overview = overviewQuery.data;
+  // Backlink data is bought on a cache miss, and setup spends credits, so a
+  // view-only member sees neither.
+  const viewOnly = useIsViewOnly();
 
   if (activationQuery.isError && !activation) {
     return (
@@ -86,7 +90,7 @@ export function DashboardPage({
     );
   }
 
-  const showBacklinks = activation.domain !== null;
+  const showBacklinks = activation.domain !== null && !viewOnly;
   const gscConnected = activation.gsc.connected;
   const ga4Connected = activation.ga4.connected;
 
@@ -170,14 +174,18 @@ export function DashboardPage({
               Search visibility, links and site health in one place.
             </p>
           </div>
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link to="/p/$projectId/settings" params={{ projectId }} />}
-          >
-            <Settings />
-            Project settings
-          </Button>
+          {viewOnly ? null : (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link to="/p/$projectId/settings" params={{ projectId }} />
+              }
+            >
+              <Settings />
+              Project settings
+            </Button>
+          )}
         </div>
 
         <WorkspaceMergeBanner />
@@ -200,11 +208,13 @@ export function DashboardPage({
           />
         ) : null}
 
-        <DashboardOnboarding
-          key={projectId}
-          projectId={projectId}
-          activation={activation}
-        />
+        {viewOnly ? null : (
+          <DashboardOnboarding
+            key={projectId}
+            projectId={projectId}
+            activation={activation}
+          />
+        )}
 
         <Tabs
           value={tab}
@@ -221,11 +231,13 @@ export function DashboardPage({
                 ["keywords", "Keywords"],
                 ["backlinks", "Backlinks"],
               ] as const
-            ).map(([value, label]) => (
-              <TabsTrigger key={value} value={value} className="px-3">
-                {label}
-              </TabsTrigger>
-            ))}
+            )
+              .filter(([value]) => !viewOnly || value !== "backlinks")
+              .map(([value, label]) => (
+                <TabsTrigger key={value} value={value} className="px-3">
+                  {label}
+                </TabsTrigger>
+              ))}
           </TabsList>
 
           {/* Base UI unmounts inactive panels, so paid detail queries load only on opening their tab. */}

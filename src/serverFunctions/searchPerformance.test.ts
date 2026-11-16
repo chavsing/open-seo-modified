@@ -12,7 +12,9 @@ vi.mock("@/server/features/gsc/services/GscService", () => ({
   GscNotConnectedError: class extends Error {},
   isExpectedGrantFailure: () => false,
 }));
-vi.mock("@/serverFunctions/middleware", () => ({ requireProjectContext: [] }));
+vi.mock("@/serverFunctions/middleware", () => ({
+  requireProjectReadContext: [],
+}));
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => ({
     middleware: () => ({

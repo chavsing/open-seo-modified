@@ -6,7 +6,7 @@ import {
 } from "@/server/lib/lighthousePayload";
 import { AppError } from "@/server/lib/errors";
 import { getJsonFromR2 } from "@/server/lib/r2";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import { requireProjectReadContext } from "@/serverFunctions/middleware";
 import {
   lighthouseAuditExportSchema,
   lighthouseAuditIssueSchema,
@@ -44,7 +44,7 @@ async function getAuditLighthouseData(input: {
 }
 
 export const getAuditLighthouseIssues = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(lighthouseAuditIssueSchema)
   .handler(async ({ data, context }) => {
     const lighthouse = await getAuditLighthouseData({
@@ -67,7 +67,7 @@ export const getAuditLighthouseIssues = createServerFn({ method: "POST" })
   });
 
 export const exportAuditLighthouseIssues = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(lighthouseAuditExportSchema)
   .handler(async ({ data, context }) => {
     const lighthouse = await getAuditLighthouseData({

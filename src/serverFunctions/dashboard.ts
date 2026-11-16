@@ -3,7 +3,10 @@ import { AppError } from "@/server/lib/errors";
 import { createServerFn } from "@tanstack/react-start";
 import { ActivationRepository } from "@/server/features/activation/repositories/ActivationRepository";
 import { DashboardService } from "@/server/features/dashboard/services/DashboardService";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import {
   dashboardProjectInputSchema,
   dashboardBacklinksInputSchema,
@@ -12,7 +15,7 @@ import {
 } from "@/types/schemas/dashboard";
 
 export const getDashboardActivation = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(dashboardProjectInputSchema)
   .handler(({ context }) =>
     DashboardService.getActivation({
@@ -24,7 +27,7 @@ export const getDashboardActivation = createServerFn({ method: "POST" })
   );
 
 export const getDashboardOverview = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(dashboardProjectInputSchema)
   .handler(({ context }) =>
     DashboardService.getOverview({
@@ -66,7 +69,7 @@ export const setDashboardStepDismissed = createServerFn({ method: "POST" })
   });
 
 export const getDashboardKeywords = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(dashboardProjectInputSchema)
   .handler(({ context }) =>
     DashboardSiteService.getKeywords(context.projectId, context.organizationId),
@@ -86,7 +89,7 @@ export const getDashboardBacklinks = createServerFn({ method: "POST" })
     );
   });
 export const getDashboardEmergingQueries = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(dashboardProjectInputSchema)
   .handler(({ context }) =>
     DashboardSiteService.getEmergingQueries(

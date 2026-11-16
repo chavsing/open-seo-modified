@@ -130,9 +130,33 @@ function getProjectNavItems(projectId: string) {
   );
 }
 
+// What a view-only member can open: pages that show saved results. Research
+// tools, the chat and setup pages all spend credits or change things.
+const VIEW_ONLY_PATHS = new Set<string>([
+  "/p/$projectId",
+  "/p/$projectId/search-performance",
+  "/p/$projectId/rank-tracking",
+  "/p/$projectId/saved",
+  "/p/$projectId/audit",
+  "/p/$projectId/ai-visibility",
+  "/p/$projectId/blog",
+  "/p/$projectId/reports",
+]);
+
 // Grouped by scope: "My Site" is the project's own domain (tracked data),
 // "Research" is point-at-anything lookup tools.
-export function getProjectNavGroups(projectId: string) {
+export function getProjectNavGroups(projectId: string, viewOnly = false) {
+  const groups = getAllProjectNavGroups(projectId);
+  if (!viewOnly) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => VIEW_ONLY_PATHS.has(item.to)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function getAllProjectNavGroups(projectId: string) {
   const all = getProjectNavItems(projectId);
   const byPath = (path: (typeof projectNavItems)[number]["to"]) =>
     all.find((i) => i.to === path)!;

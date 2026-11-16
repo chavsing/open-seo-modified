@@ -1,14 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ProjectContextService } from "@/server/features/project-context/services/ProjectContextService";
 import { setUpFromWebsite } from "@/server/features/project-context/services/websiteSetup";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import {
   getProjectContextSchema,
   updateProjectContextSchema,
 } from "@/types/schemas/projectContext";
 
 export const getProjectContext = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getProjectContextSchema)
   .handler(async ({ context }) =>
     ProjectContextService.getProjectContext(context.projectId),

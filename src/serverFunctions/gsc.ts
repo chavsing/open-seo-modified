@@ -15,6 +15,8 @@ import { getPublicOrigin } from "@/server/mcp/public-origin";
 import {
   requireAuthenticatedContext,
   requireProjectContext,
+  requireAuthenticatedReadContext,
+  requireProjectReadContext,
 } from "@/serverFunctions/middleware";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
@@ -30,13 +32,13 @@ const startLinkSchema = z.object({
 // where the user hasn't picked a project yet. The OAuth grant is per-account;
 // binding a property to a project happens later in Integrations.
 export const getGscGrantStatus = createServerFn({ method: "GET" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => {
     return { connected: await GscService.userHasGrant(context.userId) };
   });
 
 export const getGscConnection = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
     const [connection, currentUserHasGrant, googleOAuthConfigured] =

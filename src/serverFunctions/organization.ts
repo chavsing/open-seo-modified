@@ -10,7 +10,10 @@ import { transferOrganizationOwnership } from "@/server/auth/ownership-transfer"
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { sendHostedInvitationEmail } from "@/server/email/loops";
 import { AppError } from "@/server/lib/errors";
-import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+import {
+  requireAuthenticatedContext,
+  requireAuthenticatedReadContext,
+} from "@/serverFunctions/middleware";
 
 // The client's source of truth for "who am I in this organization": the active
 // org, the caller's role from their member row (resolved server-side by
@@ -18,7 +21,7 @@ import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 // to gate billing/team UI; the server functions and better-auth endpoints
 // re-enforce every permission regardless.
 export const getOrganizationContext = createServerFn({ method: "GET" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => {
     const memberships = await AuthRepository.listMembershipsForUser(
       context.userId,
@@ -40,7 +43,7 @@ export const getOrganizationContext = createServerFn({ method: "GET" })
 // who can manage invitations; the server filters them here so the client cannot
 // bypass the gate by calling the underlying endpoint directly.
 export const getTeam = createServerFn({ method: "GET" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) => {
     const fullOrganization = await getAuth().api.getFullOrganization({
       headers: getRequest().headers,
@@ -75,7 +78,7 @@ const switchOrganizationSchema = z.object({
 // Switch the active organization and persist the choice so the next sign-in
 // lands in the same org (session hook reads user.lastActiveOrganizationId).
 export const switchOrganization = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .validator(switchOrganizationSchema)
   .handler(async ({ data, context }) => {
     const membership = await AuthRepository.getMembership(
@@ -98,7 +101,11 @@ export const switchOrganization = createServerFn({ method: "POST" })
     return { organizationId: data.organizationId };
   });
 
-const sendInvitationSchema = z.object({ email: z.string().email() });
+const sendInvitationSchema = z.object({
+  email: z.string().email(),
+  // Full access (admin) or view only. Owners come only from a transfer.
+  role: z.enum(["admin", "viewer"]).default("admin"),
+});
 
 // Invite (or re-invite) a teammate. better-auth creates the pending
 // invitation — its server-side checks (inviter must be a member with invite
@@ -118,12 +125,31 @@ export const sendTeamInvitation = createServerFn({ method: "POST" })
 
     await consumeInvitationSendBudget(context.organizationId, data.email);
 
+    // better-auth's resend keeps a pending invitation's old role, so inviting
+    // the same address with other access replaces that invitation instead.
+    const pending = await getAuth().api.listInvitations({
+      headers: getRequest().headers,
+      query: { organizationId: context.organizationId },
+    });
+    const stale = pending.find(
+      (invitation) =>
+        invitation.status === "pending" &&
+        invitation.email.toLowerCase() === data.email.toLowerCase() &&
+        invitation.role !== data.role,
+    );
+    if (stale) {
+      await getAuth().api.cancelInvitation({
+        headers: getRequest().headers,
+        body: { invitationId: stale.id },
+      });
+    }
+
     const invitation = await getAuth()
       .api.createInvitation({
         headers: getRequest().headers,
         body: {
           email: data.email,
-          role: "admin",
+          role: data.role,
           resend: true,
           // Bind the invitation to the request's resolved org, not the session's
           // active-organization hint, which can be stale after a switch.

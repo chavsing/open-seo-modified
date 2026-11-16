@@ -19,6 +19,8 @@ const statement = {
   project: ["create", "delete"],
   // GSC/GA4 connect, re-point, disconnect.
   integration: ["manage"],
+  // Changing anything or spending credits. Everyone except a viewer.
+  workspace: ["edit"],
 } as const;
 
 export const orgAccessControl = createAccessControl(statement);
@@ -29,19 +31,34 @@ export const orgRoles = {
     billing: ["manage"],
     project: ["create", "delete"],
     integration: ["manage"],
+    workspace: ["edit"],
   }),
   admin: orgAccessControl.newRole({
     ...adminAc.statements,
     project: ["create", "delete"],
     integration: ["manage"],
+    workspace: ["edit"],
   }),
   // Defined from day one so exposing it later is UI-only; not offered in the
   // invite picker yet. Members can view everything and run research, but not
   // manage the org, billing, projects, or integrations.
   member: orgAccessControl.newRole({
     ...memberAc.statements,
+    workspace: ["edit"],
+  }),
+  // View only: sees the workspace's saved results (dashboards, audits, rank
+  // tracking, reports, articles) but can't change anything or spend credits.
+  // Server functions refuse a viewer unless they opt in as read-only.
+  viewer: orgAccessControl.newRole({
+    ...memberAc.statements,
   }),
 };
+
+export const VIEWER_ROLE = "viewer";
+
+export function canEditWorkspace(role: string) {
+  return hasOrgPermission(role, { workspace: ["edit"] });
+}
 
 export type OrgPermissionRequest = Partial<{
   [K in keyof typeof statement]: Array<(typeof statement)[K][number]>;

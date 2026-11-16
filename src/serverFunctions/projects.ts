@@ -5,6 +5,7 @@ import { ProjectService } from "@/server/features/projects/services/ProjectServi
 import {
   requireAuthenticatedContext,
   requireProjectContext,
+  requireAuthenticatedReadContext,
 } from "@/serverFunctions/middleware";
 import {
   archiveProjectSchema,
@@ -17,7 +18,7 @@ import { z } from "zod";
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
 
 export const getProjects = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) =>
     ProjectService.listProjectsEnsuringOne(context.organizationId),
   );
@@ -67,7 +68,7 @@ export const archiveProject = createServerFn({ method: "POST" })
   });
 
 export const getArchivedProjects = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) =>
     ProjectService.listArchivedProjects(context.organizationId),
   );
@@ -81,7 +82,7 @@ export const restoreProject = createServerFn({ method: "POST" })
   });
 
 export const getProjectAccess = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .validator(projectScopedSchema)
   .handler(async ({ data, context }) => {
     return ProjectService.getProjectForOrganization(

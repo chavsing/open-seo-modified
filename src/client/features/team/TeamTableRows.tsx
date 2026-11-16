@@ -1,16 +1,21 @@
-import { Crown, Send, Trash2 } from "lucide-react";
+import { Crown, Eye, Send, Trash2, UserCog } from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "@/client/components/ConfirmDialog";
 import { RowActionsMenu } from "@/client/components/RowActionsMenu";
 import { Badge } from "@/client/components/ui/badge";
 import { DropdownMenuItem } from "@/client/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/client/components/ui/table";
-import { hasOrgPermission } from "@/lib/org-permissions";
+import {
+  canEditWorkspace,
+  hasOrgPermission,
+  VIEWER_ROLE,
+} from "@/lib/org-permissions";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   admin: "Admin",
   member: "Member",
+  viewer: "View only",
 };
 
 function formatRole(role: string) {
@@ -42,6 +47,8 @@ export function MemberRow({
   isRemoving,
   onRemove,
   onTransferOwnership,
+  isChangingRole,
+  onChangeRole,
 }: {
   member: Member;
   isSelf: boolean;
@@ -50,6 +57,8 @@ export function MemberRow({
   isRemoving: boolean;
   onRemove: () => void;
   onTransferOwnership: () => void;
+  isChangingRole: boolean;
+  onChangeRole: (role: string) => void;
 }) {
   const memberIsOwner = hasOrgPermission(member.role, {
     billing: ["manage"],
@@ -59,6 +68,8 @@ export function MemberRow({
   const canRemove = canManageTeam && !isSelf && (!memberIsOwner || isOwner);
   // Owners can always remove, so this only ever adds to the remove menu.
   const canTransferOwnership = isOwner && !isSelf && !memberIsOwner;
+  const canChangeRole = canManageTeam && !isSelf && !memberIsOwner;
+  const isViewer = !canEditWorkspace(member.role);
   const [isConfirmingRemove, setIsConfirmingRemove] = useState(false);
 
   return (
@@ -85,6 +96,15 @@ export function MemberRow({
               <DropdownMenuItem onClick={onTransferOwnership}>
                 <Crown />
                 Transfer ownership
+              </DropdownMenuItem>
+            ) : null}
+            {canChangeRole ? (
+              <DropdownMenuItem
+                disabled={isChangingRole}
+                onClick={() => onChangeRole(isViewer ? "admin" : VIEWER_ROLE)}
+              >
+                {isViewer ? <UserCog /> : <Eye />}
+                {isViewer ? "Give full access" : "Make view only"}
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem

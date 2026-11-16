@@ -19,6 +19,7 @@ import { getPublicOrigin } from "@/server/mcp/public-origin";
 import {
   requireAuthenticatedContext,
   requireProjectContext,
+  requireProjectReadContext,
 } from "@/serverFunctions/middleware";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
@@ -31,7 +32,7 @@ const startLinkSchema = z.object({
 });
 
 export const getGa4Connection = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
     const [connection, currentUserHasGrant, googleOAuthConfigured] =
@@ -91,7 +92,7 @@ function fillDailySessions(
 /** The dashboard's GA4 card: organic totals vs the previous period plus a
  *  daily sessions trend, over the default (last 28 complete days) range. */
 export const getGa4DashboardReport = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
     try {

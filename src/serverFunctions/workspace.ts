@@ -2,7 +2,10 @@ import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
 import { getAuthMode } from "@/lib/auth-mode";
 import { WorkspaceMergeService } from "@/server/auth/workspace-merge";
-import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
+import {
+  requireAuthenticatedContext,
+  requireAuthenticatedReadContext,
+} from "@/serverFunctions/middleware";
 
 // Legacy per-user workspaces only ever existed in cloudflare_access mode, and
 // the merge must not be reachable anywhere else. AUTH_MODE is a runtime var on
@@ -13,7 +16,7 @@ function isCloudflareAccessMode() {
 }
 
 export const getWorkspaceMergeStatus = createServerFn({ method: "POST" })
-  .middleware(requireAuthenticatedContext)
+  .middleware(requireAuthenticatedReadContext)
   .handler(async () => {
     if (!isCloudflareAccessMode()) {
       return { legacyWorkspaceCount: 0 };

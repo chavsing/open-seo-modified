@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ReportTemplateService } from "@/server/features/reports/services/ReportTemplateService";
 import { AppError } from "@/server/lib/errors";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import { BRAND_NAME } from "@/shared/brand";
 
 // Report templates for the app. The `projectId` field in each validator is what
@@ -25,7 +28,7 @@ const templateRefSchema = z.object({
 });
 
 export const listReportTemplates = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(projectScopeSchema)
   .handler(async ({ context }) =>
     ReportTemplateService.listReportTemplates(context.projectId),

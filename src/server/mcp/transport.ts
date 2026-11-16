@@ -20,6 +20,7 @@ import {
 } from "@/server/mcp/context";
 import { getPublicOrigin } from "@/server/mcp/public-origin";
 import { createOpenSeoMcpServer } from "@/server/mcp/server";
+import { canEditWorkspace } from "@/lib/org-permissions";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { resolveExistingActiveHostedOrganization } from "@/server/auth/default-hosted-organization";
 
@@ -205,6 +206,12 @@ export async function handleAuthenticatedOpenSeoMcpRequest(
       status: 401,
       headers: { "WWW-Authenticate": 'Bearer error="invalid_token"' },
     });
+  }
+  // Tools change data and spend credits, which view-only access rules out.
+  if (!canEditWorkspace(organization.role)) {
+    return withMcpCors(
+      new Response("View-only access can't use AI apps", { status: 403 }),
+    );
   }
 
   // The handler would fall back to the provider-populated ctx.props on its

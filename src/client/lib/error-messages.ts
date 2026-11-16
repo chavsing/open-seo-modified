@@ -20,6 +20,8 @@ const STANDARD_MESSAGES: Record<ErrorCode, string> = {
   AUDIT_RENDERING_UNAVAILABLE:
     "JavaScript rendering is not configured on this deployment. Ask your administrator to enable a renderer.",
   FORBIDDEN: "You do not have access to this resource.",
+  VIEW_ONLY:
+    "You have view-only access to this workspace. Ask an owner or admin to do this.",
   NOT_FOUND: "The requested resource was not found.",
   AUDIT_CAPACITY_REACHED:
     "You've reached audit capacity for your account. Delete old audits from your projects to start a new one.",

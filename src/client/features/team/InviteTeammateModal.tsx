@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useId, useState } from "react";
 import { revalidateLogic } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -12,6 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/client/components/ui/dialog";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/client/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/client/components/ui/radio-group";
 import { getErrorCode } from "@/client/lib/error-messages";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { sendTeamInvitation } from "@/serverFunctions/organization";
@@ -38,11 +48,13 @@ export function InviteTeammateModal({
   onClose: () => void;
   onInvited: () => void;
 }) {
+  const id = useId();
+  const [role, setRole] = useState<"admin" | "viewer">("admin");
   // Server function (not authClient.inviteMember): it enforces the daily send
   // limits and fails visibly when the invite email doesn't send.
   const inviteMutation = useMutation({
     mutationFn: (inviteeEmail: string) =>
-      sendTeamInvitation({ data: { email: inviteeEmail } }),
+      sendTeamInvitation({ data: { email: inviteeEmail, role } }),
     onSuccess: () => {
       captureClientEvent("team:invitation_send");
       toast.success("Invitation sent");
@@ -82,8 +94,7 @@ export function InviteTeammateModal({
             <DialogHeader>
               <DialogTitle>Invite a teammate</DialogTitle>
               <DialogDescription>
-                They&rsquo;ll join as an Admin with full access to each project
-                except for billing. The invitation link expires in 7 days.
+                The invitation link expires in 7 days.
               </DialogDescription>
             </DialogHeader>
             <form.AppField name="email">
@@ -97,6 +108,47 @@ export function InviteTeammateModal({
                 />
               )}
             </form.AppField>
+            <FieldSet>
+              <FieldLegend variant="label">Access</FieldLegend>
+              <RadioGroup
+                value={role}
+                onValueChange={(value) => {
+                  setRole(value === "viewer" ? "viewer" : "admin");
+                }}
+                disabled={inviteMutation.isPending}
+                className="gap-3"
+              >
+                <Field orientation="horizontal" className="items-start">
+                  <RadioGroupItem
+                    value="admin"
+                    id={`${id}-admin`}
+                    className="mt-0.5"
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor={`${id}-admin`}>Full access</FieldLabel>
+                    <FieldDescription>
+                      Joins as an Admin: can use every tool on every project,
+                      but not billing.
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+                <Field orientation="horizontal" className="items-start">
+                  <RadioGroupItem
+                    value="viewer"
+                    id={`${id}-viewer`}
+                    className="mt-0.5"
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor={`${id}-viewer`}>View only</FieldLabel>
+                    <FieldDescription>
+                      Sees dashboards, audits, rank tracking, reports and
+                      articles. Can&rsquo;t change anything or use credits. Good
+                      for your own clients.
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+              </RadioGroup>
+            </FieldSet>
             <DialogFooter>
               <Button
                 variant="ghost"

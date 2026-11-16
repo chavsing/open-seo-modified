@@ -10,7 +10,10 @@ import {
 } from "@/server/features/audit/services/auditSchedules";
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { captureServerEvent } from "@/server/lib/posthog";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import {
+  requireProjectContext,
+  requireProjectReadContext,
+} from "@/serverFunctions/middleware";
 import {
   deleteAuditSchema,
   getAuditHistorySchema,
@@ -56,28 +59,28 @@ export const startAudit = createServerFn({ method: "POST" })
   });
 
 export const getAuditStatus = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditStatusSchema)
   .handler(async ({ data, context }) => {
     return AuditService.getStatus(data.auditId, context.projectId);
   });
 
 export const getAuditResults = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditResultsSchema)
   .handler(async ({ data, context }) => {
     return AuditService.getResults(data.auditId, context.projectId);
   });
 
 export const getAuditHistory = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditHistorySchema)
   .handler(async ({ context }) => {
     return AuditService.getHistory(context.projectId);
   });
 
 export const getCrawlProgress = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getCrawlProgressSchema)
   .handler(async ({ data, context }) => {
     return AuditService.getCrawlProgress(data.auditId, context.projectId);
@@ -95,14 +98,14 @@ export const deleteAudit = createServerFn({ method: "POST" })
   });
 
 export const getAuditCapabilities = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditHistorySchema)
   .handler(async () => ({
     canRenderJavaScript: await isAuditRenderingAllowed(),
   }));
 
 export const getAuditSchedule = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditHistorySchema)
   .handler(({ context }) => readAuditSchedule(context.projectId));
 
@@ -126,7 +129,7 @@ export const saveAuditSchedule = createServerFn({ method: "POST" })
   );
 
 export const getAuditComparison = createServerFn({ method: "POST" })
-  .middleware(requireProjectContext)
+  .middleware(requireProjectReadContext)
   .validator(getAuditResultsSchema)
   .handler(({ data, context }) =>
     compareWithPreviousAudit(data.auditId, context.projectId),
