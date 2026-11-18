@@ -178,7 +178,11 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
         </Button>
       ) : null}
       {/* Stays visible while loading: PayPal sizes its button from it. */}
-      {status === "failed" ? null : <div ref={containerRef} />}
+      {/* Its own stacking layer: PayPal gives its frames a high z-index,
+          which would otherwise float over the mobile sidebar. */}
+      {status === "failed" ? null : (
+        <div ref={containerRef} className="relative isolate z-0" />
+      )}
       {notice ? (
         <p role="alert" className="text-sm text-destructive">
           {notice}
