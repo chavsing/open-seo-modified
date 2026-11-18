@@ -108,6 +108,14 @@ import {
   listSiteAuditsTool,
 } from "@/server/mcp/tools/site-audit-cleanup-tools";
 import { whoamiTool } from "@/server/mcp/tools/whoami";
+import {
+  getBlogArticleTool,
+  listBlogArticlesTool,
+  listBlogTopicsTool,
+  sendBlogArticleToWordpressTool,
+  startBlogArticleTool,
+  writeBlogArticleTool,
+} from "@/server/mcp/tools/blog-tools";
 import { explorePromptTool } from "@/server/mcp/tools/explore-prompt";
 import {
   APP_URL_FALLBACK,
@@ -211,6 +219,12 @@ export function createOpenSeoMcpServer(authProps: McpProps) {
   register(saveProjectWebsiteSetupTool);
   register(getProjectContextTool);
   register(updateProjectContextTool);
+  register(listBlogTopicsTool);
+  register(listBlogArticlesTool);
+  register(getBlogArticleTool);
+  register(startBlogArticleTool);
+  register(writeBlogArticleTool);
+  register(sendBlogArticleToWordpressTool);
   register(listSavedKeywordsTool);
   register(removeSavedKeywordsTool);
   register(researchKeywordsTool);

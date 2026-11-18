@@ -37,10 +37,7 @@ done list at the bottom with the date.
 
 ## Claude, waiting on a decision
 
-- [ ] Blog Generator tools for customers' own AI apps (Claude, ChatGPT, Grok
-      through Agent setup). Today the 76 MCP tools cover everything except
-      the Blog Generator. Adding them is a new MCP tool, so it needs a plugin
-      version bump.
+- None.
 
 ## Later, if the client wants company customers
 
@@ -57,6 +54,14 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-19: Blog Generator tools for customers' own AI apps (ChatGPT,
+  Claude and others through Agent setup): list topic ideas and articles,
+  read an article, start one from a topic or any keyword, write it with AI
+  in the background, and send it to WordPress (a draft unless the user asks
+  to publish, with the app's publishing quality gates). 82 tools now. Plugin
+  version 1.0.22. Checked over the real protocol on the development copy.
+- 2026-11-19: One-click PDF reports declined (would need a paid Cloudflare
+  add-on). PDFs stay on the browser's print window, with the customer's logo.
 - 2026-11-19: Automatic setup for new websites. Adding a site (new project,
   or a new website on an existing one) now sets it up in the background:
   the Context page is filled in from the website, competitors are found,
