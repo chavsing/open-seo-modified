@@ -71,10 +71,13 @@ async function requireArticle(projectId: string, articleId: string) {
 }
 
 /** The AI model, after the key and credit checks, plus a spend tally to bill. */
-async function openAi(customer: BillingCustomerContext) {
+async function openAi(customer: BillingCustomerContext, creditsHeld = false) {
   const apiKey = await requireOpenRouterApiKey();
   // Any positive balance admits the whole article, as with website research.
+  // Credits already held for this job admit it too, though the hold itself
+  // can leave the balance reading zero.
   if (
+    !creditsHeld &&
     (await isHostedServerAuthMode()) &&
     (await checkUsageCreditsDepleted(customer)).depleted
   )
@@ -87,19 +90,27 @@ async function openAi(customer: BillingCustomerContext) {
     await getOptionalEnvValue("OPENROUTER_MODEL"),
     "low",
   );
-  const spend: ResearchSpend[] = [];
+  // Each call is billed as soon as it finishes, not once the article is
+  // done: a run Cloudflare stops at its time limit would otherwise lose the
+  // charge for every call it had already made.
+  const billing: Promise<void>[] = [];
   const onStepFinish =
     (operation: string) =>
     (step: {
       providerMetadata?: Parameters<typeof requireOpenRouterCostUsd>[0];
     }) => {
-      spend.push({
+      const charge: ResearchSpend = {
         provider: "openrouter",
         creditFeature: "agent",
         operation,
         costUsd: requireOpenRouterCostUsd(step.providerMetadata),
-      });
+      };
+      billing.push(billResearchSpend(customer, [charge]));
     };
+  /** Waits for every charge so far to be recorded. */
+  const billed = async () => {
+    await Promise.all(billing);
+  };
 
   const review = async (
     domain: string,
@@ -124,7 +135,7 @@ async function openAi(customer: BillingCustomerContext) {
     return toReview(reviewSchema.parse(result.output));
   };
 
-  return { model, spend, onStepFinish, review };
+  return { model, billed, onStepFinish, review };
 }
 
 /**
@@ -136,7 +147,7 @@ async function openAi(customer: BillingCustomerContext) {
  */
 export async function writeBlogArticle(
   project: WriterProject,
-  input: { articleId: string; replace: boolean },
+  input: { articleId: string; replace: boolean; creditsHeld?: boolean },
   customer: BillingCustomerContext,
 ): Promise<
   Draft & {
@@ -153,7 +164,7 @@ export async function writeBlogArticle(
       "CONFLICT",
       "This article already has text. Confirm to replace it.",
     );
-  const ai = await openAi(customer);
+  const ai = await openAi(customer, input.creditsHeld);
 
   const [found, otherTitles, business, yourArticles] = await Promise.all([
     sitePages(domain),
@@ -299,7 +310,7 @@ export async function writeBlogArticle(
       passedAllChecks: best.passedAllChecks,
     };
   } finally {
-    await billResearchSpend(customer, ai.spend);
+    await ai.billed();
   }
 }
 
@@ -350,7 +361,7 @@ export async function reviewBlogArticle(
       });
     return { aiScore: review.score, aiFeedback, aiSuggestions };
   } finally {
-    await billResearchSpend(customer, ai.spend);
+    await ai.billed();
   }
 }
 
@@ -430,6 +441,6 @@ export async function chooseBlogTopic(
         : null;
     return { choice, reject };
   } finally {
-    await billResearchSpend(customer, ai.spend);
+    await ai.billed();
   }
 }

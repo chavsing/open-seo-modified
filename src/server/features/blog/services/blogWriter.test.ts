@@ -43,6 +43,7 @@ vi.mock("@/server/billing/subscription", () => ({
   checkUsageCreditsDepleted: vi.fn(),
 }));
 
+import { billResearchSpend } from "@/server/billing/researchSpend";
 import { writeBlogArticle } from "./blogWriter";
 import { customer } from "@/server/features/ai-visibility/services/aiVisibilityTestFixtures";
 
@@ -87,6 +88,27 @@ beforeEach(() => {
 });
 
 describe("writeBlogArticle", () => {
+  it("charges each AI call as soon as it finishes", async () => {
+    generateText
+      .mockImplementationOnce(
+        (options: { onStepFinish: (step: object) => void }) => {
+          options.onStepFinish({ providerMetadata: {} });
+          return Promise.resolve(reply(goodTitle, goodBody));
+        },
+      )
+      .mockImplementationOnce(() => {
+        // Cloudflare stops the run here: the draft must already be charged.
+        expect(billResearchSpend).toHaveBeenCalledWith(customer, [
+          expect.objectContaining({ costUsd: 0.01 }),
+        ]);
+        return Promise.reject(new Error("time limit"));
+      });
+
+    await expect(
+      writeBlogArticle(project, { articleId: "a1", replace: false }, customer),
+    ).rejects.toThrow("time limit");
+  });
+
   it("revises until every check passes with nothing must-fix", async () => {
     generateText
       .mockResolvedValueOnce(reply("Coffee", "# Coffee roasters\n\nToo short."))

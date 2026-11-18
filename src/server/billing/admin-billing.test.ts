@@ -173,6 +173,22 @@ describe("admin billing", () => {
     expect(await due()).toEqual([]);
   });
 
+  it("counts a renewal paid in the grace days from the old end, keeping the billing date", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date"],
+      now: new Date("2026-03-10T12:00:00Z"),
+    });
+    await apply({ action: "pro_month" }); // paid until 2026-04-10
+    vi.setSystemTime(new Date("2026-04-11T12:00:00Z"));
+    await apply({ action: "pro_month" });
+    expect((await owner()).paidUntil).toBe("2026-05-10T12:00:00.000Z");
+
+    await apply({ action: "pro_year" }); // a year starts from today
+    vi.setSystemTime(new Date("2027-04-12T12:00:00Z"));
+    await apply({ action: "pro_year" });
+    expect((await owner()).paidUntil).toBe("2028-04-11T12:00:00.000Z");
+  });
+
   it("drops a customer from the renewal list once the month is recorded", async () => {
     vi.useFakeTimers({
       toFake: ["Date"],

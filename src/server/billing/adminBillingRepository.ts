@@ -264,7 +264,8 @@ function refuseShorterPlan(
  * primary key and changes nothing: `applied` is then false.
  *
  * - pro_month: one more paid month of Pro, counted from the current paid
- *   period's end while it lasts, else from now; monthly credits refill.
+ *   period's end while it or its grace days last, else from now; monthly
+ *   credits refill.
  * - pro_year: Pro paid for 12 months. A new year starts now with its first
  *   month of credits; the cron refills the rest each month (see
  *   refillYearlyPlanCredits). Renewing a running year extends it by 12
@@ -304,16 +305,21 @@ export async function applyAdminBillingAction(args: {
       account?.planId === AUTUMN_PRO_PLAN_ID && account.currentPeriodEnd
         ? new Date(account.currentPeriodEnd)
         : null;
-    const from = paidUntil && paidUntil > now ? paidUntil : now;
+    // A renewal in the grace days still counts from the old end, so a late
+    // PayPal charge doesn't move the customer's billing date.
+    const from = paidUntil && hasPaidAccess(account, now) ? paidUntil : now;
     periodEnd = addMonths(from, 1).toISOString();
   }
 
-  // A running year renews from its end; anything else starts a year now.
+  // A running year (or one in its grace days) renews from its end; anything
+  // else starts a year now.
   const yearPaidUntil =
     account?.planId === AUTUMN_PRO_YEARLY_PLAN_ID && account.currentPeriodEnd
       ? new Date(account.currentPeriodEnd)
       : null;
-  const renewsRunningYear = yearPaidUntil !== null && yearPaidUntil > now;
+  // Includes the grace days after the year's end, as with a month.
+  const renewsRunningYear =
+    yearPaidUntil !== null && hasPaidAccess(account, now);
   let yearlyNextRefill: string | null = null;
   if (change.action === "pro_year") {
     if (renewsRunningYear) {

@@ -1,7 +1,9 @@
 import { env } from "cloudflare:workers";
 import {
-  checkUsageCreditsDepleted,
+  finalizeHold,
+  reserveUsageCredits,
   type BillingCustomerContext,
+  type UsageCreditHold,
 } from "@/server/billing/subscription";
 import { BlogRepository } from "@/server/features/blog/repositories/BlogRepository";
 import { BlogService } from "@/server/features/blog/services/BlogService";
@@ -27,7 +29,16 @@ export type BlogWritePayload = {
   articleId: string;
   replace: boolean;
   customer: BillingCustomerContext;
+  /** Credits set aside while writing; missing on jobs started before. */
+  holds?: UsageCreditHold[];
 };
+
+// Set aside when writing starts, above an article's usual 2 to 3 cents, so
+// several articles started at once can't all pass on the same small balance
+// and leave it below zero. The real cost is charged as each AI call finishes;
+// the hold is returned when the job ends, or by the ledger's cleanup if the
+// job dies.
+const ARTICLE_HOLD_CREDITS = 50;
 
 /** Starts writing the article in the background. */
 export async function startArticleWriting(
@@ -43,19 +54,22 @@ export async function startArticleWriting(
       "CONFLICT",
       "This article already has text. Confirm to replace it.",
     );
-  // Checked here too, so an empty balance says so now, not minutes later.
-  if (
-    (await isHostedServerAuthMode()) &&
-    (await checkUsageCreditsDepleted(customer)).depleted
-  )
-    throw new AppError(
-      "INSUFFICIENT_CREDITS",
-      "You need usage credits to write articles with AI.",
-    );
   const staleBefore = new Date(Date.now() - WRITING_STALE_MS).toISOString();
   if (!(await BlogRepository.claimWriting(projectId, article.id, staleBefore)))
     throw new AppError("CONFLICT", "This article is already being written.");
+  let holds: UsageCreditHold[] = [];
   try {
+    // Checked here too, so a short balance says so now, not minutes later.
+    if (await isHostedServerAuthMode()) {
+      holds = (
+        await reserveUsageCredits({
+          customer,
+          customerId: customer.organizationId,
+          callCredits: [ARTICLE_HOLD_CREDITS],
+          creditFeature: "agent",
+        })
+      ).holds;
+    }
     await env.BLOG_WRITE_WORKFLOW.create({
       id: `blog-write-${article.id}-${Date.now()}`,
       // Only the billing fields: the request context is not serializable.
@@ -63,6 +77,7 @@ export async function startArticleWriting(
         projectId,
         articleId: article.id,
         replace: input.replace,
+        holds,
         customer: {
           organizationId: customer.organizationId,
           userId: customer.userId,
@@ -72,11 +87,16 @@ export async function startArticleWriting(
       },
     });
   } catch (error) {
+    await releaseHolds(holds);
     await BlogRepository.updateArticle(projectId, article.id, {
       writingStartedAt: null,
     });
     throw error;
   }
+}
+
+async function releaseHolds(holds: UsageCreditHold[] = []) {
+  for (const hold of holds) await finalizeHold(hold, 0, {});
 }
 
 /**
@@ -151,7 +171,11 @@ export async function runArticleWriting(payload: BlogWritePayload) {
     await keepVersion(projectId, articleId, before, "ai");
     await writeBlogArticle(
       project,
-      { articleId, replace: payload.replace },
+      {
+        articleId,
+        replace: payload.replace,
+        creditsHeld: (payload.holds?.length ?? 0) > 0,
+      },
       customer,
     );
     await fileArticle(projectId, articleId, customer);
@@ -166,5 +190,7 @@ export async function runArticleWriting(payload: BlogWritePayload) {
       writingStartedAt: null,
       writeError: failureMessage(error),
     });
+  } finally {
+    await releaseHolds(payload.holds);
   }
 }

@@ -25,14 +25,10 @@ done list at the bottom with the date.
       example a $65 credit pack on a paid test account, refunded after). PayPal
       can't simulate live payments, so the webhook has only been tested with
       PayPal's API stubbed and by checking that the live address rejects
-      unsigned requests.
+      unsigned requests. Planned for 2026-11-19.
 
 ## Claude, next
 
-- [ ] Audit leftovers (found 2026-11-12, not fixed yet): closing the tab
-  an automatic run that hits Cloudflare's time limit is unbilled ("Write
-  with AI" already moved to a background job on 2026-11-13). Also: a renewal recorded in the 3 grace days restarts the month from
-  today, and two "Write with AI" clicks on a small balance can go below zero.
 - [ ] Automatic setup for new websites (approved 2026-11-11): find
       competitors, find blog topics, start tracking keywords and fill in the
       Context page (business overview, positioning) from the site scan when a
@@ -63,6 +59,14 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-18: Audit leftovers fixed. A Pro month or year renewed in its 3
+  grace days now counts from the old end date, so a late PayPal charge no
+  longer moves the customer's billing date. Starting an AI article now sets
+  aside $0.05 of credits until it finishes, so several articles started on a
+  small balance can't push it below zero (the customer is told they're out
+  of credits instead). Each AI call in article writing is charged as soon as
+  it finishes, so a run Cloudflare stops at its time limit is still billed
+  for the work it did.
 - 2026-11-18: Automatic PayPal activation. Pro Yearly, Lifetime and the
   credit pack ($50 of credits for $65) now use PayPal checkout buttons in the
   app: the server sets the price and account, and the plan or credits turn on
