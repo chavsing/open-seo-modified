@@ -13,6 +13,7 @@ const fresh: DashboardActivation = {
   hasMultipleProjects: false,
   hasTeammate: false,
   dismissedSteps: [],
+  autoSetup: null,
 };
 
 describe("dashboard checklist", () => {

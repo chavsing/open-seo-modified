@@ -24,6 +24,7 @@ const fresh: DashboardActivation = {
   hasMultipleProjects: false,
   hasTeammate: false,
   dismissedSteps: [],
+  autoSetup: null,
 };
 
 function renderChecklist(activation = fresh) {

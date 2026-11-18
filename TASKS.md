@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-18. Tick a box when a task is done and move it to the
+Last updated: 2026-11-19. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -29,13 +29,11 @@ done list at the bottom with the date.
 
 ## Claude, next
 
-- [ ] Automatic setup for new websites (approved 2026-11-11): find
-      competitors, find blog topics, start tracking keywords and fill in the
-      Context page (business overview, positioning) from the site scan when a
-      site is added. Show the results on the dashboard instead of the manual
-      "Get started" checklist. About 10 to 20 cents per new site. Filling in
-      Context matters because the blog writer now uses it to make articles
-      specific to the business.
+- [ ] Full customer journey on the live app with a throwaway test account
+      (planned 2026-11-19, after the PayPal test payment): sign up, pay, use
+      each main tool once, invite a teammate, share a report, then delete the
+      account. Every feature was tested when it was built, but the whole
+      journey has never been run on app.agsmaster.com.
 
 ## Claude, waiting on a decision
 
@@ -59,6 +57,14 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-19: Automatic setup for new websites. Adding a site (new project,
+  or a new website on an existing one) now sets it up in the background:
+  the Context page is filled in from the website, competitors are found,
+  blog topic ideas are researched and up to 8 searches customers use are
+  tracked weekly in Rank Tracking. The dashboard shows a "Setting up your
+  site" card, then what was done with links, in place of the Get started
+  checklist. Runs once per site, only with credits, and not for sites added
+  by AI agents. A real run on the development copy cost $0.19.
 - 2026-11-18: Audit leftovers fixed. A Pro month or year renewed in its 3
   grace days now counts from the old end date, so a late PayPal charge no
   longer moves the customer's billing date. Starting an AI article now sets

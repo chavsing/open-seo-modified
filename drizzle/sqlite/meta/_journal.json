@@ -505,6 +505,13 @@
       "when": 1795013365355,
       "tag": "0071_white_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "6",
+      "when": 1795018127594,
+      "tag": "0072_keen_blur",
+      "breakpoints": true
     }
   ]
 }

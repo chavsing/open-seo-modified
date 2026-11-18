@@ -50,6 +50,13 @@
       "binding": "BLOG_WRITE_WORKFLOW",
       "class_name": "BlogWriteWorkflow",
     },
+    // Sets up a newly added site (Context, competitors, topic ideas, rank
+    // tracking) in the background.
+    {
+      "name": "site-setup-workflow",
+      "binding": "SITE_SETUP_WORKFLOW",
+      "class_name": "SiteSetupWorkflow",
+    },
   ],
   // Durable Object backing the SAM in-app agent (Agents SDK AIChatAgent). One
   // instance per chat session; messages persist in the DO's SQLite.

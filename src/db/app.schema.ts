@@ -399,6 +399,12 @@ export const projectActivationState = sqliteTable("project_activation_state", {
   // Optional integration pitch: hiding it from the dashboard does not remove
   // the GA4 connection controls from Project Settings.
   ga4CardDismissedAt: text("ga4_card_dismissed_at"),
+  // Automatic setup when the site was added (Context, competitors, topic
+  // ideas, rank tracking). Started once per project; the error is our own
+  // wording for the dashboard.
+  autoSetupStartedAt: text("auto_setup_started_at"),
+  autoSetupFinishedAt: text("auto_setup_finished_at"),
+  autoSetupError: text("auto_setup_error"),
   updatedAt: text("updated_at")
     .notNull()
     .default(sql`(current_timestamp)`),

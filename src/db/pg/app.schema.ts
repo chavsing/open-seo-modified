@@ -388,6 +388,9 @@ export const projectActivationState = pgTable("project_activation_state", {
   // Optional integration pitch: hiding it from the dashboard does not remove
   // the GA4 connection controls from Project Settings.
   ga4CardDismissedAt: timestampColumn("ga4_card_dismissed_at"),
+  autoSetupStartedAt: timestampColumn("auto_setup_started_at"),
+  autoSetupFinishedAt: timestampColumn("auto_setup_finished_at"),
+  autoSetupError: text("auto_setup_error"),
   updatedAt: timestampColumn("updated_at").notNull().default(isoNow),
 });
 

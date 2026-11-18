@@ -17,6 +17,7 @@ import type { z } from "zod";
 import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { sort } from "remeda";
+import { AutoSetupCard } from "./AutoSetupCard";
 import { DashboardOnboarding } from "./DashboardOnboarding";
 import { useIsViewOnly } from "@/client/features/team/organizationQueries";
 import {
@@ -44,6 +45,9 @@ export function DashboardPage({
   const activationQuery = useQuery({
     queryKey: ["dashboardActivation", projectId],
     queryFn: () => getDashboardActivation({ data: { projectId } }),
+    // Follows the automatic setup while it runs.
+    refetchInterval: (query) =>
+      query.state.data?.autoSetup?.status === "running" ? 5000 : false,
   });
   const overviewQuery = useQuery({
     queryKey: ["dashboardOverview", projectId],
@@ -208,7 +212,9 @@ export function DashboardPage({
           />
         ) : null}
 
-        {viewOnly ? null : (
+        {viewOnly ? null : activation.autoSetup ? (
+          <AutoSetupCard projectId={projectId} setup={activation.autoSetup} />
+        ) : (
           <DashboardOnboarding
             key={projectId}
             projectId={projectId}

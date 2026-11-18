@@ -240,5 +240,7 @@ export async function setUpFromWebsite(
     keyPages: keyPages.length,
     competitors: addedCompetitors,
     topicIdeas,
+    // Searches customers would use to find the business, to track rankings.
+    seedKeywords: draft.seedKeywords,
   };
 }

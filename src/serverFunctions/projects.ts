@@ -1,3 +1,4 @@
+import { startAutomaticSetup } from "@/server/features/project-context/services/automaticSetup";
 import { DashboardFirstAuditService } from "@/server/features/dashboard/services/DashboardFirstAuditService";
 import { createServerFn } from "@tanstack/react-start";
 import { requireOrgPermission } from "@/server/auth/org-gate";
@@ -37,6 +38,7 @@ export const createProject = createServerFn({ method: "POST" })
       project.domain,
       { ...context, projectId: project.id },
     );
+    await startAutomaticSetup(project, { ...context, projectId: project.id });
     return { ...project, initialAudit };
   });
 
@@ -56,6 +58,8 @@ export const updateProject = createServerFn({ method: "POST" })
             context,
           )
         : null;
+    if (project.domain !== context.project.domain)
+      await startAutomaticSetup(project, context);
     return { ...project, initialAudit };
   });
 

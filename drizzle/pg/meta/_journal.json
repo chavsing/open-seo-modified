@@ -351,6 +351,13 @@
       "when": 1795013367266,
       "tag": "0049_awesome_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795018129422,
+      "tag": "0050_tricky_prism",
+      "breakpoints": true
     }
   ]
 }

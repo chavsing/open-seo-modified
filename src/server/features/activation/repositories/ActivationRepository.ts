@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   dashboardStepDismissals,
@@ -106,6 +106,35 @@ async function markGa4CardDismissed(projectId: string): Promise<void> {
     });
 }
 
+/** Marks the project's automatic setup as started. True only for the first
+ *  caller, so the setup runs once per project even if two requests race. */
+async function claimAutoSetup(projectId: string): Promise<boolean> {
+  const now = new Date().toISOString();
+  await db
+    .insert(projectActivationState)
+    .values({ projectId, updatedAt: now })
+    .onConflictDoNothing();
+  const claimed = await db
+    .update(projectActivationState)
+    .set({ autoSetupStartedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(projectActivationState.projectId, projectId),
+        isNull(projectActivationState.autoSetupStartedAt),
+      ),
+    )
+    .returning({ projectId: projectActivationState.projectId });
+  return claimed.length > 0;
+}
+
+async function finishAutoSetup(projectId: string, error: string | null) {
+  const now = new Date().toISOString();
+  await db
+    .update(projectActivationState)
+    .set({ autoSetupFinishedAt: now, autoSetupError: error, updatedAt: now })
+    .where(eq(projectActivationState.projectId, projectId));
+}
+
 async function getDismissedSteps(userId: string, projectId: string) {
   return db
     .select({ step: dashboardStepDismissals.step })
@@ -181,4 +210,6 @@ export const ActivationRepository = {
   recordFirstMcpToolCall,
   markStepClicked,
   markGa4CardDismissed,
+  claimAutoSetup,
+  finishAutoSetup,
 };

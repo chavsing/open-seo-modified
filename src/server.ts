@@ -198,6 +198,7 @@ function handleFetch(
 export { RankCheckWorkflow } from "./server/workflows/RankCheckWorkflow";
 export { AiVisibilityWorkflow } from "./server/workflows/AiVisibilityWorkflow";
 export { BlogWriteWorkflow } from "./server/workflows/BlogWriteWorkflow";
+export { SiteSetupWorkflow } from "./server/workflows/SiteSetupWorkflow";
 // Durable Object class for the SAM in-app agent (Agents SDK).
 export { SamChatAgent } from "./server/features/sam/SamChatAgent";
 

@@ -19,6 +19,17 @@ vi.mock("@/server/features/ga4/repositories/Ga4ConnectionRepository", () => ({
 vi.mock("@/server/features/gsc/repositories/GscConnectionRepository", () => ({
   GscConnectionRepository: {},
 }));
+vi.mock("@/server/features/blog/repositories/BlogRepository", () => ({
+  BlogRepository: {},
+}));
+vi.mock(
+  "@/server/features/project-context/repositories/ProjectContextRepository",
+  () => ({ ProjectContextRepository: {} }),
+);
+vi.mock(
+  "@/server/features/rank-tracking/repositories/RankTrackingRepository",
+  () => ({ RankTrackingRepository: {} }),
+);
 vi.mock("@/server/features/audit/repositories/AuditRepository", () => ({
   AuditRepository: {
     getAuditsByProject: repository.audits,

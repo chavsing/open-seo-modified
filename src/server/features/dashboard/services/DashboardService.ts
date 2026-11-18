@@ -6,6 +6,9 @@ import { AuditRepository } from "@/server/features/audit/repositories/AuditRepos
 import { getIssueTypePageCountsForAudit } from "@/server/features/audit/repositories/auditSummaryQueries";
 import { Ga4ConnectionRepository } from "@/server/features/ga4/repositories/Ga4ConnectionRepository";
 import { GscConnectionRepository } from "@/server/features/gsc/repositories/GscConnectionRepository";
+import { BlogRepository } from "@/server/features/blog/repositories/BlogRepository";
+import { ProjectContextRepository } from "@/server/features/project-context/repositories/ProjectContextRepository";
+import { RankTrackingRepository } from "@/server/features/rank-tracking/repositories/RankTrackingRepository";
 
 export type DashboardActivation = {
   domain: string | null;
@@ -26,7 +29,21 @@ export type DashboardActivation = {
   hasMultipleProjects: boolean;
   hasTeammate: boolean;
   dismissedSteps: string[];
+  /** What the automatic setup did for this site; null if it never ran. */
+  autoSetup: AutoSetupSummary | null;
 };
+
+type AutoSetupSummary = {
+  status: "running" | "done" | "failed";
+  error: string | null;
+  contextSections: number;
+  competitors: number;
+  topicIdeas: number;
+  trackedKeywords: number;
+};
+
+// The setup job times out at 15 minutes; past this it isn't coming back.
+const AUTO_SETUP_STALE_MS = 20 * 60_000;
 
 export type DashboardAuditSummary = {
   id: string;
@@ -94,6 +111,54 @@ async function getActivation(input: {
     competitorClickedAt: projectActivation?.competitorStepClickedAt ?? null,
     keywordsClickedAt: projectActivation?.keywordStepClickedAt ?? null,
     hasAudit: latestAudit != null,
+    autoSetup: projectActivation?.autoSetupStartedAt
+      ? await getAutoSetupSummary(input.projectId, projectActivation)
+      : null,
+  };
+}
+
+/** Counts what exists now, so it stays true after the customer edits it. */
+async function getAutoSetupSummary(
+  projectId: string,
+  state: {
+    autoSetupStartedAt: string | null;
+    autoSetupFinishedAt: string | null;
+    autoSetupError: string | null;
+  },
+): Promise<AutoSetupSummary> {
+  const [sections, competitors, topics, configs] = await Promise.all([
+    ProjectContextRepository.listSections(projectId),
+    ProjectContextRepository.listCompetitors(projectId),
+    BlogRepository.listTopics(projectId),
+    RankTrackingRepository.getConfigsForProject(projectId),
+  ]);
+  const keywordCounts = await RankTrackingRepository.getKeywordCountsForConfigs(
+    configs.map((config) => config.id),
+  );
+  const stale =
+    !state.autoSetupFinishedAt &&
+    Date.parse(state.autoSetupStartedAt ?? "") <
+      Date.now() - AUTO_SETUP_STALE_MS;
+  return {
+    status: state.autoSetupFinishedAt
+      ? state.autoSetupError
+        ? "failed"
+        : "done"
+      : stale
+        ? "failed"
+        : "running",
+    error:
+      state.autoSetupError ??
+      (stale
+        ? "Automatic setup didn't finish. You can run it from the Context page with Set up from website."
+        : null),
+    contextSections: sections.filter((row) => row.content.trim()).length,
+    competitors: competitors.length,
+    topicIdeas: topics.length,
+    trackedKeywords: [...keywordCounts.values()].reduce(
+      (sum, count) => sum + count,
+      0,
+    ),
   };
 }
 
