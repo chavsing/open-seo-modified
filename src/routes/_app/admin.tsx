@@ -14,6 +14,7 @@ import {
   type AdminAccount,
 } from "@/client/features/admin/AdminAccountCard";
 import { AiBalanceCard } from "@/client/features/admin/AiBalanceCard";
+import { PaypalPaymentsSection } from "@/client/features/admin/PaypalPaymentsSection";
 import { SignupAccessSection } from "@/client/features/admin/SignupAccessSection";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
@@ -144,14 +145,18 @@ function AdminBilling() {
     <div className="mx-auto box-content max-w-4xl space-y-5 px-4 py-4 pb-24 md:px-6 md:py-6">
       <PageHeader title="Admin" />
       <p className="text-sm text-muted-foreground">
-        After a PayPal payment, find the customer by the email they signed up
-        with and record it here. Each monthly Pro payment adds one month; a Pro
+        PayPal payments made in the app turn plans on by themselves, including
+        each monthly Pro charge. Anything PayPal couldn&rsquo;t tie to an
+        account shows under PayPal payments to check: find the customer by email
+        and record it here. Each monthly Pro payment adds one month; a Pro
         yearly payment adds 12 months, with credits refilled each month.
       </p>
 
       <AiBalanceCard />
 
       <SignupAccessSection />
+
+      <PaypalPaymentsSection />
 
       <form
         className="flex gap-2"
@@ -176,11 +181,11 @@ function AdminBilling() {
         <section className="space-y-3">
           <h2 className="font-medium">Waiting for confirmation</h2>
           <p className="text-sm text-muted-foreground">
-            These customers subscribed with the PayPal button. Find the
-            subscription ID in your PayPal activity and check the payment went
-            through. The PayPal button also sends the account ID as the
-            subscription&rsquo;s custom ID; if PayPal shows it, it should match.
-            Then click Start Pro.
+            These customers subscribed with the PayPal button and are waiting
+            for PayPal to confirm the first payment, which usually turns Pro on
+            within minutes. If one stays here for more than an hour, find the
+            subscription ID in your PayPal activity, check the payment went
+            through, then click Start Pro.
           </p>
           {waitingQuery.data.map((account) => (
             <AdminAccountCard
@@ -196,11 +201,12 @@ function AdminBilling() {
         <section className="space-y-3">
           <h2 className="font-medium">Due for renewal</h2>
           <p className="text-sm text-muted-foreground">
-            PayPal charges monthly Pro customers every month: when you see this
-            month&rsquo;s payment in PayPal, click Add a Pro month. Yearly
-            customers show here two weeks before their year ends, so you can
-            remind them to pay for the next year; when they do, click Add a Pro
-            year. Access ends 3 days after the paid period unless it is renewed.
+            PayPal charges monthly Pro customers every month, and each payment
+            adds the month by itself. A monthly customer still here after their
+            date has a payment PayPal hasn&rsquo;t made (or they canceled).
+            Yearly customers show here two weeks before their year ends, so you
+            can remind them to pay for the next year. Access ends 3 days after
+            the paid period unless it is renewed.
           </p>
           {renewalsQuery.data.map((account) => (
             <AdminAccountCard

@@ -151,19 +151,7 @@ function SubscribePage() {
 
       {canManageBilling ? (
         <p className="text-center text-sm text-muted-foreground">
-          Pay with the same email as this account
-          {accountEmail ? (
-            <>
-              {" "}
-              (
-              <span className="font-medium text-foreground">
-                {accountEmail}
-              </span>
-              )
-            </>
-          ) : null}
-          . Your plan is turned on once we confirm your payment. If your PayPal
-          email is different, email us your PayPal email so we can match it.
+          Your plan turns on as soon as PayPal confirms the payment.
         </p>
       ) : null}
 

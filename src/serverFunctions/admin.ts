@@ -5,7 +5,9 @@ import {
   applyBillingActionAsAdmin,
   isPlatformAdmin,
   requireAdmin,
+  listPaypalPaymentsAsAdmin,
   listRenewalsDueAsAdmin,
+  markPaypalPaymentHandledAsAdmin,
   listWaitingAccountsAsAdmin,
   searchAccountsAsAdmin,
 } from "@/server/billing/admin-billing";
@@ -50,6 +52,17 @@ export const listWaitingAdminAccounts = createServerFn({ method: "POST" })
 export const listRenewalsDueAdminAccounts = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .handler(({ context }) => listRenewalsDueAsAdmin(context.userEmail));
+
+export const listAdminPaypalPayments = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .handler(({ context }) => listPaypalPaymentsAsAdmin(context.userEmail));
+
+export const markAdminPaypalPaymentHandled = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(z.object({ paymentId: z.string().min(1).max(64) }))
+  .handler(({ data, context }) =>
+    markPaypalPaymentHandledAsAdmin(context.userEmail, data.paymentId),
+  );
 
 const adminActionSchema = z.object({
   requestId: z.string().uuid(),

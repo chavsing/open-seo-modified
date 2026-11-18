@@ -14,21 +14,30 @@ export type PaidPlanId =
   | typeof AUTUMN_PRO_YEARLY_PLAN_ID
   | typeof AUTUMN_LIFETIME_PLAN_ID;
 
-// The client's PayPal links. Pro is a PayPal Subscribe button, so PayPal
-// charges it every month; Pro yearly and Lifetime are one-time payment
-// links. PayPal does
-// not tell the app who paid: the client activates each account from the
-// admin page. Pro is his PayPal subscription plan, sold with PayPal's
-// embedded button (the client ID is public, made for web pages); the plan's
-// share link is the fallback when PayPal's script can't load.
+// What each plan and the credit pack cost, in USD. The server creates every
+// PayPal order at these prices and checks each payment against them, so the
+// pricing cards and the charge can't drift apart.
+export const PRO_MONTHLY_PRICE_USD = 197;
+export const PRO_YEARLY_PRICE_USD = 1997;
+export const LIFETIME_PRICE_USD = 4799;
+export const CREDIT_PACK_PRICE_USD = 65;
+/** What the app's own PayPal checkout sells as a one-time payment. */
+export type PaypalCheckoutProduct = "pro_year" | "lifetime" | "credit_pack";
+
+// The client's PayPal account. Pro is a PayPal subscription, so PayPal
+// charges it every month; Pro yearly, Lifetime and the credit pack are
+// one-time orders the server creates. PayPal's webhook tells the app about
+// each payment and the plan turns on by itself; a payment it can't tie to an
+// account waits on the admin page. The client ID is public, made for web
+// pages. The payment links below are the fallback when PayPal's script can't
+// load; payments through them are matched by hand.
 export const PAYPAL_CLIENT_ID =
   "AfQ3qKHYHjHjNHtm6vUA8GfV6A3vNtqlfZVze1kKnprb6iaYnbptqgH6Gl-4azzwkFXnbteunnf_Uq5J";
 export const PAYPAL_PRO_PLAN_ID = "P-8YU711352S373290VNLMYYLA";
 export const PAYPAL_PRO_SUBSCRIBE_URL = `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${PAYPAL_PRO_PLAN_ID}`;
 // PayPal subscription IDs, e.g. I-BW452GLLEP1G.
 export const PAYPAL_SUBSCRIPTION_ID_PATTERN = /^I-[A-Z0-9]{10,20}$/;
-// A one-time top-up for paid plans: the client adds CREDIT_PACK_CREDITS as
-// extra credits from the admin page once the payment arrives.
+// A one-time top-up for paid plans: CREDIT_PACK_CREDITS of extra credits.
 export const PAYPAL_CREDIT_PACK_URL =
   "https://www.paypal.com/ncp/payment/V4Y2TBK52J77Y";
 export const PAYPAL_PRO_YEARLY_PAYMENT_URL =

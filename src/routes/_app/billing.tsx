@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/client/components/ui/card";
 import { Skeleton } from "@/client/components/ui/skeleton";
 import { queryClient } from "@/client/tanstack-db";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
-import { useSession } from "@/lib/auth-client";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { prefetchBillingAccount } from "@/client/features/billing/billingAccountQuery";
 import { BillingUsageCard } from "@/client/features/billing/BillingUsageCard";
@@ -54,7 +53,6 @@ const supportLink = (
 );
 
 function BillingPage() {
-  const { data: session } = useSession();
   const {
     accountQuery,
     isFreePlan,
@@ -190,9 +188,7 @@ function BillingPage() {
                       </div>
                     ))}
                     <p className="text-xs text-muted-foreground">
-                      Pay with the same email as this account
-                      {session?.user?.email ? ` (${session.user.email})` : ""}.
-                      Your plan is turned on once we confirm your payment.
+                      Your plan turns on as soon as PayPal confirms the payment.
                     </p>
                   </div>
                 ) : account.isLifetime ? (

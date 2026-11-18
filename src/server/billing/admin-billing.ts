@@ -7,6 +7,10 @@ import {
   type AdminBillingAction,
 } from "@/server/billing/adminBillingRepository";
 import { notifyPlanChange } from "@/server/billing/billingNotices";
+import {
+  listPaypalPaymentsToReview,
+  markPaypalPaymentHandled,
+} from "@/server/billing/paypal-payments";
 import { hasPaidAccess, paidAccessEndsAt } from "@/server/billing/plan-access";
 import { AppError } from "@/server/lib/errors";
 import {
@@ -49,6 +53,20 @@ export async function listWaitingAccountsAsAdmin(adminEmail: string) {
 export async function listRenewalsDueAsAdmin(adminEmail: string) {
   await requireAdmin(adminEmail);
   return (await listProRenewalsDue()).map(toAdminAccount);
+}
+
+/** PayPal payments the app couldn't apply by itself. */
+export async function listPaypalPaymentsAsAdmin(adminEmail: string) {
+  await requireAdmin(adminEmail);
+  return listPaypalPaymentsToReview();
+}
+
+export async function markPaypalPaymentHandledAsAdmin(
+  adminEmail: string,
+  paymentId: string,
+) {
+  await requireAdmin(adminEmail);
+  await markPaypalPaymentHandled(paymentId);
 }
 
 function toAdminAccount(

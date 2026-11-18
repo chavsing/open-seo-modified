@@ -5,6 +5,10 @@ import {
   reportPaypalSubscription,
 } from "@/server/billing/billing-account";
 import { listCreditEvents } from "@/server/billing/creditLedger";
+import {
+  captureCheckoutOrder,
+  createCheckoutOrder,
+} from "@/server/billing/paypal-checkout";
 import { AppError } from "@/server/lib/errors";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { PAYPAL_SUBSCRIPTION_ID_PATTERN } from "@/shared/billing";
@@ -29,6 +33,26 @@ export const reportPaypalSubscriptionApproved = createServerFn({
   .handler(async ({ data, context }) => {
     if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
     await reportPaypalSubscription(context, data.subscriptionId);
+  });
+
+// The app's PayPal checkout for one-time payments: the server sets the price
+// and account on the order, then captures it once the customer approves.
+export const createPaypalCheckoutOrder = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(
+    z.object({ product: z.enum(["pro_year", "lifetime", "credit_pack"]) }),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
+    return { orderId: await createCheckoutOrder(context, data.product) };
+  });
+
+export const capturePaypalCheckoutOrder = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(z.object({ orderId: z.string().regex(/^[A-Z0-9]{10,40}$/) }))
+  .handler(async ({ data, context }) => {
+    if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
+    return { status: await captureCheckoutOrder(context, data.orderId) };
   });
 
 const billingUsageRangeSchema = z.object({

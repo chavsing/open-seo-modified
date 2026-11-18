@@ -157,6 +157,12 @@ function handleFetch(
     );
   }
 
+  if (pathname === "/api/paypal/webhook") {
+    return import("@/server/billing/paypal-webhook").then(
+      ({ handlePaypalWebhook }) => handlePaypalWebhook(publicRequest),
+    );
+  }
+
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
     return handleGdprStorageErasure(publicRequest, env);
   }

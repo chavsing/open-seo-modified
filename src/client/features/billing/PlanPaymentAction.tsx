@@ -9,93 +9,39 @@ import { captureClientEvent } from "@/client/lib/posthog";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { queryClient } from "@/client/tanstack-db";
 import { reportPaypalSubscriptionApproved } from "@/serverFunctions/billing";
-import { PAYPAL_CLIENT_ID, PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
-
-// The slice of PayPal's JS SDK the Pro button uses.
-type PaypalButtons = {
-  render: (container: HTMLElement) => Promise<void>;
-  close: () => Promise<void>;
-};
-type PaypalSdk = {
-  Buttons: (options: {
-    style: Record<string, string>;
-    createSubscription: (
-      data: unknown,
-      actions: {
-        subscription: {
-          create: (input: {
-            plan_id: string;
-            custom_id: string;
-          }) => Promise<string>;
-        };
-      },
-    ) => Promise<string>;
-    onApprove: (data: { subscriptionID?: string | null }) => Promise<void>;
-    onCancel: () => void;
-    onError: (error: unknown) => void;
-  }) => PaypalButtons;
-};
-declare global {
-  interface Window {
-    paypal?: PaypalSdk;
-  }
-}
-
-let sdkPromise: Promise<PaypalSdk> | null = null;
-
-/** Loads PayPal's subscription SDK once per page load. */
-function loadPaypalSdk(): Promise<PaypalSdk> {
-  if (window.paypal) return Promise.resolve(window.paypal);
-  sdkPromise ??= new Promise<PaypalSdk>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&vault=true&intent=subscription`;
-    script.dataset.sdkIntegrationSource = "button-factory";
-    script.addEventListener("load", () =>
-      window.paypal
-        ? resolve(window.paypal)
-        : reject(new Error("PayPal SDK loaded without paypal")),
-    );
-    script.addEventListener("error", () => {
-      // Let a later visit try again instead of caching the failure.
-      sdkPromise = null;
-      script.remove();
-      reject(new Error("PayPal SDK failed to load"));
-    });
-    document.head.appendChild(script);
-  });
-  return sdkPromise;
-}
+import { PaypalCheckoutButton } from "@/client/features/billing/PaypalCheckoutButton";
+import {
+  isClosedWindowError,
+  loadPaypalSdk,
+} from "@/client/features/billing/paypalSdk";
+import { PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
 
 /**
- * How a plan is paid for: Pro yearly and Lifetime open the client's PayPal
- * payment links;
- * Pro renders PayPal's subscription button, tagged with this organization so
- * the client can tell whose subscription it is. A reported, unconfirmed
- * subscription replaces the button so nobody subscribes twice.
+ * How a plan is paid for: Pro yearly and Lifetime use the app's PayPal
+ * checkout and turn on as soon as the payment is captured. Pro renders
+ * PayPal's subscription button, tagged with this organization so PayPal's
+ * webhook can turn the plan on when each month is paid. A reported
+ * subscription waiting for its first payment replaces the button so nobody
+ * subscribes twice.
  */
 export function PlanPaymentAction({ offer }: { offer: PlanOffer }) {
-  const { data: account } = useQuery(billingAccountQueryOptions());
+  const { data: account } = useQuery({
+    ...billingAccountQueryOptions(),
+    // PayPal's webhook turns the plan on within a minute or so of the
+    // first payment; check until it has.
+    refetchInterval: (query) =>
+      query.state.data?.pendingPaypalSubscriptionId ? 15_000 : false,
+  });
 
   if (offer.billing !== "monthly") {
     return (
-      <Button
-        className="w-full"
-        nativeButton={false}
-        render={
-          <a
-            href={offer.paymentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() =>
-              captureClientEvent("billing:paypal_click", {
-                planId: offer.planId,
-              })
-            }
-          />
+      <PaypalCheckoutButton
+        product={offer.billing === "yearly" ? "pro_year" : "lifetime"}
+        fallbackUrl={offer.paymentUrl}
+        fallbackLabel={
+          offer.billing === "yearly" ? "Pay for a year here" : "Pay once here"
         }
-      >
-        {offer.billing === "yearly" ? "Pay for a year here" : "Pay once here"}
-      </Button>
+      />
     );
   }
 
@@ -114,8 +60,8 @@ function PendingSubscription({ subscriptionId }: { subscriptionId: string }) {
     <p className="rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
       PayPal subscription{" "}
       <span className="font-medium text-foreground">{subscriptionId}</span>{" "}
-      received. Your plan turns on once we confirm your payment. Questions?
-      Email {SUPPORT_EMAIL}.
+      received. Your plan turns on as soon as PayPal confirms the first payment,
+      usually within a few minutes. Questions? Email {SUPPORT_EMAIL}.
     </p>
   );
 }
@@ -132,16 +78,16 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
 
   useEffect(() => {
     if (!organizationId) return;
-    let buttons: PaypalButtons | null = null;
+    let buttons: { close: () => Promise<void> } | null = null;
     let cancelled = false;
     // Once PayPal's buttons are on the page they stay: an error after that
     // is one payment attempt failing, not PayPal being unavailable.
     let rendered = false;
 
-    loadPaypalSdk()
+    loadPaypalSdk("subscription")
       .then(async (paypal) => {
         if (cancelled || !containerRef.current) return;
-        buttons = paypal.Buttons({
+        const instance = paypal.Buttons({
           style: {
             shape: "rect",
             color: "gold",
@@ -182,19 +128,13 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
               setStatus("failed");
               return;
             }
-            // PayPal reports a closed window as an error in some flows.
-            if (
-              /clos/i.test(
-                error instanceof Error ? error.message : String(error),
-              )
-            ) {
-              return;
-            }
+            if (isClosedWindowError(error)) return;
             setNotice("The payment didn't go through. Please try again.");
           },
         });
+        buttons = instance;
         containerRef.current.replaceChildren();
-        await buttons.render(containerRef.current);
+        await instance.render(containerRef.current);
         rendered = true;
         if (!cancelled) setStatus("ready");
       })
@@ -214,7 +154,8 @@ function PaypalSubscribeButton({ fallbackUrl }: { fallbackUrl: string }) {
       <PendingSubscription subscriptionId={approvedId} />
     ) : (
       <p className="text-sm text-muted-foreground">
-        Subscription approved. Your plan turns on once we confirm your payment.
+        Subscription approved. Your plan turns on as soon as PayPal confirms the
+        first payment.
       </p>
     );
   }

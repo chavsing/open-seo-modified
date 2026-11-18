@@ -498,6 +498,13 @@
       "when": 1794773441722,
       "tag": "0070_stormy_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "6",
+      "when": 1795013365355,
+      "tag": "0071_white_tarantula",
+      "breakpoints": true
     }
   ]
 }

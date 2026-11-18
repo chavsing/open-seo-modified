@@ -140,3 +140,30 @@ export const billingNotices = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.organizationId, t.kind, t.periodKey] })],
 );
+
+// PayPal payments the app received, from its own checkout or PayPal's
+// webhook: one row per PayPal capture or sale id, so a payment reported twice
+// is applied once. A payment the app couldn't tie to an account and plan
+// (an old payment link, a refused plan change) waits as needs_review until
+// the admin handles it by hand.
+export const paypalPayments = sqliteTable(
+  "paypal_payments",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
+    product: text("product", {
+      enum: ["pro_month", "pro_year", "lifetime", "credit_pack"],
+    }),
+    status: text("status", { enum: ["applied", "needs_review"] }).notNull(),
+    amount: text("amount").notNull(),
+    currency: text("currency").notNull(),
+    payerEmail: text("payer_email"),
+    // Why it needs review, for the admin page.
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+    handledAt: text("handled_at"),
+  },
+  (t) => [index("paypal_payments_status_idx").on(t.status, t.createdAt)],
+);

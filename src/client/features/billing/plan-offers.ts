@@ -3,10 +3,14 @@ import {
   AUTUMN_PRO_PLAN_ID,
   AUTUMN_PRO_YEARLY_PLAN_ID,
   autumnSeoDataCreditsToUsd,
+  CREDIT_PACK_CREDITS,
   LIFETIME_CREDITS,
+  LIFETIME_PRICE_USD,
   PAYPAL_LIFETIME_PAYMENT_URL,
   PAYPAL_PRO_YEARLY_PAYMENT_URL,
   PRO_MONTHLY_CREDITS,
+  PRO_MONTHLY_PRICE_USD,
+  PRO_YEARLY_PRICE_USD,
   PAYPAL_PRO_SUBSCRIBE_URL,
   type PaidPlanId,
 } from "@/shared/billing";
@@ -30,7 +34,7 @@ export type PlanOffer = {
 export const PRO_PLAN_OFFER: PlanOffer = {
   planId: AUTUMN_PRO_PLAN_ID,
   name: "Pro Plan",
-  priceUsd: 197,
+  priceUsd: PRO_MONTHLY_PRICE_USD,
   billing: "monthly",
   includedCreditsUsd: autumnSeoDataCreditsToUsd(PRO_MONTHLY_CREDITS),
   paymentUrl: PAYPAL_PRO_SUBSCRIBE_URL,
@@ -39,7 +43,7 @@ export const PRO_PLAN_OFFER: PlanOffer = {
 export const PRO_YEARLY_PLAN_OFFER: PlanOffer = {
   planId: AUTUMN_PRO_YEARLY_PLAN_ID,
   name: "Pro Yearly",
-  priceUsd: 1997,
+  priceUsd: PRO_YEARLY_PRICE_USD,
   billing: "yearly",
   includedCreditsUsd: autumnSeoDataCreditsToUsd(PRO_MONTHLY_CREDITS),
   paymentUrl: PAYPAL_PRO_YEARLY_PAYMENT_URL,
@@ -48,11 +52,13 @@ export const PRO_YEARLY_PLAN_OFFER: PlanOffer = {
 export const LIFETIME_PLAN_OFFER: PlanOffer = {
   planId: AUTUMN_LIFETIME_PLAN_ID,
   name: "Lifetime Access",
-  priceUsd: 4799,
+  priceUsd: LIFETIME_PRICE_USD,
   billing: "once",
   includedCreditsUsd: autumnSeoDataCreditsToUsd(LIFETIME_CREDITS),
   paymentUrl: PAYPAL_LIFETIME_PAYMENT_URL,
 };
+
+export const CREDIT_PACK_LABEL = `Buy $${autumnSeoDataCreditsToUsd(CREDIT_PACK_CREDITS)} of credits`;
 
 export const PLAN_OFFERS = [
   PRO_PLAN_OFFER,

@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-17. Tick a box when a task is done and move it to the
+Last updated: 2026-11-18. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -21,8 +21,11 @@ done list at the bottom with the date.
       sign-in stops working.
 - [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
       consider auto top-up.
-- [ ] Get the PayPal Live app's Secret key from Bryan (asked 2026-11-16) and
-      add it to .env.saas as PAYPAL_CLIENT_SECRET, for automatic activation.
+- [ ] Confirm one real PayPal payment end to end on app.agsmaster.com (for
+      example a $65 credit pack on a paid test account, refunded after). PayPal
+      can't simulate live payments, so the webhook has only been tested with
+      PayPal's API stubbed and by checking that the live address rejects
+      unsigned requests.
 
 ## Claude, next
 
@@ -40,10 +43,6 @@ done list at the bottom with the date.
 
 ## Claude, waiting on a decision
 
-- [ ] Automatic PayPal activation: waiting on Bryan's Secret key. Plan: a
-      PayPal webhook, the yearly, Lifetime and credit links swapped for
-      PayPal buttons that carry the account, and an unmatched payments list
-      on /admin.
 - [ ] Blog Generator tools for customers' own AI apps (Claude, ChatGPT, Grok
       through Agent setup). Today the 76 MCP tools cover everything except
       the Blog Generator. Adding them is a new MCP tool, so it needs a plugin
@@ -64,6 +63,15 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-18: Automatic PayPal activation. Pro Yearly, Lifetime and the
+  credit pack ($50 of credits for $65) now use PayPal checkout buttons in the
+  app: the server sets the price and account, and the plan or credits turn on
+  the moment the payment completes. A PayPal webhook (registered on Bryan's
+  live PayPal app next to his GoHighLevel one) turns each monthly Pro charge
+  into another paid month. Payments it can't tie to an account (old payment
+  links, a subscription started outside the app, or a wrong amount) wait
+  under "PayPal payments to check" on /admin. Other PayPal sales on the same
+  account are ignored.
 - 2026-11-17: View-only team seats. Inviting a teammate now asks for Full
   access (Admin) or View only, and the team menu switches an existing
   teammate between the two. A view-only teammate sees the dashboard, rank

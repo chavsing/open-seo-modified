@@ -57,6 +57,10 @@ declare namespace Cloudflare {
     // HMAC secret for the operator-only GDPR storage-erasure endpoint.
     GDPR_ERASURE_SECRET?: string;
     ADMIN_EMAILS?: string;
+    // The client's live PayPal app: its secret for the REST API, and the id
+    // of the webhook that reports payments (hosted only).
+    PAYPAL_CLIENT_SECRET?: string;
+    PAYPAL_WEBHOOK_ID?: string;
 
     // Cloudflare Turnstile — signup captcha (hosted only). Secret verifies
     // tokens server-side; site key is public and inlined into the client build.

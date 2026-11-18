@@ -132,6 +132,7 @@ export const {
   creditEvents,
   billingAdminActions,
   billingNotices,
+  paypalPayments,
   ga4Connections,
   gscConnections,
   telemetryState,

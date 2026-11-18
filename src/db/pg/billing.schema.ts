@@ -113,3 +113,24 @@ export const billingNotices = pgTable(
   },
   (t) => [primaryKey({ columns: [t.organizationId, t.kind, t.periodKey] })],
 );
+
+export const paypalPayments = pgTable(
+  "paypal_payments",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
+    product: text("product", {
+      enum: ["pro_month", "pro_year", "lifetime", "credit_pack"],
+    }),
+    status: text("status", { enum: ["applied", "needs_review"] }).notNull(),
+    amount: text("amount").notNull(),
+    currency: text("currency").notNull(),
+    payerEmail: text("payer_email"),
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+    handledAt: text("handled_at"),
+  },
+  (t) => [index("paypal_payments_status_idx").on(t.status, t.createdAt)],
+);
