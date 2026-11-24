@@ -53,12 +53,29 @@ export function AutoSetupCard({
         )}
         {setup.status === "running"
           ? "Setting up your site"
-          : "Your site is set up"}
+          : setup.status === "failed"
+            ? "Setup didn't finish"
+            : "Your site is set up"}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        {setup.status === "running"
-          ? "We're reading your website, finding competitors and topic ideas, and starting rank tracking. This takes a minute or two; you can keep working."
-          : "We read your website and set up the basics. Change anything you like."}
+        {setup.status === "running" ? (
+          "We're reading your website, finding competitors and topic ideas, and starting rank tracking. This takes a minute or two; you can keep working."
+        ) : setup.status === "failed" ? (
+          <>
+            Anything below was still set up. To try again, use Set up from your
+            website on the{" "}
+            <Link
+              to="/p/$projectId/context"
+              params={{ projectId }}
+              className="underline underline-offset-2"
+            >
+              Context page
+            </Link>
+            .
+          </>
+        ) : (
+          "We read your website and set up the basics. Change anything you like."
+        )}
       </p>
       {setup.status === "failed" && setup.error ? (
         <p role="alert" className="mt-3 text-sm text-destructive">

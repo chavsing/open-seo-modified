@@ -7,6 +7,7 @@
 
 import { normalizeAndValidateStartUrl } from "@/server/lib/audit/url-policy";
 import { BRAND_TOKEN, MARKETING_SITE_URL } from "@/shared/brand";
+import { crawlerHeadersFor, type CrawlerAccess } from "@/shared/crawler-access";
 
 const MAX_PAGES = 5;
 const PER_PAGE_CHAR_LIMIT = 4000;
@@ -50,12 +51,20 @@ async function readBoundedText(response: Response): Promise<string | null> {
   return result;
 }
 
-async function fetchText(url: string): Promise<string | null> {
+async function fetchText(
+  url: string,
+  access?: CrawlerAccess | null,
+): Promise<string | null> {
   try {
     let current = url;
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const response = await fetch(current, {
-        headers: { "user-agent": USER_AGENT, accept: "text/html,*/*" },
+        headers: {
+          "user-agent": USER_AGENT,
+          accept: "text/html,*/*",
+          // A Shopify store's crawler signature, when the customer saved one.
+          ...crawlerHeadersFor(current, access),
+        },
         // Manual redirects so we can re-validate each hop against the SSRF guard;
         // redirect:"follow" would let a 30x to an internal host bypass it.
         redirect: "manual",
@@ -132,8 +141,11 @@ function decodeEntities(value: string): string {
 
 /** Fetches one (already-validated) URL and shapes it as a page, or null if it
  * couldn't be read or yielded no text. */
-async function scrapePage(url: string): Promise<ScrapedPage | null> {
-  const html = await fetchText(url);
+async function scrapePage(
+  url: string,
+  access?: CrawlerAccess | null,
+): Promise<ScrapedPage | null> {
+  const html = await fetchText(url, access);
   if (!html) {
     return null;
   }
@@ -155,6 +167,7 @@ async function scrapePage(url: string): Promise<ScrapedPage | null> {
 export async function readPages(
   urls: string[],
   maxPages: number = MAX_PAGES,
+  access?: CrawlerAccess | null,
 ): Promise<SiteReadResult> {
   const pages: ScrapedPage[] = [];
   for (const rawUrl of urls.slice(0, maxPages)) {
@@ -165,7 +178,7 @@ export async function readPages(
     } catch {
       continue; // blocked or unparseable URL
     }
-    const page = await scrapePage(url);
+    const page = await scrapePage(url, access);
     if (page) {
       pages.push(page);
     }
@@ -182,6 +195,7 @@ export async function readPages(
 export async function discoverSiteUrls(
   domain: string,
   limit: number,
+  access?: CrawlerAccess | null,
 ): Promise<{ urls: string[]; blocked: boolean }> {
   let rootUrl: string;
   try {
@@ -192,7 +206,7 @@ export async function discoverSiteUrls(
   }
   const origin = new URL(rootUrl).origin;
 
-  const sitemap = await fetchText(`${origin}/sitemap.xml`);
+  const sitemap = await fetchText(`${origin}/sitemap.xml`, access);
   const discovered = sitemap ? parseSitemapUrls(sitemap, origin) : [];
   const urls = [rootUrl, ...discovered.filter((url) => url !== rootUrl)];
   return { urls: urls.slice(0, limit), blocked: false };
@@ -205,12 +219,13 @@ export async function discoverSiteUrls(
 export async function readSite(
   domain: string,
   maxPages: number = MAX_PAGES,
+  access?: CrawlerAccess | null,
 ): Promise<SiteReadResult> {
-  const discovered = await discoverSiteUrls(domain, maxPages);
+  const discovered = await discoverSiteUrls(domain, maxPages, access);
   if (discovered.blocked) {
     return { pages: [], blocked: true };
   }
-  const site = await readPages(discovered.urls, maxPages);
+  const site = await readPages(discovered.urls, maxPages, access);
   const root = new URL(discovered.urls[0]);
   if (!site.blocked || root.hostname.startsWith("www.")) return site;
   // Some sites only serve their www host (e.g. the bare domain's TLS
@@ -218,5 +233,5 @@ export async function readSite(
   root.hostname = `www.${root.hostname}`;
   // The setter ignores invalid hosts, so IP literals keep their original host.
   if (!root.hostname.startsWith("www.")) return site;
-  return readSite(root.toString(), maxPages);
+  return readSite(root.toString(), maxPages, access);
 }

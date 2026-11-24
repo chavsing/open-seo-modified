@@ -9,9 +9,16 @@ import {
   checkUsageCreditsDepleted,
   type BillingCustomerContext,
 } from "@/server/billing/subscription";
+import { AuditRepository } from "@/server/features/audit/repositories/AuditRepository";
+import { CrawlerCredentialService } from "@/server/features/audit/services/CrawlerCredentialService";
 import { findBlogTopics } from "@/server/features/blog/services/blogResearch";
 import { ProjectContextRepository } from "@/server/features/project-context/repositories/ProjectContextRepository";
 import { applyContextUpdates } from "@/server/features/project-context/services/ProjectContextService";
+import { parseAuditConfig } from "@/server/lib/audit/types";
+import {
+  normalizeAndValidateStartUrl,
+  resolveStartUrlRedirects,
+} from "@/server/lib/audit/url-policy";
 import { requireOpenRouterCostUsd } from "@/server/lib/chatAgent";
 import { createDataforseoClient } from "@/server/lib/dataforseo";
 import { AppError } from "@/server/lib/errors";
@@ -155,6 +162,49 @@ async function findCompetitors(
 }
 
 /**
+ * Reads the site the way the audit crawls it: from where the address
+ * redirects to, signed with the store's crawler access if the customer saved
+ * one, since Shopify throttles unsigned visits from servers.
+ */
+async function readCustomerSite(
+  project: EnsuredProject,
+  domain: string,
+  customer: BillingCustomerContext,
+) {
+  let probe: { url: string; poweredBy: string | null };
+  try {
+    probe = await resolveStartUrlRedirects(
+      await normalizeAndValidateStartUrl(domain),
+    );
+  } catch {
+    // readSite reports a blocked or invalid address itself.
+    probe = { url: domain, poweredBy: null };
+  }
+  const credential = URL.canParse(probe.url)
+    ? await CrawlerCredentialService.resolveCrawlerAccess(
+        customer.organizationId,
+        project.id,
+        new URL(probe.url).hostname,
+      )
+    : null;
+  const site = await readSite(
+    probe.url,
+    PAGES_TO_READ,
+    await CrawlerCredentialService.openCrawlerAccess(credential?.sealed),
+  );
+  if (!site.blocked) return { site, shopify: false };
+  // A throttled store may not say it's Shopify; the site's first audit,
+  // started just before, records it from an earlier answer.
+  const audit = await AuditRepository.getLatestAuditForProject(project.id);
+  return {
+    site,
+    shopify:
+      Boolean(probe.poweredBy?.toLowerCase().includes("shopify")) ||
+      parseAuditConfig(audit?.config ?? null)?.sitePlatform === "shopify",
+  };
+}
+
+/**
  * Fills the Context page from the website and researches blog topics. Returns
  * what it did, for the page to say.
  */
@@ -175,11 +225,17 @@ export async function setUpFromWebsite(
       "INSUFFICIENT_CREDITS",
       "You need usage credits to set up from your website.",
     );
-  const site = await readSite(project.domain, PAGES_TO_READ);
+  const { site, shopify } = await readCustomerSite(
+    project,
+    project.domain,
+    customer,
+  );
   if (site.blocked)
     throw new AppError(
       "VALIDATION_ERROR",
-      "Couldn't read your website. Check it's online and not blocking visitors.",
+      shopify
+        ? "Shopify limits visits from other servers, so we couldn't read your store. Add crawler access under Project settings, Integrations, then try again."
+        : "Couldn't read your website. Check it's online and not blocking visitors.",
     );
 
   const spend: ResearchSpend[] = [];

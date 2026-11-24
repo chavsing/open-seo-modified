@@ -145,7 +145,22 @@ export async function sendHostedInvitationEmail({
   // Not part of getHostedAuthEmailConfig(): that trio gates hasHostedAuthConfig
   // and adding a new required var there would brick existing deployments.
   const apiKey = getRequiredEnv("LOOPS_API_KEY");
-  const templateId = getRequiredEnv("LOOPS_TRANSACTIONAL_INVITATION_ID");
+  const templateId = getOptionalEnv("LOOPS_TRANSACTIONAL_INVITATION_ID");
+  // Without its own template the invite goes out as a notice, so teammates
+  // can still join.
+  if (!templateId) {
+    const sent = await sendNoticeEmail({
+      email,
+      title: `Join ${organizationName} on ${BRAND_NAME}`,
+      message: `${inviterName} (${inviterEmail}) invited you to join ${organizationName} on ${BRAND_NAME}. The invitation link expires in 7 days.`,
+      linkUrl: inviteUrl,
+    });
+    if (!sent)
+      throw new Error(
+        "LOOPS_TRANSACTIONAL_INVITATION_ID or LOOPS_TRANSACTIONAL_NOTICE_ID is required in hosted mode",
+      );
+    return;
+  }
   await sendLoopsTransactionalEmail({
     apiKey,
     email,
