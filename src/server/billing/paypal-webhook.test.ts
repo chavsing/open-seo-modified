@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
 
 const { testDb, paypal } = await vi.hoisted(async () => {
@@ -11,6 +12,7 @@ const { testDb, paypal } = await vi.hoisted(async () => {
       verification: "SUCCESS",
       subscription: {} as Record<string, unknown>,
       order: {} as Record<string, unknown>,
+      transactions: [] as unknown[],
     },
   };
 });
@@ -24,6 +26,7 @@ vi.mock("@/server/lib/runtime-env", () => ({
 }));
 
 import { captureCheckoutOrder } from "./paypal-checkout";
+import { reconcilePaypalSubscriptions } from "./paypal-reconcile";
 import { handlePaypalWebhook } from "./paypal-webhook";
 
 // The harness seeds organization "organization".
@@ -38,6 +41,9 @@ function paypalApi(url: string) {
   }
   if (path === "/v1/notifications/verify-webhook-signature") {
     return json({ verification_status: paypal.verification });
+  }
+  if (path.endsWith("/transactions")) {
+    return json({ transactions: paypal.transactions });
   }
   if (path.startsWith("/v1/billing/subscriptions/")) {
     return json(paypal.subscription);
@@ -69,6 +75,21 @@ const sale = (id: string) => ({
   amount: { total: "197.00", currency: "USD" },
   billing_agreement_id: "I-SUBSCRIPTION1",
 });
+
+const charge = (id: string, time: string) => ({
+  id,
+  status: "COMPLETED",
+  time,
+  amount_with_breakdown: {
+    gross_amount: { currency_code: "USD", value: "197.00" },
+  },
+});
+
+// The account's browser reported this subscription after the Subscribe button.
+const reportSubscription = () =>
+  testDb.client.execute(
+    `INSERT INTO billing_accounts (organization_id, paypal_subscription_id, paypal_subscription_reported_at) VALUES ('${ORG}', 'I-SUBSCRIPTION1', '${new Date().toISOString()}')`,
+  );
 
 const capture = (customId: string | undefined, value: string) => ({
   id: "CAPTURE-1",
@@ -105,6 +126,7 @@ beforeEach(async () => {
   paypal.verification = "SUCCESS";
   paypal.subscription = { plan_id: PAYPAL_PRO_PLAN_ID, custom_id: ORG };
   paypal.order = {};
+  paypal.transactions = [];
   await testDb.client.executeMultiple(`
     DELETE FROM paypal_payments;
     DELETE FROM billing_admin_actions;
@@ -172,5 +194,43 @@ describe("PayPal checkout capture", () => {
     await expect(
       captureCheckoutOrder({ organizationId: ORG, role: "owner" }, "ORDER1"),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+const paidAt = () => new Date(Date.now() - 60 * 60_000).toISOString();
+
+describe("PayPal subscription check", () => {
+  it("turns Pro on when the webhook never arrived", async () => {
+    await reportSubscription();
+    paypal.transactions = [charge("TX-1", paidAt())];
+    await reconcilePaypalSubscriptions();
+    expect((await plan())?.plan_id).toBe("pro-plan");
+  });
+
+  it("counts a charge once when the webhook and the check give it different ids", async () => {
+    await reportSubscription();
+    const time = paidAt();
+    await deliver("PAYMENT.SALE.COMPLETED", {
+      ...sale("SALE-1"),
+      create_time: time,
+    });
+    const paidUntil = z.string().parse((await plan())?.current_period_end);
+
+    paypal.transactions = [charge("TX-1", time)];
+    await reconcilePaypalSubscriptions(
+      new Date(Date.parse(paidUntil) - 12 * 60 * 60_000),
+    );
+    expect((await plan())?.current_period_end).toBe(paidUntil);
+  });
+
+  it("ignores a subscription started from another account", async () => {
+    await reportSubscription();
+    paypal.subscription = {
+      plan_id: PAYPAL_PRO_PLAN_ID,
+      custom_id: "another-organization",
+    };
+    paypal.transactions = [charge("TX-1", paidAt())];
+    await reconcilePaypalSubscriptions();
+    expect((await plan())?.plan_id).toBe("free");
   });
 });

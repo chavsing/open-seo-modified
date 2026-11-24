@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-19. Tick a box when a task is done and move it to the
+Last updated: 2026-11-24. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -21,16 +21,18 @@ done list at the bottom with the date.
       sign-in stops working.
 - [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
       consider auto top-up.
-- [ ] Confirm one real PayPal payment end to end on app.agsmaster.com (for
-      example a $65 credit pack on a paid test account, refunded after). PayPal
-      can't simulate live payments, so the webhook has only been tested with
-      PayPal's API stubbed and by checking that the live address rejects
-      unsigned requests. Planned for 2026-11-19.
+- [ ] Tell Claude as soon as the first real customer pays through PayPal.
+      Bryan chose (2026-11-24) not to make a test payment, so that payment is
+      the first real proof that plans switch on by themselves. Until then the
+      webhook has only been tested with PayPal's API stubbed and by checking
+      that the live address rejects unsigned requests.
 
 ## Claude, next
 
+- [ ] Check the first real PayPal payment in the live records the day it
+      happens (plan switched on, applied once, email sent).
 - [ ] Full customer journey on the live app with a throwaway test account
-      (planned 2026-11-19, after the PayPal test payment): sign up, pay, use
+      (no payment step, since Bryan skipped the test payment): sign up, use
       each main tool once, invite a teammate, share a report, then delete the
       account. Every feature was tested when it was built, but the whole
       journey has never been run on app.agsmaster.com.
@@ -54,6 +56,16 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-24: Safety net for PayPal's webhook. Every 15 minutes the app asks
+  PayPal directly about monthly Pro subscriptions it is waiting on (first
+  payment not yet applied, or a paid month ending within a day or in its
+  grace days) and switches the plan on for any completed charge the webhook
+  missed. A charge both report is counted once, even under different PayPal
+  IDs. Only subscriptions started from the account's own Subscribe button
+  count. Checked that the client's PayPal app is allowed to read
+  subscription charges. Matching old payment-link payments by email was
+  left out on purpose: those links are only a backup inside the app, and a
+  wrong match would give a plan to the wrong account.
 - 2026-11-19: Blog Generator tools for customers' own AI apps (ChatGPT,
   Claude and others through Agent setup): list topic ideas and articles,
   read an article, start one from a topic or any keyword, write it with AI

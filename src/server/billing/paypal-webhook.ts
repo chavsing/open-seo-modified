@@ -35,6 +35,7 @@ const saleSchema = z.object({
   state: z.string(),
   amount: z.object({ total: z.string(), currency: z.string() }),
   billing_agreement_id: z.string().optional(),
+  create_time: z.string().optional(),
 });
 const subscriptionSchema = z.object({
   plan_id: z.string(),
@@ -196,6 +197,7 @@ async function handleSale(sale: z.infer<typeof saleSchema>) {
     payerEmail: subscription.subscriber?.email_address ?? null,
     organizationId,
     product: "pro_month",
+    paidAt: sale.create_time,
     unmatchedReason: `Subscription ${subscriptionId} doesn't say which account it is for (it was started from PayPal's link, not the app). Find the customer by the payer email and record it by hand.`,
   });
 }

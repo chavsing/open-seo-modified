@@ -1,6 +1,12 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { member, organization, paypalPayments, user } from "@/db/schema";
+import {
+  billingAdminActions,
+  member,
+  organization,
+  paypalPayments,
+  user,
+} from "@/db/schema";
 import {
   applyAdminBillingAction,
   type AdminBillingAction,
@@ -110,6 +116,8 @@ type ReceivedPaypalPayment = {
   product: PaypalProduct | null;
   /** Why the account or product is unknown, for the admin page. */
   unmatchedReason?: string;
+  /** When PayPal took a monthly charge, to recognise one already counted. */
+  paidAt?: string;
 };
 
 /**
@@ -129,7 +137,8 @@ export async function recordPaypalPayment(
   if (existing) return existing.status;
 
   let note = await reviewReason(payment);
-  if (note === null && payment.organizationId && payment.product) {
+  const counted = await monthAlreadyCounted(payment);
+  if (note === null && !counted && payment.organizationId && payment.product) {
     const change = PRODUCTS[payment.product].change;
     try {
       const result = await applyAdminBillingAction({
@@ -176,6 +185,33 @@ export async function recordPaypalPayment(
     status,
   });
   return status;
+}
+
+/**
+ * A Pro month recorded for the account after PayPal took this charge already
+ * covers it: by hand, or by the webhook and the 15-minute check reporting
+ * the same charge under different PayPal ids. Counting it again would give a
+ * second month for one payment.
+ */
+async function monthAlreadyCounted(payment: ReceivedPaypalPayment) {
+  if (
+    payment.product !== "pro_month" ||
+    !payment.paidAt ||
+    !payment.organizationId
+  )
+    return false;
+  const [later] = await db
+    .select({ id: billingAdminActions.id })
+    .from(billingAdminActions)
+    .where(
+      and(
+        eq(billingAdminActions.organizationId, payment.organizationId),
+        eq(billingAdminActions.action, "pro_month"),
+        gte(billingAdminActions.createdAt, payment.paidAt),
+      ),
+    )
+    .limit(1);
+  return Boolean(later);
 }
 
 async function reviewReason(payment: ReceivedPaypalPayment) {

@@ -292,6 +292,19 @@ export default {
             }
           })
         : Promise.resolve(),
+      // Every third tick: the safety net for PayPal's webhook, asking PayPal
+      // about monthly Pro payments the app is still waiting on.
+      isHostedAuthMode(env.AUTH_MODE) &&
+      new Date(controller.scheduledTime).getUTCMinutes() % 15 < 5
+        ? withPgClient(async () => {
+            const { reconcilePaypalSubscriptions } =
+              await import("@/server/billing/paypal-reconcile");
+            const checked = await reconcilePaypalSubscriptions();
+            if (checked > 0) {
+              console.log("[cron] checked PayPal subscriptions", checked);
+            }
+          })
+        : Promise.resolve(),
     ]);
     for (const result of checks)
       if (result.status === "rejected") throw result.reason;
