@@ -1,6 +1,6 @@
 # AGS MASTER remaining tasks
 
-Last updated: 2026-11-24. Tick a box when a task is done and move it to the
+Last updated: 2026-11-25. Tick a box when a task is done and move it to the
 done list at the bottom with the date.
 
 ## In progress
@@ -21,6 +21,9 @@ done list at the bottom with the date.
       sign-in stops working.
 - [ ] Keep the OpenRouter balance topped up (about $14 left on 2026-11-11);
       consider auto top-up.
+- [ ] Optional, for Bryan: create a proper "team invitation" email in Loops
+      and add its id as LOOPS_TRANSACTIONAL_INVITATION_ID. Until then invites
+      go out through the general notice email, which works but is plainer.
 - [ ] Tell Claude as soon as the first real customer pays through PayPal.
       Bryan chose (2026-11-24) not to make a test payment, so that payment is
       the first real proof that plans switch on by themselves. Until then the
@@ -29,13 +32,17 @@ done list at the bottom with the date.
 
 ## Claude, next
 
+- [ ] Erase the Pro test account chavsing093+agspro@gmail.com once Jamil
+      has tried the Google Search Console connection with it (or says to
+      skip that).
+
 - [ ] Check the first real PayPal payment in the live records the day it
       happens (plan switched on, applied once, email sent).
-- [ ] Full customer journey on the live app with a throwaway test account
-      (no payment step, since Bryan skipped the test payment): sign up, use
-      each main tool once, invite a teammate, share a report, then delete the
-      account. Every feature was tested when it was built, but the whole
-      journey has never been run on app.agsmaster.com.
+- [ ] Not proven live yet: the Shopify-specific setup message and reading a
+      store with saved Shopify crawler access. Shopify only blocked some
+      stores some of the time during the journey, and no store signature was
+      available to test with. Check on the first Shopify customer whose
+      setup fails.
 
 ## Claude, waiting on a decision
 
@@ -55,6 +62,34 @@ done list at the bottom with the date.
   AGS MASTER" and redeploy the landing site.
 
 ## Done
+
+- 2026-11-25: Pro features run on the live app for the first time, with a
+  throwaway Pro account (switched on from the admin page, no payment): the
+  $50 monthly credits landed, automatic setup tracked 8 searches and started
+  the first rank check (13 of 16 positions; DataForSEO had no answer for 3
+  even after retries, and the run says which), prompt tracking researched 3
+  topics with 15 prompts and finished its first run, and a weekly scheduled
+  audit was picked up by the scheduler and completed. Fixed on the way: a
+  customer who left the page within a few seconds of adding a website lost
+  that site's first audit and automatic setup for good, because the request
+  was cancelled before they started. They now keep running after the page is
+  closed, and saving a website or creating a project replies sooner. No real
+  customer had hit it.
+- 2026-11-25: The team invite email arrived on live and its button opened
+  the invitation page. Accepting an invite was not tested. The journey test
+  account was then erased from the live database (user, organization, 5
+  projects, article, report, invite, credits and allow-list entry); the
+  shared report link now returns 404 and the real account is untouched.
+- 2026-11-25: Full customer journey on the live app with a throwaway
+  account (no payment): sign-up and onboarding, every page loads, automatic
+  site setup, keyword research, rank tracking, an AI article (9/10 review),
+  view-only teammate invite, Billing with PayPal buttons, a report saved from
+  an AI app and shared by public link, and the out-of-credits stop. Fixed on
+  the way: team invite emails failed on live (no invitation email template
+  in Loops), so they now use the notice email; the dashboard said "Your site
+  is set up" when setup had failed, now "Setup didn't finish" with how to
+  retry; site setup now uses a store's saved Shopify crawler access and says
+  when Shopify is the reason it couldn't read the site.
 
 - 2026-11-24: Safety net for PayPal's webhook. Every 15 minutes the app asks
   PayPal directly about monthly Pro subscriptions it is waiting on (first

@@ -1,6 +1,8 @@
 import { startAutomaticSetup } from "@/server/features/project-context/services/automaticSetup";
 import { DashboardFirstAuditService } from "@/server/features/dashboard/services/DashboardFirstAuditService";
+import { waitUntil } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
+import type { BillingCustomerContext } from "@/server/billing/subscription";
 import { requireOrgPermission } from "@/server/auth/org-gate";
 import { ProjectService } from "@/server/features/projects/services/ProjectService";
 import {
@@ -18,6 +20,27 @@ import { z } from "zod";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
 
+/**
+ * Starts a new site's first audit, then its automatic setup. Both are kept
+ * alive with waitUntil: a customer who leaves the page before the reply would
+ * otherwise cancel them, and nothing starts them again for that site. The
+ * reply waits only for the audit, whose status the page shows.
+ */
+function startSiteWork(
+  project: { id: string; domain: string | null },
+  customer: BillingCustomerContext,
+) {
+  const audit = DashboardFirstAuditService.start(
+    project.id,
+    project.domain,
+    customer,
+  );
+  waitUntil(
+    audit.catch(() => null).then(() => startAutomaticSetup(project, customer)),
+  );
+  return audit;
+}
+
 export const getProjects = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedReadContext)
   .handler(async ({ context }) =>
@@ -33,12 +56,10 @@ export const createProject = createServerFn({ method: "POST" })
       context.organizationId,
       data,
     );
-    const initialAudit = await DashboardFirstAuditService.start(
-      project.id,
-      project.domain,
-      { ...context, projectId: project.id },
-    );
-    await startAutomaticSetup(project, { ...context, projectId: project.id });
+    const initialAudit = await startSiteWork(project, {
+      ...context,
+      projectId: project.id,
+    });
     return { ...project, initialAudit };
   });
 
@@ -52,14 +73,8 @@ export const updateProject = createServerFn({ method: "POST" })
     );
     const initialAudit =
       project.domain !== context.project.domain
-        ? await DashboardFirstAuditService.start(
-            project.id,
-            project.domain,
-            context,
-          )
+        ? await startSiteWork(project, context)
         : null;
-    if (project.domain !== context.project.domain)
-      await startAutomaticSetup(project, context);
     return { ...project, initialAudit };
   });
 
