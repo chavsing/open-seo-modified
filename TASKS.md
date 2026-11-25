@@ -32,10 +32,6 @@ done list at the bottom with the date.
 
 ## Claude, next
 
-- [ ] Erase the Pro test account chavsing093+agspro@gmail.com once Jamil
-      has tried the Google Search Console connection with it (or says to
-      skip that).
-
 - [ ] Check the first real PayPal payment in the live records the day it
       happens (plan switched on, applied once, email sent).
 - [ ] Not proven live yet: the Shopify-specific setup message and reading a
@@ -63,6 +59,14 @@ done list at the bottom with the date.
 
 ## Done
 
+- 2026-11-25: Google Search Console connection proven on live: the Pro test
+  account connected Bryan's agsmaster.com property and real data showed (4
+  impressions, average position 7.3). No "unverified app" warning, as
+  expected for Search Console. The Pro test account was then erased from the
+  live database (user, organization, project, Search Console connection,
+  credits and history); a recount found nothing left and the real account is
+  untouched. AGS MASTER is still allowed in Bryan's Google account
+  permissions; Jamil chose to leave that for now.
 - 2026-11-25: Pro features run on the live app for the first time, with a
   throwaway Pro account (switched on from the admin page, no payment): the
   $50 monthly credits landed, automatic setup tracked 8 searches and started
