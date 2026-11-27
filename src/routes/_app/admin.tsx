@@ -145,9 +145,9 @@ function AdminBilling() {
     <div className="mx-auto box-content max-w-4xl space-y-5 px-4 py-4 pb-24 md:px-6 md:py-6">
       <PageHeader title="Admin" />
       <p className="text-sm text-muted-foreground">
-        PayPal payments made in the app turn plans on by themselves, including
-        each monthly Pro charge. Anything PayPal couldn&rsquo;t tie to an
-        account shows under PayPal payments to check: find the customer by email
+        PayPal and Paddle payments made in the app turn plans on by themselves,
+        including each monthly Pro charge. Anything that couldn&rsquo;t be tied
+        to an account shows under Payments to check: find the customer by email
         and record it here. Each monthly Pro payment adds one month; a Pro
         yearly payment adds 12 months, with credits refilled each month.
       </p>

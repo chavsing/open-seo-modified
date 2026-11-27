@@ -28,7 +28,7 @@ export function PaypalPaymentsSection() {
   if (payments.length === 0) return null;
   return (
     <section className="space-y-3">
-      <h2 className="font-medium">PayPal payments to check</h2>
+      <h2 className="font-medium">Payments to check</h2>
       <p className="text-sm text-muted-foreground">
         These payments arrived but didn&rsquo;t turn a plan on by themselves.
         Search for the customer below, record the payment, then click Done.
@@ -45,15 +45,16 @@ export function PaypalPaymentsSection() {
             </p>
             <p className="break-words text-muted-foreground">
               {payment.payerEmail
-                ? `PayPal payer: ${payment.payerEmail}`
-                : "PayPal payer email unknown"}
+                ? `Payer: ${payment.payerEmail}`
+                : "Payer email unknown"}
               {payment.organizationName
                 ? ` · Account: ${payment.organizationName}${payment.ownerEmail ? ` (${payment.ownerEmail})` : ""}`
                 : null}
             </p>
             <p className="break-words text-muted-foreground">{payment.note}</p>
             <p className="text-xs text-muted-foreground">
-              {new Date(payment.createdAt).toLocaleString()} &middot; PayPal ID{" "}
+              {new Date(payment.createdAt).toLocaleString()} &middot;{" "}
+              {payment.id.startsWith("txn_") ? "Paddle" : "PayPal"} ID{" "}
               {payment.id}
             </p>
           </div>

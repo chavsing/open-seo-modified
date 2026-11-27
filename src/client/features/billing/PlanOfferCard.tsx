@@ -17,11 +17,14 @@ export function PlanOfferCard({
   offer,
   features,
   afterFeatures,
+  paidWithPaddle,
   children,
 }: {
   offer: PlanOffer;
   features: string[];
   afterFeatures?: ReactNode;
+  /** Sold through Paddle, where Pro Yearly renews each year. */
+  paidWithPaddle: boolean;
   children: ReactNode;
 }) {
   return (
@@ -61,11 +64,17 @@ export function PlanOfferCard({
               charge and we'll refund your payment.
             </TooltipContent>
           </Tooltip>
-          {offer.billing === "monthly"
-            ? ". Cancel anytime in PayPal."
-            : offer.billing === "yearly"
-              ? ". One payment for 12 months, no automatic renewal. Paid with PayPal."
-              : ". Pay once, no renewals. Paid with PayPal."}
+          {paidWithPaddle
+            ? offer.billing === "monthly"
+              ? ". Renews monthly, cancel anytime."
+              : offer.billing === "yearly"
+                ? ". Renews yearly, cancel anytime."
+                : ". Pay once, no renewals."
+            : offer.billing === "monthly"
+              ? ". Cancel anytime in PayPal."
+              : offer.billing === "yearly"
+                ? ". One payment for 12 months, no automatic renewal. Paid with PayPal."
+                : ". Pay once, no renewals. Paid with PayPal."}
         </p>
       </CardContent>
     </Card>

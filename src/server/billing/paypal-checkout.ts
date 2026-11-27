@@ -8,7 +8,7 @@ import {
   parseCheckoutCustomId,
   productName,
   productPriceUsd,
-  recordPaypalPayment,
+  recordPayment,
 } from "@/server/billing/paypal-payments";
 import { hasPaidAccess } from "@/server/billing/plan-access";
 import { AppError } from "@/server/lib/errors";
@@ -160,7 +160,7 @@ export async function captureCheckoutOrder(
   const capture = captured.purchase_units[0]?.payments?.captures?.[0];
   if (!capture) throw new AppError("UPSTREAM_UNAVAILABLE");
   if (capture.status !== "COMPLETED") return "pending";
-  return recordPaypalPayment({
+  return recordPayment({
     id: capture.id,
     amount: capture.amount.value,
     currency: capture.amount.currency_code,

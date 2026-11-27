@@ -70,6 +70,9 @@ describe("getOrganizationBillingAccount", () => {
       monthlyRefillsAt: null,
       invoiceEmailsEnabled: false,
       pendingPaypalSubscriptionId: null,
+      paddle: null,
+      isPaddleSubscription: false,
+      isCanceled: false,
     });
   });
 

@@ -135,6 +135,7 @@ async function remindYearlyRenewals(now: Date) {
       planId: billingAccounts.planId,
       planStatus: billingAccounts.planStatus,
       currentPeriodEnd: billingAccounts.currentPeriodEnd,
+      paddleSubscriptionId: billingAccounts.paddleSubscriptionId,
     })
     .from(billingAccounts)
     .where(eq(billingAccounts.planId, AUTUMN_PRO_YEARLY_PLAN_ID));
@@ -142,6 +143,10 @@ async function remindYearlyRenewals(now: Date) {
   for (const account of accounts) {
     const end = account.currentPeriodEnd;
     if (!end) continue;
+    // A Paddle subscription renews the year by itself unless canceled, so
+    // "pay for another year" would be wrong.
+    if (account.paddleSubscriptionId && account.planStatus !== "canceled")
+      continue;
     const left = Date.parse(end) - now.getTime();
     const ends = formatDate(end);
     let notice: { kind: NoticeKind; title: string; message: string } | null =

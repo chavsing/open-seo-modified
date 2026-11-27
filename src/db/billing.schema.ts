@@ -33,6 +33,13 @@ export const billingAccounts = sqliteTable("billing_accounts", {
   // payment: the browser could report anything.
   paypalSubscriptionId: text("paypal_subscription_id"),
   paypalSubscriptionReportedAt: text("paypal_subscription_reported_at"),
+  // The Paddle subscription that pays for this Pro plan, set when its first
+  // payment is applied, and the Paddle customer for the billing portal.
+  paddleSubscriptionId: text("paddle_subscription_id"),
+  paddleCustomerId: text("paddle_customer_id"),
+  // When the Paddle event behind planStatus happened, so an older event
+  // delivered late can't undo a newer one.
+  paddleStatusAt: text("paddle_status_at"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),

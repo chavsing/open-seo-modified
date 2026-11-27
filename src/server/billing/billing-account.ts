@@ -1,5 +1,6 @@
 import {
   AUTUMN_LIFETIME_PLAN_ID,
+  AUTUMN_PRO_PLAN_ID,
   AUTUMN_PRO_YEARLY_PLAN_ID,
   autumnSeoDataCreditsToUsd,
   type PlanStatus,
@@ -10,7 +11,13 @@ import {
   getCreditBalanceRows,
   recordReportedPaypalSubscription,
 } from "@/server/billing/creditLedger";
+import { z } from "zod";
 import { requireOrgPermission } from "@/server/auth/org-gate";
+import {
+  getPaddleCheckoutConfig,
+  paddleRequest,
+  type PaddleConfig,
+} from "@/server/billing/paddle";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { hasPaidAccess } from "@/server/billing/plan-access";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
@@ -44,15 +51,24 @@ type BillingAccount = {
   /** The PayPal subscription this org reported and the admin has not yet
    *  confirmed: the pages show it instead of another Subscribe button. */
   pendingPaypalSubscriptionId: string | null;
+  /** Paddle checkout settings while the app sells through Paddle; null
+   *  while it still sells through PayPal. */
+  paddle: PaddleConfig | null;
+  /** The paid Pro plan is a Paddle subscription: Paddle renews it, and the
+   *  customer manages or cancels it in Paddle's billing portal. */
+  isPaddleSubscription: boolean;
+  /** The plan is canceled and ends at paidUntil instead of renewing. */
+  isCanceled: boolean;
 };
 
 export async function getOrganizationBillingAccount(
   context: BillingCustomerContext,
 ): Promise<BillingAccount> {
   await ensureBillingAccount(context.organizationId);
-  const [account, balances] = await Promise.all([
+  const [account, balances, paddle] = await Promise.all([
     getBillingAccountRow(context.organizationId),
     getCreditBalanceRows(context.organizationId),
+    getPaddleCheckoutConfig(),
   ]);
   if (!account || !balances.monthly) {
     throw new AppError(
@@ -86,7 +102,65 @@ export async function getOrganizationBillingAccount(
     pendingPaypalSubscriptionId: account.paypalSubscriptionReportedAt
       ? account.paypalSubscriptionId
       : null,
+    paddle,
+    isPaddleSubscription: paid && isPaddleSubscription(account),
+    isCanceled: paid && account.planStatus === "canceled",
   };
+}
+
+// Only a Pro plan is paid by subscription; Lifetime keeps any old link
+// harmlessly.
+function isPaddleSubscription(
+  account: NonNullable<Awaited<ReturnType<typeof getBillingAccountRow>>>,
+) {
+  return (
+    account.paddleSubscriptionId !== null &&
+    account.paddleCustomerId !== null &&
+    (account.planId === AUTUMN_PRO_PLAN_ID ||
+      account.planId === AUTUMN_PRO_YEARLY_PLAN_ID)
+  );
+}
+
+const portalSessionSchema = z.object({
+  data: z.object({
+    urls: z.object({
+      general: z.object({ overview: z.string().url() }),
+    }),
+  }),
+});
+
+/**
+ * A one-time link to Paddle's billing portal for the owner's subscription,
+ * where they update their card, download invoices or cancel.
+ */
+export async function createPaddlePortalLink(
+  context: Pick<EnsuredUserContext, "organizationId" | "role">,
+) {
+  requireOrgPermission(context, { billing: ["manage"] });
+  const account = await getBillingAccountRow(context.organizationId);
+  if (!account || !isPaddleSubscription(account)) {
+    throw new AppError("NOT_FOUND", "No Paddle subscription on this account");
+  }
+  const response = await paddleRequest(
+    `/customers/${encodeURIComponent(account.paddleCustomerId ?? "")}/portal-sessions`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        subscription_ids: [account.paddleSubscriptionId],
+      }),
+    },
+  );
+  const session = portalSessionSchema.safeParse(response?.body);
+  if (!response?.ok || !session.success) {
+    console.error("[paddle] portal session failed", {
+      status: response?.status ?? "no API key",
+    });
+    throw new AppError(
+      "UPSTREAM_UNAVAILABLE",
+      "Paddle's billing portal isn't available right now. Please try again, or email support.",
+    );
+  }
+  return session.data.data.urls.general.overview;
 }
 
 /**

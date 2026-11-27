@@ -61,6 +61,14 @@ declare namespace Cloudflare {
     // of the webhook that reports payments (hosted only).
     PAYPAL_CLIENT_SECRET?: string;
     PAYPAL_WEBHOOK_ID?: string;
+    // The client's Paddle account (hosted only): the public client token for
+    // Paddle.js, the notification destination's secret, the API key for the
+    // billing portal, and "sandbox" to use Paddle's sandbox. Checkout moves
+    // from PayPal to Paddle once the token and secret are set.
+    PADDLE_CLIENT_TOKEN?: string;
+    PADDLE_WEBHOOK_SECRET?: string;
+    PADDLE_API_KEY?: string;
+    PADDLE_ENVIRONMENT?: string;
 
     // Cloudflare Turnstile — signup captcha (hosted only). Secret verifies
     // tokens server-side; site key is public and inlined into the client build.

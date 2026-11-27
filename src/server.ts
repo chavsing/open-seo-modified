@@ -163,6 +163,12 @@ function handleFetch(
     );
   }
 
+  if (pathname === "/api/paddle/webhook") {
+    return import("@/server/billing/paddle-webhook").then(
+      ({ handlePaddleWebhook }) => handlePaddleWebhook(publicRequest),
+    );
+  }
+
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
     return handleGdprStorageErasure(publicRequest, env);
   }

@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
@@ -22,6 +23,7 @@ import {
   PRO_YEARLY_PLAN_OFFER,
 } from "@/client/features/billing/plan-offers";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
+import { getPaddlePortalLink } from "@/serverFunctions/billing";
 import { PAYPAL_AUTOPAY_URL } from "@/shared/billing";
 import { BRAND_NAME } from "@/shared/brand";
 
@@ -64,6 +66,7 @@ function BillingPage() {
     refillDate,
   } = useCreditBalance();
   const account = accountQuery.data;
+  const provider = account?.paddle ? "Paddle" : "PayPal";
 
   // Plan changes are owner-only; other members see balances but are pointed
   // at the owner instead.
@@ -188,7 +191,8 @@ function BillingPage() {
                       </div>
                     ))}
                     <p className="text-xs text-muted-foreground">
-                      Your plan turns on as soon as PayPal confirms the payment.
+                      Your plan turns on as soon as {provider} confirms the
+                      payment.
                     </p>
                   </div>
                 ) : account.isLifetime ? (
@@ -196,6 +200,13 @@ function BillingPage() {
                     Lifetime access: nothing to renew. Questions? Email{" "}
                     {supportLink}.
                   </p>
+                ) : account.isPaddleSubscription ? (
+                  <PaddleSubscriptionDetails
+                    paidUntil={account.paidUntil}
+                    isYearly={account.isYearly}
+                    isCanceled={account.isCanceled}
+                    isPastDue={account.isPastDue}
+                  />
                 ) : account.isYearly ? (
                   <div className="space-y-3 border-t border-border pt-3">
                     <p className="text-sm text-muted-foreground">
@@ -247,8 +258,66 @@ function BillingPage() {
       <BillingUsageCard />
 
       <p className="text-xs text-muted-foreground">
-        Payments are handled by PayPal. Questions? Email {supportLink}.
+        Payments are handled by {provider}. Questions? Email {supportLink}.
       </p>
+    </div>
+  );
+}
+
+const formatDay = (epochMs: number) =>
+  new Date(epochMs).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+/** A Pro plan paid by Paddle subscription: when it renews or ends, and the
+ *  link to Paddle's billing portal to change the card or cancel. */
+function PaddleSubscriptionDetails({
+  paidUntil,
+  isYearly,
+  isCanceled,
+  isPastDue,
+}: {
+  paidUntil: number | null;
+  isYearly: boolean;
+  isCanceled: boolean;
+  isPastDue: boolean;
+}) {
+  const portal = useMutation({
+    mutationFn: () => getPaddlePortalLink(),
+    // The link is single-use and short-lived, so it opens right away.
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+  const until = paidUntil ? formatDay(paidUntil) : null;
+  return (
+    <div className="space-y-3 border-t border-border pt-3">
+      <p className="text-sm text-muted-foreground">
+        {isCanceled
+          ? until
+            ? `Canceled. Your plan stays active until ${until}.`
+            : "Canceled. Your plan stays active until the end of the paid period."
+          : isPastDue
+            ? "Your last payment didn't go through. Update your card in the billing portal to keep your plan."
+            : until
+              ? `Paid through ${until}. Renews automatically every ${isYearly ? "year" : "month"}.`
+              : `Renews automatically every ${isYearly ? "year" : "month"}.`}{" "}
+        Update your card, download invoices or cancel in the billing portal.
+      </p>
+      <Button
+        variant="secondary"
+        className="w-full"
+        disabled={portal.isPending}
+        onClick={() => portal.mutate()}
+      >
+        {portal.isPending ? "Opening..." : "Manage billing"}
+      </Button>
+      {portal.isError ? (
+        <p role="alert" className="text-sm text-destructive">
+          The billing portal couldn&rsquo;t open. Please try again, or email{" "}
+          {SUPPORT_EMAIL}.
+        </p>
+      ) : null}
     </div>
   );
 }

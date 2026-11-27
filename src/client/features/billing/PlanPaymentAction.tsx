@@ -9,6 +9,7 @@ import { captureClientEvent } from "@/client/lib/posthog";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { queryClient } from "@/client/tanstack-db";
 import { reportPaypalSubscriptionApproved } from "@/serverFunctions/billing";
+import { PaddleCheckoutButton } from "@/client/features/billing/PaddleCheckoutButton";
 import { PaypalCheckoutButton } from "@/client/features/billing/PaypalCheckoutButton";
 import {
   isClosedWindowError,
@@ -17,7 +18,8 @@ import {
 import { PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
 
 /**
- * How a plan is paid for: Pro yearly and Lifetime use the app's PayPal
+ * How a plan is paid for. Once the app sells through Paddle, every plan is
+ * Paddle's checkout. Until then, Pro yearly and Lifetime use the app's PayPal
  * checkout and turn on as soon as the payment is captured. Pro renders
  * PayPal's subscription button, tagged with this organization so PayPal's
  * webhook can turn the plan on when each month is paid. A reported
@@ -32,6 +34,21 @@ export function PlanPaymentAction({ offer }: { offer: PlanOffer }) {
     refetchInterval: (query) =>
       query.state.data?.pendingPaypalSubscriptionId ? 15_000 : false,
   });
+
+  if (account?.paddle) {
+    return (
+      <PaddleCheckoutButton
+        product={
+          offer.billing === "monthly"
+            ? "pro_month"
+            : offer.billing === "yearly"
+              ? "pro_year"
+              : "lifetime"
+        }
+        label={offer.billing === "once" ? `Buy ${offer.name}` : "Subscribe"}
+      />
+    );
+  }
 
   if (offer.billing !== "monthly") {
     return (

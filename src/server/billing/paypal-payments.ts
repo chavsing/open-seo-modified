@@ -22,9 +22,10 @@ import {
   type PaypalCheckoutProduct,
 } from "@/shared/billing";
 
-// Turns a PayPal payment into the plan change the admin page would make by
-// hand, once per PayPal payment id. Both the app's own checkout and PayPal's
-// webhook land here, often for the same payment.
+// Turns a PayPal or Paddle payment into the plan change the admin page would
+// make by hand, once per payment id. PayPal's checkout, PayPal's webhook and
+// Paddle's webhook all land here, PayPal's often twice for the same payment.
+// Paddle's ids (txn_...) can't collide with PayPal's.
 
 type PaypalProduct = "pro_month" | PaypalCheckoutProduct;
 
@@ -105,8 +106,10 @@ export function parseCheckoutCustomId(customId: string | null | undefined) {
   return organizationId ? { product: parsed, organizationId } : null;
 }
 
-type ReceivedPaypalPayment = {
-  /** PayPal's capture or sale id. */
+type ReceivedPayment = {
+  /** Who took the payment. PayPal unless said otherwise. */
+  source?: "PayPal" | "Paddle";
+  /** PayPal's capture or sale id, or Paddle's transaction id. */
   id: string;
   amount: string;
   currency: string;
@@ -118,17 +121,21 @@ type ReceivedPaypalPayment = {
   unmatchedReason?: string;
   /** When PayPal took a monthly charge, to recognise one already counted. */
   paidAt?: string;
+  /** The product came from the payment's own price ID (Paddle), so the
+   *  amount, which includes tax and any discount, isn't checked. */
+  priceChecked?: boolean;
 };
 
 /**
- * Applies a completed PayPal payment to its account, or records it for the
- * admin when it can't be. Safe to call again for the same payment: the
- * first record wins and the plan change itself is keyed on the payment id.
- * An unexpected failure throws without recording, so PayPal's webhook retries.
+ * Applies a completed payment to its account, or records it for the admin
+ * when it can't be. Safe to call again for the same payment: the first
+ * record wins and the plan change itself is keyed on the payment id. An
+ * unexpected failure throws without recording, so the webhook retries.
  */
-export async function recordPaypalPayment(
-  payment: ReceivedPaypalPayment,
+export async function recordPayment(
+  payment: ReceivedPayment,
 ): Promise<"applied" | "needs_review"> {
+  const source = payment.source ?? "PayPal";
   const [existing] = await db
     .select({ status: paypalPayments.status })
     .from(paypalPayments)
@@ -142,15 +149,15 @@ export async function recordPaypalPayment(
     const change = PRODUCTS[payment.product].change;
     try {
       const result = await applyAdminBillingAction({
-        requestId: `paypal:${payment.id}`,
+        requestId: `${source.toLowerCase()}:${payment.id}`,
         organizationId: payment.organizationId,
-        adminEmail: "PayPal",
+        adminEmail: source,
         change,
       });
       if (result.applied) {
         await notifyPlanChange(payment.organizationId, change).catch(
           (error: unknown) =>
-            console.error("[paypal] plan change email failed", { error }),
+            console.error("[billing] plan change email failed", { error }),
         );
       }
     } catch (error) {
@@ -178,7 +185,8 @@ export async function recordPaypalPayment(
       createdAt: new Date().toISOString(),
     })
     .onConflictDoNothing();
-  console.info("[paypal] payment recorded", {
+  console.info("[billing] payment recorded", {
+    source,
     id: payment.id,
     organizationId: payment.organizationId,
     product: payment.product,
@@ -193,7 +201,7 @@ export async function recordPaypalPayment(
  * the same charge under different PayPal ids. Counting it again would give a
  * second month for one payment.
  */
-async function monthAlreadyCounted(payment: ReceivedPaypalPayment) {
+async function monthAlreadyCounted(payment: ReceivedPayment) {
   if (
     payment.product !== "pro_month" ||
     !payment.paidAt ||
@@ -214,15 +222,18 @@ async function monthAlreadyCounted(payment: ReceivedPaypalPayment) {
   return Boolean(later);
 }
 
-async function reviewReason(payment: ReceivedPaypalPayment) {
+async function reviewReason(payment: ReceivedPayment) {
   if (!payment.organizationId || !payment.product) {
     return (
       payment.unmatchedReason ??
-      "PayPal didn't say which account this payment is for."
+      `${payment.source ?? "PayPal"} didn't say which account this payment is for.`
     );
   }
   const expected = PRODUCTS[payment.product].priceUsd;
-  if (payment.currency !== "USD" || Number(payment.amount) !== expected) {
+  if (
+    !payment.priceChecked &&
+    (payment.currency !== "USD" || Number(payment.amount) !== expected)
+  ) {
     return `Paid ${payment.amount} ${payment.currency}, but ${productName(payment.product)} costs $${expected}.`;
   }
   const [org] = await db

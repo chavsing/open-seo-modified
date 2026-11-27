@@ -3,7 +3,7 @@ import { paypalRequest } from "@/server/billing/paypal";
 import {
   parseCheckoutCustomId,
   productForAmount,
-  recordPaypalPayment,
+  recordPayment,
 } from "@/server/billing/paypal-payments";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import { PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
@@ -141,7 +141,7 @@ async function handleCapture(capture: z.infer<typeof captureSchema>) {
   const currency = capture.amount.currency_code;
   const tagged = parseCheckoutCustomId(capture.custom_id);
   if (tagged) {
-    await recordPaypalPayment({
+    await recordPayment({
       id: capture.id,
       amount,
       currency,
@@ -154,7 +154,7 @@ async function handleCapture(capture: z.infer<typeof captureSchema>) {
   const product = productForAmount(amount, currency);
   if (!product || product === "pro_month") return;
   const orderId = capture.supplementary_data?.related_ids?.order_id;
-  await recordPaypalPayment({
+  await recordPayment({
     id: capture.id,
     amount,
     currency,
@@ -190,7 +190,7 @@ async function handleSale(sale: z.infer<typeof saleSchema>) {
   if (subscription.plan_id !== PAYPAL_PRO_PLAN_ID) return;
   // The app's Subscribe button sets custom_id to the account id.
   const organizationId = subscription.custom_id?.trim() || null;
-  await recordPaypalPayment({
+  await recordPayment({
     id: sale.id,
     amount: sale.amount.total,
     currency: sale.amount.currency,

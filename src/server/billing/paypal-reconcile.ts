@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { billingAccounts } from "@/db/schema";
 import { paypalRequest } from "@/server/billing/paypal";
-import { recordPaypalPayment } from "@/server/billing/paypal-payments";
+import { recordPayment } from "@/server/billing/paypal-payments";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import { AUTUMN_PRO_PLAN_ID, PAYPAL_PRO_PLAN_ID } from "@/shared/billing";
 
@@ -121,7 +121,7 @@ async function reconcileSubscription(
   }
   for (const charge of transactionsSchema.parse(listed.body).transactions) {
     if (charge.status !== "COMPLETED") continue;
-    await recordPaypalPayment({
+    await recordPayment({
       id: charge.id,
       amount: charge.amount_with_breakdown.gross_amount.value,
       currency: charge.amount_with_breakdown.gross_amount.currency_code,

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
+  createPaddlePortalLink,
   getOrganizationBillingAccount,
   reportPaypalSubscription,
 } from "@/server/billing/billing-account";
@@ -53,6 +54,14 @@ export const capturePaypalCheckoutOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
     return { status: await captureCheckoutOrder(context, data.orderId) };
+  });
+
+// A one-time link to Paddle's billing portal for the owner's subscription.
+export const getPaddlePortalLink = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .handler(async ({ context }) => {
+    if (!(await isHostedServerAuthMode())) throw new AppError("NOT_FOUND");
+    return { url: await createPaddlePortalLink(context) };
   });
 
 const billingUsageRangeSchema = z.object({

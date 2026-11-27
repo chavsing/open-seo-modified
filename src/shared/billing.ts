@@ -44,6 +44,24 @@ export const PAYPAL_PRO_YEARLY_PAYMENT_URL =
   "https://www.paypal.com/ncp/payment/CHM339HPXC6E8";
 export const PAYPAL_LIFETIME_PAYMENT_URL =
   "https://www.paypal.com/ncp/payment/LCS24A5ZRK82S";
+// The client's Paddle catalog, one price per product. Pro and Pro Yearly are
+// Paddle subscriptions; Lifetime and the credit pack are one-time. A payment
+// is matched to its product by price ID, never by amount, since Paddle adds
+// tax by country. Sandbox prices get their own map when a sandbox is used.
+export type PaddleProduct = "pro_month" | PaypalCheckoutProduct;
+export type PaddleEnvironment = "production" | "sandbox";
+export const PADDLE_PRICE_IDS: Record<
+  PaddleEnvironment,
+  Record<PaddleProduct, string> | null
+> = {
+  production: {
+    pro_month: "pri_01m8ejg57etqcce194qgtnj5w5",
+    pro_year: "pri_01m8ejh00qzxbzas9469cq6egd",
+    lifetime: "pri_01m8ejj34sr1mr9xf28ct7628k",
+    credit_pack: "pri_01m8ejjd33tw9xzmn178sx9c77",
+  },
+  sandbox: null,
+};
 // Where a PayPal customer manages or cancels their automatic payments.
 export const PAYPAL_AUTOPAY_URL = "https://www.paypal.com/myaccount/autopay/";
 // The shared usage-credit pool. Both DataForSEO and agent-LLM spend deduct

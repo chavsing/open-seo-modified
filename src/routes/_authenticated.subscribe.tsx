@@ -136,6 +136,7 @@ function SubscribePage() {
             key={offer.planId}
             offer={offer}
             features={planFeatures(offer)}
+            paidWithPaddle={Boolean(account?.paddle)}
           >
             {canManageBilling ? (
               <PlanPaymentAction offer={offer} />
@@ -151,7 +152,8 @@ function SubscribePage() {
 
       {canManageBilling ? (
         <p className="text-center text-sm text-muted-foreground">
-          Your plan turns on as soon as PayPal confirms the payment.
+          Your plan turns on as soon as {account?.paddle ? "Paddle" : "PayPal"}{" "}
+          confirms the payment.
         </p>
       ) : null}
 
