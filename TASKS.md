@@ -42,7 +42,13 @@ done list at the bottom with the date.
 
 ## Claude, waiting on a decision
 
-- None.
+- [ ] Move payments from PayPal to Paddle (Bryan's plan, 2026-11-27). The
+      pricing summary for him is "AGS MASTER pricing and packages.md".
+      Waiting on: the Paddle price IDs (pri_...) for all four products, and
+      whether Pro Yearly stays one-time or becomes a yearly subscription.
+      Then: Billing page checkout, Paddle webhook to switch plans and credits
+      on and off, and the terms and privacy pages naming Paddle instead of
+      PayPal. Until then, Paddle payments need switching on by hand.
 
 ## Later, if the client wants company customers
 
