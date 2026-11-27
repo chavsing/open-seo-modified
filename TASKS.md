@@ -42,13 +42,17 @@ done list at the bottom with the date.
 
 ## Claude, waiting on a decision
 
-- [ ] Move payments from PayPal to Paddle (Bryan's plan, 2026-11-27). The
-      pricing summary for him is "AGS MASTER pricing and packages.md".
-      Waiting on: the Paddle price IDs (pri_...) for all four products, and
-      whether Pro Yearly stays one-time or becomes a yearly subscription.
-      Then: Billing page checkout, Paddle webhook to switch plans and credits
-      on and off, and the terms and privacy pages naming Paddle instead of
-      PayPal. Until then, Paddle payments need switching on by hand.
+- [ ] Switch payments from PayPal to Paddle. The app side is built and live
+      but switched off (2026-11-27): it turns on once PADDLE_CLIENT_TOKEN and
+      PADDLE_WEBHOOK_SECRET are set (plus PADDLE_API_KEY for the billing
+      portal). Pro Yearly is now a yearly Paddle subscription. Waiting on
+      Bryan: Paddle live account verification, the notification destination
+      at https://app.agsmaster.com/api/paddle/webhook, approved domains and
+      default payment link, and the three keys. Then: deploy with the keys,
+      test with a 100%-off discount code, update the terms and privacy pages
+      to name Paddle, and update the AI assistant's fact sheet (it says
+      PayPal). Not handled automatically: Paddle refunds (downgrade by hand on
+      the admin page, as with PayPal).
 
 ## Later, if the client wants company customers
 
