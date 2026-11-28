@@ -45,10 +45,13 @@ done list at the bottom with the date.
 - [ ] Switch payments from PayPal to Paddle. The app side is built and live
       but switched off (2026-11-27): it turns on once PADDLE_CLIENT_TOKEN and
       PADDLE_WEBHOOK_SECRET are set (plus PADDLE_API_KEY for the billing
-      portal). Pro Yearly is now a yearly Paddle subscription. Waiting on
-      Bryan: Paddle live account verification, the notification destination
-      at https://app.agsmaster.com/api/paddle/webhook, approved domains and
-      default payment link, and the three keys. Then: deploy with the keys,
+      portal). Pro Yearly is now a yearly Paddle subscription. Bryan's
+      account verification, payouts, webhook and agsmaster.com are approved
+      (2026-11-28). Waiting on: app.agsmaster.com approval (resubmitted after
+      adding pricing, Terms, Privacy and Refund policy links to the app's
+      sign-in and billing pages and a /refunds page on agsmaster.com), then
+      the default payment link https://app.agsmaster.com/billing, and the
+      three keys. Then: deploy with the keys,
       test with a 100%-off discount code, update the terms and privacy pages
       to name Paddle, and update the AI assistant's fact sheet (it says
       PayPal). Not handled automatically: Paddle refunds (downgrade by hand on
