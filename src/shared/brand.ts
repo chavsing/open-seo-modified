@@ -16,9 +16,12 @@ export const SUPPORT_EMAIL = "bryansumait.contact@gmail.com";
 // The public marketing site (the landing page in landing/).
 export const MARKETING_SITE_URL = "https://agsmaster.com";
 
-// The legal pages linked from sign-up. landing/ serves them at these paths.
+// The legal pages and pricing, linked from the sign-in, sign-up and billing
+// pages (the payment provider checks they are there). landing/ serves them.
 export const TERMS_URL = `${MARKETING_SITE_URL}/terms`;
 export const PRIVACY_URL = `${MARKETING_SITE_URL}/privacy`;
+export const REFUNDS_URL = `${MARKETING_SITE_URL}/refunds`;
+export const PRICING_URL = `${MARKETING_SITE_URL}/#pricing`;
 
 // The app's own address, used only where the real one can't be read from the
 // current request.

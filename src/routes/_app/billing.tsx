@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { LegalLinks } from "@/client/components/LegalLinks";
 import { PageHeader } from "@/client/components/PageHeader";
 import { QueryError } from "@/client/components/QueryState";
 import { Button } from "@/client/components/ui/button";
@@ -260,6 +261,7 @@ function BillingPage() {
       <p className="text-xs text-muted-foreground">
         Payments are handled by {provider}. Questions? Email {supportLink}.
       </p>
+      <LegalLinks align="start" />
     </div>
   );
 }

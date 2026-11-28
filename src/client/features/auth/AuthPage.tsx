@@ -1,3 +1,4 @@
+import { LegalLinks } from "@/client/components/LegalLinks";
 import { z } from "zod";
 import { Button } from "@/client/components/ui/button";
 import {
@@ -175,6 +176,9 @@ export function AuthPageShell({ children }: { children: React.ReactNode }) {
     // the overflow with no way to scroll to it.
     <div className="flex h-[100dvh] flex-col items-center overflow-y-auto bg-background p-4">
       <div className="m-auto flex w-full flex-col items-center">{children}</div>
+      <div className="pt-6">
+        <LegalLinks />
+      </div>
     </div>
   );
 }

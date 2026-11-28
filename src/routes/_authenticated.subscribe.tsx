@@ -1,3 +1,4 @@
+import { LegalLinks } from "@/client/components/LegalLinks";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -168,6 +169,7 @@ function SubscribePage() {
           </a>
           .
         </p>
+        <LegalLinks />
         {isUpgradeFlow ? (
           <Button
             type="button"
