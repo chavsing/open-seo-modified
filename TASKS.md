@@ -52,8 +52,8 @@ done list at the bottom with the date.
       sign-in and billing pages and a /refunds page on agsmaster.com), then
       the default payment link https://app.agsmaster.com/billing, and the
       three keys. Then: deploy with the keys,
-      test with a 100%-off discount code, update the terms and privacy pages
-      to name Paddle, and update the AI assistant's fact sheet (it says
+      test with a 100%-off discount code (the landing page, Terms, Privacy
+      and Refund Policy already name Paddle since 2026-11-28), and update the AI assistant's fact sheet (it says
       PayPal). Not handled automatically: Paddle refunds (downgrade by hand on
       the admin page, as with PayPal).
 
